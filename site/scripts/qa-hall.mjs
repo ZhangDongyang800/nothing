@@ -1,6 +1,7 @@
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const BASE = process.env.QA_BASE || 'http://localhost:5274/';
@@ -20,6 +21,24 @@ async function openPage(width, height, userAgent, isMobile = false) {
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(250);
   return { context, page, errors };
+}
+
+async function probeDownload(page, href) {
+  const url = new URL(href, BASE).href;
+  try {
+    const raw = execFileSync('curl.exe', ['-sS', '-I', '-L', '--max-time', '30', url], {
+      encoding: 'utf8',
+      windowsHide: true,
+    });
+    const blocks = raw.split(/\r?\n\r?\n/).filter((b) => b.trim());
+    const last = blocks[blocks.length - 1] || '';
+    const status = Number((/HTTP\/[\d.]+ (\d+)/.exec(last) || [])[1] || 0);
+    const type = (/content-type:\s*([^\r\n]+)/i.exec(last) || [])[1]?.trim() || '';
+    const length = (/content-length:\s*(\d+)/i.exec(last) || [])[1] || '';
+    return { href, status, type, length };
+  } catch {
+    return { href, status: 0, type: '', length: '' };
+  }
 }
 
 {
@@ -52,14 +71,8 @@ async function openPage(width, height, userAgent, isMobile = false) {
 
   const downloadChecks = [];
   for (const d of base.downloads) {
-    const dl = await page.request.head(new URL(d.href, BASE).href);
-    downloadChecks.push({
-      href: d.href,
-      text: d.text,
-      status: dl.status(),
-      type: dl.headers()['content-type'],
-      length: dl.headers()['content-length'],
-    });
+    const dl = await probeDownload(page, d.href);
+    downloadChecks.push({ href: d.href, text: d.text, status: dl.status, type: dl.type, length: dl.length });
   }
 
   await page.screenshot({ path: path.join(OUT, 'hall-desktop.png') });
@@ -115,13 +128,8 @@ async function openPage(width, height, userAgent, isMobile = false) {
   }));
   const downloadChecks = [];
   for (const d of mobile.downloads) {
-    const mres = await page.request.head(new URL(d.href, BASE).href);
-    downloadChecks.push({
-      ...d,
-      status: mres.status(),
-      type: mres.headers()['content-type'],
-      length: mres.headers()['content-length'],
-    });
+    const mres = await probeDownload(page, d.href);
+    downloadChecks.push({ ...d, status: mres.status, type: mres.type, length: mres.length });
   }
   await page.screenshot({ path: path.join(OUT, 'hall-mobile.png') });
   await page.evaluate(() => document.querySelector('#download')?.scrollIntoView());
@@ -160,7 +168,7 @@ const isRemote = !BASE.includes('localhost');
 const desktop = report.cases.find((c) => c.viewport === 'desktop');
 const mobile = report.cases.find((c) => c.viewport === 'mobile');
 const bothKinds = (list) => list.some((d) => d.href.endsWith('.exe')) && list.some((d) => d.href.endsWith('.apk'));
-const toolboxLinks = (list) => list.filter((d) => /Toolbox-Setup-0\.[0-9]+\.[0-9]+\.exe$/.test(d.href));
+const toolboxLinks = (list) => list.filter((d) => /Toolbox-Setup-0\.\d+\.\d+\.exe/i.test(d.href));
 const expectedOrder = ['墨潮', '走墨', '写了个写', '连字', '破砖', '砖块', '垒塔', '叠山', '稿纸', '专注', '抽词', '敲印'];
 const bad = report.cases.flatMap((c) => c.errors).length
   || (isRemote && [...desktop.downloads, ...mobile.downloads].some((d) => d.status !== 200))
@@ -176,8 +184,7 @@ const bad = report.cases.flatMap((c) => c.errors).length
   || desktop.base.copy.includes('写作之外')
   || desktop.base.copy.includes('十二台小机器')
   || mobile.mobile.zoneNote?.includes('写作之外')
-  || !mobile.runRot?.visible
-  || !mobile.runRot?.label?.includes('横')
+  || mobile.runRot?.visible
   || mobile.paperRot
   || desktop.opened.some((o) => o.rot)
   || !desktop.base.zones.download

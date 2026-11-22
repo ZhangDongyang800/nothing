@@ -1,9 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { attachHall } from './engine';
 
-const DESKTOP_DOWNLOAD = '/downloads/TxxT-Setup-1.4.0.exe';
-const ANDROID_DOWNLOAD = '/downloads/TxxT-Android-1.0.apk';
-const TOOLBOX_DOWNLOAD = '/downloads/Toolbox-Setup-0.1.0.exe';
+const DESKTOP_DOWNLOAD =
+  'https://github.com/ZhangDongyang800/nothing/releases/download/txxt-latest/TxxT-Setup-1.4.0.exe';
+const ANDROID_DOWNLOAD =
+  'https://github.com/ZhangDongyang800/nothing/releases/download/txxt-latest/TxxT-Android-1.1.apk';
+const TOOLBOX_DOWNLOAD =
+  'https://github.com/ZhangDongyang800/nothing/releases/download/toolbox-latest/Toolbox-Setup-0.1.0.exe';
 
 /**
  * 官网首页：游戏厅在前，应用下载在后。
@@ -353,11 +356,11 @@ export default function Hall() {
               <div className="app-actions">
                 <a className="app-dl" href={DESKTOP_DOWNLOAD} download>
                   <span>Windows · EXE</span>
-                  <b>100 MB ↓</b>
+                  <b>96 MB ↓</b>
                 </a>
                 <a className="app-dl app-dl-alt" href={ANDROID_DOWNLOAD} download>
                   <span>Android · APK</span>
-                  <b>7.6 MB ↓</b>
+                  <b>4.6 MB ↓</b>
                 </a>
               </div>
             </article>
@@ -375,7 +378,7 @@ export default function Hall() {
               <div className="app-actions">
                 <a className="app-dl app-dl-blue" href={TOOLBOX_DOWNLOAD} download>
                   <span>Windows · EXE</span>
-                  <b>244 MB ↓</b>
+                  <b>255 MB ↓</b>
                 </a>
               </div>
             </article>

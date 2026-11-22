@@ -2,7 +2,7 @@
 
 本目录是站点源码，首页只做目录，不写产品叙事。两区顺序固定：`01 / 小游戏` 在前，12 个游戏按内容体量从大到小排（墨潮、走墨、写了个写、连字、破砖、砖块、垒塔、叠山、稿纸、专注、抽词、敲印）；`02 / 应用` 在后，TxxT 与工具箱是**两张并列卡**，各有自己的下载入口。顶部导航只有 `小游戏 12` 与 `应用 2`，没有站点级下载按钮，也没有页脚。视觉沿用 **B · Neo-brutalism Lite**（纸黄、粗边、硬阴影、`#fff8e8` 纸 + `#252525` 墨）。
 
-十二台小游戏（点开即可玩，每个效果都能「再来一次」，支持手机与中文输入法，每一台都有「成 / 散」两头的明确收尾）。**点开是整屏机台，不是弹窗**：`.machine` 直接 `absolute;inset:0`，没有边框、没有硬影、没有暗底。手机上**没有「横屏」按钮**：方向一变，版面自己变（`@media (pointer:coarse) and (min-aspect-ratio:1/1)`）—— 顶栏与底栏整条撤掉，只留浮在安全区里的「⟲ 重来」与「✕ 关掉」，06/09/10/11 四台的读数挪到左侧竖排、触控键挪到右侧，台面按整块高度吃满（破砖 426×382，走墨 786×344）。
+12 个小游戏（点开即可玩，每个效果都能「再来一次」，支持手机与中文输入法，每一个都有「成 / 散」两头的明确收尾）。**点开是整屏游戏，不是弹窗**：`.machine` 直接 `absolute;inset:0`，没有边框、没有硬影、没有暗底。手机上**没有「横屏」按钮**：方向一变，版面自己变（`@media (pointer:coarse) and (min-aspect-ratio:1/1)`）—— 顶栏与底栏整条撤掉，只留浮在安全区里的「⟲ 重来」与「✕ 关掉」，06/09/10/11 四台的读数挪到左侧竖排、触控键挪到右侧，台面按整块高度吃满（破砖 426×382，走墨 786×344）。
 
 | 游戏 | 玩法与结果 |
 | --- | --- |
@@ -23,9 +23,13 @@
 
 ## 下载与安装
 
-- Windows TxxT：`https://115.159.51.233/downloads/TxxT-Setup-1.4.0.exe`（NSIS 安装包，约 100 MB）
-- Android TxxT：`https://115.159.51.233/downloads/TxxT-Android-1.0.apk`（约 7.6 MB）
-- 工具箱（独立 Windows 工具）：`https://115.159.51.233/downloads/Toolbox-Setup-0.1.0.exe`（NSIS 安装包，255,034,902 B，约 244 MB）。下载后双击，按提示选择安装位置。
+安装包统一走公开仓库的滚动 Release，服务器不再保存任何安装包：
+
+- TxxT Windows：`https://github.com/ZhangDongyang800/nothing/releases/download/txxt-latest/TxxT-Setup-1.4.0.exe`（NSIS，96,117,628 B）
+- TxxT Android：`https://github.com/ZhangDongyang800/nothing/releases/download/txxt-latest/TxxT-Android-1.1.apk`（4,594,467 B）
+- 工具箱 Windows：`https://github.com/ZhangDongyang800/nothing/releases/download/toolbox-latest/Toolbox-Setup-0.1.0.exe`（NSIS，254,983,723 B）
+
+`latest.yml` 与 `.blockmap` 也在同一 Release 里，客户端自动更新读取同一组资产。初装从官网按钮下载，之后由应用自己更新。
 
 ## 消除特效（FX）
 
@@ -105,16 +109,16 @@ npm run preview    # http://localhost:5274/
 
 - 静态站 root：容器内 `/usr/share/nginx/html/site/current`，宿主机 `/opt/txxt-sync/site/current`，软链指向 `releases/<时间戳>`。每次发布建新 release，再原子切换软链，不覆盖旧版本。
 - 同步 API 只反代 `/v1/`（`/v1/auth/` 单独限流），根路径不再落到同步服务。
-- 安装包走稳定目录 `/downloads/`，宿主机 `/opt/txxt-sync/downloads`，与站点 release 解耦；Nginx 以 `application/octet-stream` 直出，支持 Range 断点续传。
+- 安装包不再放服务器：`/opt/txxt-sync/downloads` 已清空，官网按钮直接指向 GitHub Release；初装走官网，升级由客户端自动更新读取同一组 `latest.yml` 资产。
 - 配置备份在 `/opt/txxt-sync/backups/<时间戳>/`；证书在 `/etc/letsencrypt/live/115.159.51.233/`，由 `txxt-certbot-renew.timer` 续期。
 
-当前安装包：
+当前安装包（全部在 `ZhangDongyang800/nothing` 的滚动 Release）：
 
 | 平台 | 文件 | 大小 | SHA-256 |
 | --- | --- | --- | --- |
-| Windows | `/downloads/TxxT-Setup-1.4.0.exe` | 100,021,209 | `404d3f60a9f2f5990c323a148022651f0b6ac5c68cd08ddf5b2e8e5aa0932c52` |
-| Android | `/downloads/TxxT-Android-1.0.apk` | 7,612,749 | `64a9fc9615b0d9c9b4713fcef459e69e49c110a744148c0ce9f235bcdcaf1985` |
-| Windows（工具箱） | `/downloads/Toolbox-Setup-0.1.0.exe` | 255,034,902 | `1ce12bcdc0b4c1d8d2b8f5346aba678625ade585e11699cc610d0dc77c4b3191` |
+| Windows | `txxt-latest/TxxT-Setup-1.4.0.exe` | 96,117,628 | `b1fb372d238031e5049eacd887503af1de9e25e1db1840ba672a8c5af82167c4` |
+| Android | `txxt-latest/TxxT-Android-1.1.apk` | 4,594,467 | `5e1dbe05ca2c7e9f2d169e6adaf723507900cb8c64e276d4f1a500d4b7ec2297` |
+| Windows（工具箱） | `toolbox-latest/Toolbox-Setup-0.1.0.exe` | 254,983,723 | `335ed1cc777e6271b3eaa9607846c359d9a50eefd79830530c0fbeb2cce5ae29` |
 
 Android 当前为 debug 签名内测包；正式分发前需要换 release keystore，并统一版本号口径。
 
