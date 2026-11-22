@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="field" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#3A473E"/>
+      <stop offset="0.55" stop-color="#2C3830"/>
+      <stop offset="1" stop-color="#202B24"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBF7EC"/>
+      <stop offset="1" stop-color="#EFE7D6"/>
+    </linearGradient>
+    <linearGradient id="seal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#D8503A"/>
+      <stop offset="1" stop-color="#B93A26"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 底：墨绿圆角方，微渐变给深度 -->
+  <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#field)"/>
+  <!-- 内描边：借一点纸色做轮廓光 -->
+  <rect x="14" y="14" width="996" height="996" rx="220" fill="none" stroke="#F7F3E9" stroke-opacity="0.08" stroke-width="8"/>
+
+  <!-- T 的横笔：稿纸顶规 -->
+  <rect x="248" y="236" width="528" height="104" rx="52" fill="url(#paper)"/>
+
+  <!-- T 的竖笔：一张带折角的稿纸 -->
+  <path d="M400 340 h168 l64 64 v352 a40 40 0 0 1 -40 40 H440 a40 40 0 0 1 -40 -40 Z" fill="url(#paper)"/>
+  <!-- 折角 -->
+  <path d="M568 340 l64 64 h-64 Z" fill="#D9CFBA"/>
+  <!-- 稿纸上的竖排书写列 -->
+  <rect x="452" y="430" width="26" height="280" rx="13" fill="#2C3830" opacity="0.55"/>
+  <rect x="520" y="430" width="26" height="220" rx="13" fill="#2C3830" opacity="0.38"/>
+
+  <!-- 朱砂印 -->
+  <rect x="560" y="664" width="132" height="132" rx="28" fill="url(#seal)"/>
+  <rect x="588" y="692" width="76" height="76" rx="14" fill="none" stroke="#FBF7EC" stroke-opacity="0.85" stroke-width="10"/>
+</svg>
