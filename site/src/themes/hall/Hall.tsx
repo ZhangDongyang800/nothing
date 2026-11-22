@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { attachHall } from './engine';
 
-const DESKTOP_DOWNLOAD =
-  'https://github.com/ZhangDongyang800/nothing/releases/download/txxt-latest/TxxT-Setup-1.4.0.exe';
-const ANDROID_DOWNLOAD =
-  'https://github.com/ZhangDongyang800/nothing/releases/download/txxt-latest/TxxT-Android-1.1.apk';
-const TOOLBOX_DOWNLOAD =
-  'https://github.com/ZhangDongyang800/nothing/releases/download/toolbox-latest/Toolbox-Setup-0.1.0.exe';
+// 三个包都从本站 /downloads 直下（nginx 挂 /opt/txxt-sync/downloads）。
+// 不写 GitHub Release 直链：跨域 <a download> 会被浏览器忽略，点了会跳到
+// github.com 的仓库页，国内还常被断流。同域 + octet-stream 才是"点一下就开始下"。
+const DESKTOP_DOWNLOAD = '/downloads/TxxT-Setup-1.4.0.exe';
+const ANDROID_DOWNLOAD = '/downloads/TxxT-Android-1.1.apk';
+const TOOLBOX_DOWNLOAD = '/downloads/Toolbox-Setup-0.1.0.exe';
 
 /**
  * 官网首页：游戏厅在前，应用下载在后。

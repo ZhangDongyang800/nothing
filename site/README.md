@@ -23,13 +23,13 @@
 
 ## 下载与安装
 
-安装包统一走公开仓库的滚动 Release，服务器不再保存任何安装包：
+安装包放在本站 `/downloads`，由同一台 nginx 直出（宿主机 `/opt/txxt-sync/downloads`，独立挂载，不参与站点软链切换）。**官网按钮不再指向 GitHub Release** —— 跨域 `<a download>` 会被浏览器忽略，点击后整页跳到 github.com 的仓库页，国内链路还常被断流；同域 + `octet-stream` 才是"点一下就开始下"。
 
-- TxxT Windows：`https://github.com/ZhangDongyang800/nothing/releases/download/txxt-latest/TxxT-Setup-1.4.0.exe`（NSIS，96,117,628 B）
-- TxxT Android：`https://github.com/ZhangDongyang800/nothing/releases/download/txxt-latest/TxxT-Android-1.1.apk`（4,594,467 B）
-- 工具箱 Windows：`https://github.com/ZhangDongyang800/nothing/releases/download/toolbox-latest/Toolbox-Setup-0.1.0.exe`（NSIS，254,983,723 B）
+- TxxT Windows：`/downloads/TxxT-Setup-1.4.0.exe`（NSIS，96,118,751 B，sha256 `3b388907…`）
+- TxxT Android：`/downloads/TxxT-Android-1.1.apk`（4,594,467 B，sha256 `5e1dbe05…`）
+- 工具箱 Windows：`/downloads/Toolbox-Setup-0.1.0.exe`（NSIS，254,983,951 B，sha256 `ec2d1a35…`）
 
-`latest.yml` 与 `.blockmap` 也在同一 Release 里，客户端自动更新读取同一组资产。初装从官网按钮下载，之后由应用自己更新。
+上游仍保留在 `ZhangDongyang800/nothing` 的滚动 Release（客户端自动更新读那里），但网页侧只暴露本站地址。大包支持 Range 断点续传；`/downloads/` 限流 burst 给到 64，留给多线程下载器的十几个并发请求。
 
 ## 消除特效（FX）
 
@@ -84,12 +84,12 @@
 
 中文输入法在稿纸与专注里都做了守卫：`compositionstart` 置位、`compositionend` 提交，`input` 在 `e.isComposing` 时直接返回，避免组词过程中被逐个吞字。
 
-下载入口只在应用卡里，共 3 个：TxxT 的电脑版 `TxxT-Setup-1.4.0.exe` 与安卓版 `TxxT-Android-1.0.apk` 同在一张卡，工具箱子卡只给 `Toolbox-Setup-0.1.0.exe`。两端不做 UA 分流，手机也会看到电脑版。`qa-hall.mjs` 断言两端 3 个入口都可见、HEAD 200。
+下载入口只在应用卡里，共 3 个：TxxT 的电脑版 `TxxT-Setup-1.4.0.exe` 与安卓版 `TxxT-Android-1.1.apk` 同在一张卡，工具箱子卡只给 `Toolbox-Setup-0.1.0.exe`。三个地址都是同域 `/downloads/...`，不带 `github.com`。两端不做 UA 分流，手机也会看到电脑版。`qa-hall.mjs` 断言两端 3 个入口都可见、HEAD 200；`scripts/probe-download.mjs` 真点一次，断言触发 download 事件且页面不离开本站。
 
 ## 运行
 
 ```powershell
-cd C:\Users\张东阳\Desktop\TxxT\web
+cd D:\Projects\TxxT-Play\site
 npm install
 npm run dev        # http://localhost:5273/
 ```
@@ -109,16 +109,16 @@ npm run preview    # http://localhost:5274/
 
 - 静态站 root：容器内 `/usr/share/nginx/html/site/current`，宿主机 `/opt/txxt-sync/site/current`，软链指向 `releases/<时间戳>`。每次发布建新 release，再原子切换软链，不覆盖旧版本。
 - 同步 API 只反代 `/v1/`（`/v1/auth/` 单独限流），根路径不再落到同步服务。
-- 安装包不再放服务器：`/opt/txxt-sync/downloads` 已清空，官网按钮直接指向 GitHub Release；初装走官网，升级由客户端自动更新读取同一组 `latest.yml` 资产。
+- 安装包挂 `/opt/txxt-sync/downloads`（compose 里单独挂到容器 `/usr/share/nginx/html/downloads`，切 release 不影响下载地址），nginx `location ^~ /downloads/` 直出；官网三个按钮都是同域地址，点一下直接下，不跳 GitHub。初装走官网，升级由客户端自动更新（仍读 `latest.yml`）。
 - 配置备份在 `/opt/txxt-sync/backups/<时间戳>/`；证书在 `/etc/letsencrypt/live/115.159.51.233/`，由 `txxt-certbot-renew.timer` 续期。
 
 当前安装包（全部在 `ZhangDongyang800/nothing` 的滚动 Release）：
 
 | 平台 | 文件 | 大小 | SHA-256 |
 | --- | --- | --- | --- |
-| Windows | `txxt-latest/TxxT-Setup-1.4.0.exe` | 96,117,628 | `b1fb372d238031e5049eacd887503af1de9e25e1db1840ba672a8c5af82167c4` |
-| Android | `txxt-latest/TxxT-Android-1.1.apk` | 4,594,467 | `5e1dbe05ca2c7e9f2d169e6adaf723507900cb8c64e276d4f1a500d4b7ec2297` |
-| Windows（工具箱） | `toolbox-latest/Toolbox-Setup-0.1.0.exe` | 254,983,723 | `335ed1cc777e6271b3eaa9607846c359d9a50eefd79830530c0fbeb2cce5ae29` |
+| Windows | `downloads/TxxT-Setup-1.4.0.exe` | 96,118,751 | `3b38890780db3b377039c9ce9fd78b5eb48c4f336630afb1c2664966975bac93` |
+| Android | `downloads/TxxT-Android-1.1.apk` | 4,594,467 | `5e1dbe05ca2c7e9f2d169e6adaf723507900cb8c64e276d4f1a500d4b7ec2297` |
+| Windows（工具箱） | `downloads/Toolbox-Setup-0.1.0.exe` | 254,983,951 | `ec2d1a355377ddd909ea30975493ae1bf815af41b01a1d1e7be7e01fed113cb0` |
 
 Android 当前为 debug 签名内测包；正式分发前需要换 release keystore，并统一版本号口径。
 
@@ -128,7 +128,7 @@ Android 当前为 debug 签名内测包；正式分发前需要换 release keyst
 
 - TLS 1.2 / 1.3；HSTS、CSP、`X-Frame-Options: DENY`、`nosniff`、Referrer-Policy 全站生效；`server_tokens off`。
 - 未知 Host 的 80 请求返回 444，不暴露 Nginx 默认页。
-- 站点 30 r/s、API 10 r/s、认证 2 r/s、下载 2 r/s（burst 12）按 IP 限流；站点只允许 GET/HEAD。
+- 站点 30 r/s、API 10 r/s、认证 2 r/s、下载 2 r/s（burst 64，容多线程下载器的并发段）按 IP 限流；站点只允许 GET/HEAD。
 - 反向代理只保留必要头，API 关闭 `proxy_buffering`。
 - 服务器仍有与本官网无关的 Hadoop 9870 等端口对外开放，建议在腾讯云安全组收口；本轮未改动实验环境。
 
@@ -204,6 +204,12 @@ node .qa\probe-type-mobile.mjs   # 01 点纸面弹输入 → insertText → 字�
 
 
 `qa-hall.mjs` 验部署后的站点：12 张卡逐个打开 12 个弹层；桌面与手机都看到 3 个下载入口（TxxT EXE / TxxT APK / 工具箱 EXE）且 HEAD 200；应用区正好 2 张产品卡；正文不含「写作之外」「十二台小机器」；390px 无横向溢出；console 0。
+
+下载跳转专项（会真点三个按钮，下载一触发就 `download.cancel()`，不落 255MB 到临时目录）：
+
+```powershell
+$env:QA_BASE='https://115.159.51.233/'; node scripts\probe-download.mjs
+```
 
 需要本机 Chrome：`C:\Program Files\Google\Chrome\Application\chrome.exe`。
 
