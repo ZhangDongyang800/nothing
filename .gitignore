@@ -6,3 +6,10 @@ site/.qa/
 .vite/
 *.log
 .DS_Store
+
+# 部署与调试中间产物：只在本机存在，不入库
+.qa/
+site/.scratch/
+site/artifacts/
+site/.deploy-ts.txt
+site/scripts/_*.mjs
