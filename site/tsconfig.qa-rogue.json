@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/themes/hall/rogue", "src/themes/hall/engine.ts", "src/themes/hall/Hall.tsx", "src/themes/hall/fx.ts", "src/themes/hall/sfx.ts", "src/App.tsx", "src/main.tsx"],
+  "exclude": ["src/themes/hall/legion"]
+}

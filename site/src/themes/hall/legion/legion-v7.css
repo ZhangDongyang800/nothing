@@ -753,3 +753,6 @@
   padding: 1px 4px;
   margin-right: 3px;
 }
+@media (min-width: 941px) {
+  .lg .lg-dock .lg-bench { align-content: stretch; grid-auto-rows: minmax(24px, 1fr); }
+}
