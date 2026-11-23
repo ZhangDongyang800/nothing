@@ -54,6 +54,7 @@ const C = {
 /* ================= 1. 飞白 ================= */
 const FEIBAI: WeaponDef = {
   id: 'feibai', name: '飞白', glyph: '白', color: C.ink, tag: '直线 · 穿透',
+  role: '直线穿列 · 朝最近敌人射穿刺笔锋，弹道窄、穿一列，单发中等、弹数随等级铺开',
   intro: '朝最近的一枚墨点甩出一道笔锋，笔尖穿过不止一个。',
   levels: mk(9, 5.4, 1.05, -0.1, [1, 1, 2, 2, 3, 3, 4, 5], 1, 0.5, 7, 1.05,
     ['一道笔锋 · 穿 1 个', '笔锋更硬', '两道齐发', '笔锋能穿 2 个', '三道', '穿 3 个 · 更快',
@@ -87,6 +88,7 @@ const FEIBAI: WeaponDef = {
 /* ================= 2. 惊雷 ================= */
 const THUNDER: WeaponDef = {
   id: 'thunder', name: '惊雷', glyph: '雷', color: C.indigo, tag: '连锁 · 多目标',
+  role: '群怪连锁 · 从最近敌人起跳在敌包间折线跳跃，段数随等级增，每跳一击略衰减',
   intro: '雷从最近的一枚墨点起跳，在敌群里连成一条折线。',
   levels: mk(14, 7.5, 1.7, -0.11, [2, 2, 3, 3, 4, 4, 5, 6], 0, 0, 0, 0,
     ['连 2 个', '雷更重', '连 3 个', '连 3 个 · 更快', '连 4 个', '连 4 个 · 雷更宽',
@@ -119,6 +121,7 @@ const THUNDER: WeaponDef = {
 /* ================= 3. 炭火 ================= */
 const EMBER: WeaponDef = {
   id: 'ember', name: '炭火', glyph: '炭', color: C.red, tag: '抛射 · 爆炸',
+  role: '投掷爆点 · 抛到敌群中央延时爆开，落点留火区，节奏由爆点控，单发重、射速慢',
   intro: '一枚炭火落在敌群中间炸开，火星还会在地上烧一阵。',
   levels: mk(20, 11, 2.1, -0.13, [1, 1, 1, 2, 2, 2, 3, 3], 0, 0, 30, 1.5,
     ['一枚 · 炸开 30', '火更旺', '爆得更宽', '两枚', '两枚 · 火圈更大', '三枚的可能',
@@ -145,7 +148,7 @@ const EMBER: WeaponDef = {
         x: px, y: py, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
         r: L.size * 0.5, dmg: L.dmg, pierce: 0, life: Math.max(0.45, d / speed),
         kind: w.evolved ? 'ember-e' : 'ember', color: C.red,
-        explodeR: L.size * st.area, explodeDmg: L.dmg * 0.9,
+        explodeR: L.size, explodeDmg: L.dmg * 0.9,
       });
     }
   },
@@ -154,6 +157,7 @@ const EMBER: WeaponDef = {
 /* ================= 4. 环锋 ================= */
 const ORBIT: WeaponDef = {
   id: 'orbit', name: '环锋', glyph: '环', color: C.jade, tag: '环绕 · 持续',
+  role: '守身环绕 · 墨刃绕身旋转，贴身割碰，不瞄准；半径与刃数随等级撑开护身圈',
   intro: '几片墨刃绕着人转，碰到就割一下。不瞄准，也不停。',
   levels: mk(7, 4.2, 0.3, 0, [1, 1, 2, 2, 3, 3, 3, 4], 0, 0, 13, 0,
     ['一片绕身', '转得更快', '两片', '刃更长', '三片', '转得更快', '三片 · 更远', '四片 · 刃轮']),
@@ -186,6 +190,7 @@ const ORBIT: WeaponDef = {
 /* ================= 5. 追魂 ================= */
 const SEEK: WeaponDef = {
   id: 'seek', name: '追魂', glyph: '追', color: C.gold, tag: '追踪 · 多弹',
+  role: '追踪后排 · 墨针自动拐弯追最近目标，多弹低伤高频，克制散开的后排',
   intro: '几根墨针自己会拐弯，追着最近的墨点扎。',
   levels: mk(6, 3.6, 0.85, -0.06, [2, 2, 3, 4, 4, 5, 6, 7], 1, 0.2, 5, 1.7,
     ['两根', '针更利', '三根', '四根', '四根 · 更快', '五根', '六根', '七根']),
@@ -217,6 +222,7 @@ const SEEK: WeaponDef = {
 /* ================= 6. 一线 ================= */
 const LASER: WeaponDef = {
   id: 'laser', name: '一线', glyph: '线', color: C.indigo, tag: '贯穿 · 直线',
+  role: '直线横扫 · 一道光柱沿方向贯穿整条路径，单发重、节奏慢，清一条线最快',
   intro: '一道细光沿直线射出去，路径上所有墨点一起断。',
   levels: mk(24, 14, 2.6, -0.14, [1, 1, 1, 1, 1, 2, 2, 2], 0, 0, 15, 0.18,
     ['一道', '光更利', '更宽', '更快', '更快 · 更宽', '十字两道', '十字 · 更宽', '十字 · 常亮']),
@@ -247,6 +253,7 @@ const LASER: WeaponDef = {
 /* ================= 7. 墨塔 ================= */
 const TURRET: WeaponDef = {
   id: 'turret', name: '墨塔', glyph: '塔', color: C.bronze, tag: '召唤 · 自动',
+  role: '阵地炮台 · 定点部署自动索敌射击，数量与存活时间随等级增，离开塔下火力就断',
   intro: '在身边垒一座小墨塔，它自己找最近的墨点打。',
   levels: mk(7, 4.1, 4.4, -0.26, [1, 1, 2, 2, 2, 3, 3, 4], 0, 0, 12, 16,
     ['一座 · 每 0.8 秒一发', '更重', '两座', '两座 · 更密', '两座 · 更久', '三座',
@@ -282,6 +289,7 @@ const TURRET: WeaponDef = {
 /* ================= 8. 毒瘴 ================= */
 const POISON: WeaponDef = {
   id: 'poison', name: '毒瘴', glyph: '瘴', color: C.jade, tag: '地面 · 持续',
+  role: '持续控场 · 在落点铺毒雾，站里面持续掉血并减速，范围/时长随等级，爆发低磨血强',
   intro: '在墨点脚下摊开一片绿雾，站在里面的人一直在掉血。',
   levels: mk(6, 3.4, 2.2, -0.1, [1, 1, 1, 2, 2, 2, 3, 3], 0, 0, 46, 3.2,
     ['一片 · 半径 46', '更毒', '摊得更开', '两片', '两片 · 更久', '两片 · 更毒',
@@ -302,12 +310,12 @@ const POISON: WeaponDef = {
       const x = (t ? t.x : px) + (Math.random() - 0.5) * 70;
       const y = (t ? t.y : py) + (Math.random() - 0.5) * 70;
       g.zone(x, y, {
-        r: L.size * st.area, life: L.life, dmg: L.dmg, tick: 0.45,
+        r: L.size, life: L.life, dmg: L.dmg, tick: 0.45,
         type: 'poison', color: C.jade, slow: 0.35,
       });
       if (w.evolved) {
         g.zone(x + (Math.random() - 0.5) * 120, y + (Math.random() - 0.5) * 120, {
-          r: L.size * st.area * 0.85, life: L.life * 0.8, dmg: L.dmg * 0.8, tick: 0.45,
+          r: L.size * 0.85, life: L.life * 0.8, dmg: L.dmg * 0.8, tick: 0.45,
           type: 'poison', color: '#6f8f6a', slow: 0.35,
         });
       }
@@ -318,6 +326,7 @@ const POISON: WeaponDef = {
 /* ================= 9. 影身 ================= */
 const CLONE: WeaponDef = {
   id: 'clone', name: '影身', glyph: '影', color: C.ash, tag: '召唤 · 近战',
+  role: '召唤近卫 · 影分身主动扑向近敌近战缠斗，数量与寿命随等级，替你在外圈分担压力',
   intro: '放出一道影，它自己会扑向墨点，替你在外圈挡一下。',
   levels: mk(10, 6, 7.5, -0.5, [1, 1, 1, 2, 2, 2, 3, 3], 0, 0, 10, 8,
     ['一道影 · 8 秒', '影更利', '影更久', '两道影', '两道 · 更快', '两道 · 更利',
@@ -347,7 +356,8 @@ const CLONE: WeaponDef = {
 /* ================= 10. 陨石 ================= */
 const METEOR: WeaponDef = {
   id: 'meteor', name: '陨石', glyph: '陨', color: C.plum, tag: '天降 · 大范围',
-  intro: '天上落一块墨石，落点先亮一下——站远点，那是给敌人的。',
+  role: '天降重锤 · 落点预瞄后延迟大范围砸击，单发最重、间隔最长，给走位留反应时间',
+  intro: '天上落一串墨石，每块分头找一只敌人砸——站远点，那是给它们的。',
   levels: mk(32, 17, 4.6, -0.24, [1, 1, 2, 2, 2, 3, 3, 4], 0, 0, 58, 0.9,
     ['一块 · 半径 58', '更重', '两块', '两块 · 更大', '落得更快', '三块', '三块 · 更重', '四块 · 天坠']),
   evo: {
@@ -358,19 +368,46 @@ const METEOR: WeaponDef = {
   },
   fire(g, w) {
     const L = statsOf(w, METEOR);
-    const st = g.stats();
     const px = g.player.x, py = g.player.y;
-    const t = g.randomEnemyNear(px, py, 600);
-    const cx = t ? t.x : px + (Math.random() - 0.5) * 300;
-    const cy = t ? t.y : py + (Math.random() - 0.5) * 300;
     const n = L.count;
-    for (let i = 0; i < n; i++) {
-      const x = cx + (Math.random() - 0.5) * (i ? 140 : 0);
-      const y = cy + (Math.random() - 0.5) * (i ? 140 : 0);
-      g.meteor(x, y, L.life, L.dmg, L.size * st.area, C.plum);
+    const R = L.size;
+    const near = g.enemiesNear(px, py, 720);
+    const picks: { x: number; y: number }[] = [];
+    /* 一块石头认一只敌人：候选先打散，再只收间隔 ≥ 0.6R 的点，
+       免得同一只身上叠三块、旁边一群没人管。 */
+    const pool = near.slice();
+    for (let i = pool.length - 1; i > 0; i--) {
+      const k = Math.floor(g.rnd() * (i + 1));
+      const tmp = pool[i]; pool[i] = pool[k]; pool[k] = tmp;
+    }
+    for (const e of pool) {
+      if (picks.length >= n) break;
+      if (picks.every(p => Math.hypot(p.x - e.x, p.y - e.y) >= R * 0.6)) picks.push({ x: e.x, y: e.y });
+    }
+    /* 敌人不够 / 挤成一团：剩下的围一圈落，圈半径 0.72R 起，
+       冲击圈相接但不完全重合；一圈放不下就往外再开一圈。 */
+    let cx = px + (g.rnd() - 0.5) * 240;
+    let cy = py + (g.rnd() - 0.5) * 240;
+    if (picks.length) {
+      cx = 0; cy = 0;
+      for (const p of picks) { cx += p.x; cy += p.y }
+      cx /= picks.length; cy /= picks.length;
+    }
+    const rest = n - picks.length;
+    for (let j = 0; j < rest; j++) {
+      const ring = R * 0.72 * (1 + Math.floor(j / 6));
+      const ang = j * 2.399 + g.rnd() * 0.5;   // 黄金角错开，不排成一条线
+      picks.push({ x: cx + Math.cos(ang) * ring, y: cy + Math.sin(ang) * ring });
+    }
+    for (let i = 0; i < picks.length; i++) {
+      /* 逐块错开 60ms 落地：一串砸下来，而不是同一帧糊成一团 */
+      g.meteor(picks[i].x, picks[i].y, L.life + i * 0.06, L.dmg, R, C.plum);
     }
     if (w.evolved) {
-      g.ring(cx, cy, L.size * st.area * 1.25, L.dmg * 0.6, 260, C.plum);
+      /* 进化收尾：以所有落点的重心震一圈，半径兜住整片落点 */
+      let far = 0;
+      for (const p of picks) far = Math.max(far, Math.hypot(p.x - cx, p.y - cy));
+      g.ring(cx, cy, Math.max(R * 1.25, far + R * 0.7), L.dmg * 0.6, 260, C.plum);
     }
   },
 };
@@ -378,6 +415,7 @@ const METEOR: WeaponDef = {
 /* ================= 11. 折扇 ================= */
 const FAN: WeaponDef = {
   id: 'fan', name: '折扇', glyph: '扇', color: C.teal, tag: '回旋 · 往返',
+  role: '往返切割 · 扇刃飞出再折返，去程回程各割一次，穿透高，横向扫过一条路',
   intro: '扇子甩出去会自己回来，去一趟、回来一趟都割人。',
   levels: mk(8, 4.6, 1.5, -0.1, [1, 1, 2, 2, 2, 3, 3, 4], 6, 0.5, 12, 1.4,
     ['一把 · 去一回', '扇骨更硬', '两把', '两把 · 更宽', '转得更快', '三把', '三把 · 更远', '四把 · 八风']),
@@ -408,6 +446,7 @@ const FAN: WeaponDef = {
 /* ================= 12. 钟鸣 ================= */
 const BELL: WeaponDef = {
   id: 'bell', name: '钟鸣', glyph: '钟', color: C.bronze, tag: '范围 · 击退',
+  role: '近身击退 · 脚下声浪环形推开周围敌人并震伤，护身边界，不打远处',
   intro: '敲一下，一圈声浪从脚下推开，近身的墨点连人带墨一起退。',
   levels: mk(9, 5.2, 1.5, -0.11, [1, 1, 1, 1, 2, 2, 2, 2], 0, 0, 82, 0,
     ['一圈 · 半径 82', '声更沉', '推得更远', '更快', '两圈', '两圈 · 更大', '两圈 · 更重', '丧钟']),

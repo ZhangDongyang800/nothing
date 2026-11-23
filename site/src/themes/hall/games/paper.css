@@ -1,0 +1,129 @@
+/* paper · 稿纸 台私有样式（基类 / 跨台主题 / 全局响应式仍在 ../hall.css）。
+ * 级联注意：本工程打包时 hall.css 在 games/*.css 之后注入，冲突属性用 #pane-paper
+ * id 选择器提权，保证本台覆盖生效；同等优先级的覆盖以本文件为准。
+ * 口径：真实竖排（row-reverse 从右往左），5 列 × 9 行 = 45 格；字号 / 列宽 / 行距 / 列距
+ * 全部以 --cell 为基准推算，探针在多视口下实测落格。 */
+
+/* —— 触控基础：不选字、不弹系统菜单；纸面允许键盘弹起时纵向滚动让位 —— */
+#pane-paper{
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* —— 列：列距由列内边距让出，字格不贴相邻列的竖线 —— */
+#pane-paper .col{
+  width: var(--cell);
+  padding: 0 calc(var(--cell) * .06);
+  box-sizing: border-box;
+  animation: p-col-in .28s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes p-col-in{
+  from{ opacity: 0; transform: translateX(10px); }
+  to{ opacity: 1; transform: none; }
+}
+
+/* —— 字：楷体系统字栈，字身 0.72 格，行距 = 一格；微偏移 / 微斜 / 墨色深浅走 CSS 变量 —— */
+#pane-paper .glyph{
+  width: calc(var(--cell) * .88);
+  height: var(--cell);
+  display: grid;
+  place-items: center;
+  font-family: 'Kaiti SC','STKaiti','KaiTi','BiauKai','楷体','STSong','SimSun',serif;
+  font-size: calc(var(--cell) * .72);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-orientation: upright;
+  color: var(--nb-ink);
+  opacity: var(--io, 1);
+}
+#pane-paper .glyph.is-land{
+  animation: p-gland .18s cubic-bezier(.2,1.4,.4,1) both;
+}
+@keyframes p-gland{
+  0%{ opacity: 0; transform: translateY(-4px) scale(.86); }
+  100%{ opacity: 1; transform: translate(var(--jx, 0), var(--jy, 0)) rotate(var(--jr, 0deg)); }
+}
+
+/* 句读：竖排里占一格，落字格右下，字号收小，不顶边 */
+#pane-paper .glyph.is-punct{
+  place-items: end end;
+  font-size: calc(var(--cell) * .48);
+  padding: 0 calc(var(--cell) * .12) calc(var(--cell) * .12) 0;
+}
+/* 括号 / 引号：直立收小，保持竖排方向，不横躺 */
+#pane-paper .glyph.is-bracket{
+  font-size: calc(var(--cell) * .62);
+}
+
+/* —— 光标：细一点的方框，随格走 —— */
+#pane-paper .caret{
+  width: var(--cell);
+  height: var(--cell);
+  box-shadow: inset 0 0 0 2.5px rgba(37,37,37,.85);
+  border-radius: 2px;
+}
+
+/* —— 落印：朱印压在纸面左下，砸下先大后小，带一点回弹 —— */
+#pane-paper .seal{
+  left: calc(var(--cell) * .18);
+  bottom: calc(var(--cell) * .18);
+  width: calc(var(--cell) * 1.2);
+  height: calc(var(--cell) * 1.2);
+  gap: 2px;
+  border: 2px solid var(--nb-ink);
+  border-radius: 3px;
+  background: var(--nb-coral);
+  color: var(--nb-ink);
+  box-shadow: 3px 3px 0 var(--nb-ink), inset 0 0 0 2px rgba(255,248,232,.22);
+  font-family: var(--font-heavy);
+  font-size: calc(var(--cell) * .4);
+  line-height: 1.06;
+  transform: rotate(-7deg);
+  animation: p-seal-in .42s cubic-bezier(.2,1.4,.3,1) both;
+}
+@keyframes p-seal-in{
+  0%{ transform: rotate(-7deg) scale(1.8); opacity: 0; }
+  55%{ transform: rotate(-7deg) scale(.92); opacity: 1; }
+  78%{ transform: rotate(-7deg) scale(1.04); }
+  100%{ transform: rotate(-7deg) scale(1); opacity: 1; }
+}
+
+/* 写满：纸角折起一角（重大档收束，纯 CSS 三角折痕） */
+#pane-paper .sheet.is-full::after{
+  content: '';
+  position: absolute;
+  right: 0; top: 0;
+  border: calc(var(--cell) * .28) solid transparent;
+  border-top-color: var(--nb-paper);
+  border-right-color: var(--nb-ink);
+  z-index: 4;
+}
+
+/* —— 窄屏竖排手机：格子按 vw 收，纸面不横向溢出 —— */
+@media (max-width: 900px){
+  #pane-paper{ --cell: clamp(26px, 9.4vw, 38px); }
+  #pane-paper .sheet{ max-width: 100%; }
+  #pane-paper .readout{ gap: 8px; }
+}
+
+/* —— 横屏 / 矮视口（含手机横过来、键盘弹起后剩余高度）：版面左右排，格子按 vh 收 —— */
+@media (max-height: 480px){
+  #pane-paper{
+    --cell: clamp(22px, 6.6vh, 34px);
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(12px, 3vw, 28px);
+  }
+}
+
+/* —— 减弱动效：台内入场 / 落印动画一并关掉（粒子由 fx.ts 的 reduced 开关统一处理） —— */
+@media (prefers-reduced-motion: reduce){
+  #pane-paper .col,
+  #pane-paper .glyph.is-land,
+  #pane-paper .seal{ animation: none !important; }
+}

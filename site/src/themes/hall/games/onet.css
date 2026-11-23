@@ -1,0 +1,47 @@
+/* onet · 连字 台私有样式。
+ * 基类规则（牌面、选中/消失/抖动动画、HUD、响应式横屏）仍在 ../hall.css；
+ * 本文件只放本轮新增的私有规则：墙格纹理、触控尺寸、窄屏收紧。 */
+
+/* 不可用墙格：斜纹纸块，不参与判定、不可点 */
+.o-wall-cell{
+  background:
+    repeating-linear-gradient(45deg, rgba(37,37,37,.10) 0 2px, rgba(239,233,218,.6) 2px 7px);
+  border: 1.5px dashed rgba(37,37,37,.22);
+  border-radius: 2px;
+}
+
+/* 牌面：触摸操作友好，去掉高亮闪边，点按不缩放页面 */
+.o-tile{
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 台面不超出容器宽度（10×8 满盘在窄屏也不横向溢出） */
+.onet-stage{
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* 窄屏：HUD 允许换行，牌面字号随屏宽收紧，保证 390px 宽下点得准 */
+@media (max-width: 900px){
+  .pane-onet .onet-hud{
+    flex-wrap: wrap;
+    row-gap: 4px;
+    gap: clamp(8px, 2vw, 14px);
+    justify-content: center;
+  }
+  .o-tile{
+    font-size: clamp(13px, 4.4vw, 22px);
+    border-width: 1.5px;
+    box-shadow: 1.5px 1.5px 0 rgba(37,37,37,.16);
+  }
+}
+
+/* 390×844 手机竖屏：满盘 10 列时格宽约 30px，牌面留白再收一点 */
+@media (max-width: 420px){
+  .o-cell{ padding: 1px; }
+  .o-tile{ font-size: clamp(12px, 3.9vw, 18px); }
+  .onet-tools{ gap: 7px; }
+}

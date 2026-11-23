@@ -1,0 +1,22 @@
+/* break · 破砖 台私有样式（基类/响应式规则仍在 ../hall.css，这里只写本台覆盖与私有件） */
+
+/* 台面canvas：拖动不选字、不触发浏览器手势横滑；指针仍是准星 */
+.pane-break,
+.pane-break #bkCanvas{
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+}
+#bkCanvas{
+  touch-action:none;
+  cursor:crosshair;
+  display:block;
+  width:100%;
+  height:100%;
+}
+
+/* 窄屏：台面与触控条不横向溢出，砖面字号跟着台面缩放不另开字号 */
+@media (max-width:420px){
+  .pane-break .bk-stage{max-width:100%}
+  .pane-break .touch-bar{width:100%;max-width:320px}
+}

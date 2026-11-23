@@ -4,9 +4,9 @@ import { attachHall } from './engine';
 // 三个包都从本站 /downloads 直下（nginx 挂 /opt/txxt-sync/downloads）。
 // 不写 GitHub Release 直链：跨域 <a download> 会被浏览器忽略，点了会跳到
 // github.com 的仓库页，国内还常被断流。同域 + octet-stream 才是"点一下就开始下"。
-const DESKTOP_DOWNLOAD = '/downloads/TxxT-Setup-1.4.0.exe';
+const DESKTOP_DOWNLOAD = '/downloads/TxxT-Setup-1.4.1.exe';
 const ANDROID_DOWNLOAD = '/downloads/TxxT-Android-1.1.apk';
-const TOOLBOX_DOWNLOAD = '/downloads/Toolbox-Setup-0.1.0.exe';
+const TOOLBOX_DOWNLOAD = '/downloads/Toolbox-Setup-0.1.2.exe';
 
 /**
  * 官网首页：游戏厅在前，应用下载在后。
@@ -28,7 +28,7 @@ export default function Hall() {
         </a>
         <nav className="bar-nav" aria-label="页面分区">
           <a href="#games">
-            小游戏 <b>12</b>
+            小游戏 <b>13</b>
           </a>
           <a href="#download">
             应用 <b>2</b>
@@ -45,13 +45,40 @@ export default function Hall() {
           <div className="zone-head">
             <span className="kicker">01 / 小游戏</span>
             <h1 className="zone-title">小游戏</h1>
-            <p className="zone-note">12 个 · 点开就玩 · 横屏：走墨 / 墨潮</p>
+            <p className="zone-note">13 个 · 点开就玩 · 横屏：墨潮</p>
           </div>
 
           <div className="cabs">
-          <button className="cab" type="button" data-game="rogue">
+          <button className="cab cab-flag" type="button" data-game="legion">
             <span className="cab-top">
               <span className="cab-no">01</span>
+              <span className="cab-name">纸上军团</span>
+              <span className="cab-rot">无尽守卫</span>
+            </span>
+            <span className="cab-screen scr-legion" aria-hidden="true">
+              <span className="lg-prev">
+                <i className="lg-prev-path" />
+                <i className="lg-prev-cell c1">盾</i>
+                <i className="lg-prev-cell c2">刀</i>
+                <i className="lg-prev-cell c3">弓</i>
+                <i className="lg-prev-cell c4">法</i>
+                <i className="lg-prev-cell c5">骑</i>
+                <i className="lg-prev-cell c6">术</i>
+                <b className="lg-prev-base" />
+                <em className="lg-prev-wave">第 12 波</em>
+              </span>
+              <span className="lg-prev-tags">
+                <b>随机招募</b><b>同名合成</b><b>自动战斗</b><b>局外成长</b>
+              </span>
+            </span>
+            <span className="cab-meta">
+              <span>文字布阵 · 方格合成 · 无尽守卫</span>
+              <span>▶</span>
+            </span>
+          </button>
+          <button className="cab" type="button" data-game="rogue">
+            <span className="cab-top">
+              <span className="cab-no">02</span>
               <span className="cab-name">墨潮</span>
               <span className="cab-rot">横屏更佳</span>
             </span>
@@ -74,7 +101,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="run">
             <span className="cab-top">
-              <span className="cab-no">02</span>
+              <span className="cab-no">03</span>
               <span className="cab-name">走墨</span>
               <span className="cab-rot">横屏更佳</span>
             </span>
@@ -95,7 +122,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="pile">
             <span className="cab-top">
-              <span className="cab-no">03</span>
+              <span className="cab-no">04</span>
               <span className="cab-name">写了个写</span>
             </span>
             <span className="cab-screen scr-paper" aria-hidden="true">
@@ -125,7 +152,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="onet">
             <span className="cab-top">
-              <span className="cab-no">04</span>
+              <span className="cab-no">05</span>
               <span className="cab-name">连字</span>
             </span>
             <span className="cab-screen scr-paper" aria-hidden="true">
@@ -145,7 +172,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="break">
             <span className="cab-top">
-              <span className="cab-no">05</span>
+              <span className="cab-no">06</span>
               <span className="cab-name">破砖</span>
             </span>
             <span className="cab-screen scr-ink" aria-hidden="true">
@@ -179,7 +206,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="brick">
             <span className="cab-top">
-              <span className="cab-no">06</span>
+              <span className="cab-no">07</span>
               <span className="cab-name">砖块</span>
             </span>
             <span className="cab-screen scr-paper" aria-hidden="true">
@@ -209,7 +236,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="stack">
             <span className="cab-top">
-              <span className="cab-no">07</span>
+              <span className="cab-no">08</span>
               <span className="cab-name">垒塔</span>
             </span>
             <span className="cab-screen scr-stack" aria-hidden="true">
@@ -229,7 +256,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="merge">
             <span className="cab-top">
-              <span className="cab-no">08</span>
+              <span className="cab-no">09</span>
               <span className="cab-name">叠山</span>
             </span>
             <span className="cab-screen scr-paper" aria-hidden="true">
@@ -247,7 +274,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="paper">
             <span className="cab-top">
-              <span className="cab-no">09</span>
+              <span className="cab-no">10</span>
               <span className="cab-name">稿纸</span>
             </span>
             <span className="cab-screen scr-paper" aria-hidden="true">
@@ -265,7 +292,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="focus">
             <span className="cab-top">
-              <span className="cab-no">10</span>
+              <span className="cab-no">11</span>
               <span className="cab-name">专注</span>
             </span>
             <span className="cab-screen scr-ink" aria-hidden="true">
@@ -283,7 +310,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="word">
             <span className="cab-top">
-              <span className="cab-no">11</span>
+              <span className="cab-no">12</span>
               <span className="cab-name">抽词</span>
             </span>
             <span className="cab-screen scr-paper" aria-hidden="true">
@@ -301,7 +328,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="tap">
             <span className="cab-top">
-              <span className="cab-no">12</span>
+              <span className="cab-no">13</span>
               <span className="cab-name">敲印</span>
             </span>
             <span className="cab-screen scr-tap" aria-hidden="true">
@@ -356,11 +383,11 @@ export default function Hall() {
               <div className="app-actions">
                 <a className="app-dl" href={DESKTOP_DOWNLOAD} download>
                   <span>Windows · EXE</span>
-                  <b>96 MB ↓</b>
+                  <b>79 MB ↓</b>
                 </a>
                 <a className="app-dl app-dl-alt" href={ANDROID_DOWNLOAD} download>
                   <span>Android · APK</span>
-                  <b>4.6 MB ↓</b>
+                  <b>4.4 MB ↓</b>
                 </a>
               </div>
             </article>
@@ -378,7 +405,7 @@ export default function Hall() {
               <div className="app-actions">
                 <a className="app-dl app-dl-blue" href={TOOLBOX_DOWNLOAD} download>
                   <span>Windows · EXE</span>
-                  <b>255 MB ↓</b>
+                  <b>243 MB ↓</b>
                 </a>
               </div>
             </article>
@@ -821,6 +848,10 @@ export default function Hall() {
                   </button>
                 </div>
               </div>
+            </section>
+
+            <section className="pane pane-legion" id="pane-legion">
+              <div id="legionRoot" />
             </section>
 
             <section className="pane pane-rogue" id="pane-rogue">

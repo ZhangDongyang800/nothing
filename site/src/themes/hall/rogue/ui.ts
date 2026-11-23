@@ -46,6 +46,19 @@ export interface OfferView {
   level: number
   color: string
   evolved: boolean
+  /** 升级前 / 升级后的具体数值，卡面下半区靠这两行做对比 */
+  now?: string
+  then?: string
+  thenLabel?: string
+  /** 数值变化的小结，例如「伤害 +2.4」「间隔 -0.08s」 */
+  deltas?: string[]
+  /** 满级数；只有真能升级的卡才有等级刻度，补给卡不画 */
+  max?: number
+}
+
+export interface LevelInfo {
+  level: number
+  pending: number
 }
 
 export interface StartData {
@@ -87,6 +100,11 @@ export class RogueUI {
   private bannerTimer = 0
   private flashTimer = 0
   private stickActive = false
+  /* 升级/宝箱卡片的键盘游标：0 号默认选中，方向键移动，Enter 落定 */
+  private cards: HTMLElement[] = []
+  private selIndex = 0
+  private pickLock = false
+  private pickTimer = 0
 
   constructor(hostEl: HTMLElement, host: UiHost) {
     this.host = host
@@ -96,22 +114,28 @@ export class RogueUI {
         <div class="rg-vignette"></div>
         <div class="rg-hud">
           <div class="rg-top">
-            <div class="rg-ident"><b id="rgChar">墨客</b><i id="rgLv">Lv.1</i></div>
-            <div class="rg-meters">
-              <div class="rg-hp"><i id="rgHpFill"></i><span id="rgHpNum">100 / 100</span></div>
-              <div class="rg-xp"><i id="rgXpFill"></i></div>
+            <div class="rg-top-row">
+              <div class="rg-lead">
+                <span class="rg-ident"><b id="rgChar">墨客</b><i id="rgLv">Lv.1</i></span>
+                <span class="rg-xp"><em class="rg-xp-cap">经验</em><span class="rg-xp-track"><i id="rgXpFill"></i></span><em class="rg-xp-num"><b id="rgXpNum">0</b><u>/</u><i id="rgXpNext">12</i></em></span>
+              </div>
+              <span class="rg-hp"><i id="rgHpFill"></i><span id="rgHpNum">100 / 100</span></span>
+              <div class="rg-clock"><b id="rgTime">00:00</b><span id="rgStage">初落笔</span></div>
+              <div class="rg-nums">
+                <span class="rg-stat is-main" title="斩杀"><i>斩</i><b id="rgKills">0</b></span>
+                <span class="rg-stat" title="铜钱"><i>墨</i><b id="rgGold">0</b></span>
+                <span class="rg-stat is-combo" id="rgComboBox" title="连斩"><i>连</i><b id="rgCombo">0</b></span>
+              </div>
+              <div class="rg-tools">
+                <span class="rg-dash" title="冲刺"><i id="rgDashFill"></i><em>冲</em></span>
+                <button class="rg-icon" data-act="sfx" id="rgSfx" aria-label="音效开关">♪</button>
+                <button class="rg-icon" data-act="pause" id="rgPause" aria-label="暂停">⏸</button>
+              </div>
             </div>
-            <div class="rg-clock"><b id="rgTime">00:00</b><span id="rgStage">初落笔</span></div>
-            <div class="rg-nums"><span>斩 <b id="rgKills">0</b></span><span>墨 <b id="rgGold">0</b></span><span>连 <b id="rgCombo">0</b></span></div>
-            <div class="rg-tools">
-              <span class="rg-dash"><i id="rgDashFill"></i><em>冲</em></span>
-              <button class="rg-icon" data-act="sfx" id="rgSfx" aria-label="音效">♪</button>
-              <button class="rg-icon" data-act="pause" id="rgPause" aria-label="暂停">⏸</button>
+            <div class="rg-boss" id="rgBoss">
+              <div class="rg-boss-top"><b id="rgBossName"></b><i id="rgBossPct"></i></div>
+              <div class="rg-boss-bar"><i id="rgBossFill"></i></div>
             </div>
-          </div>
-          <div class="rg-boss" id="rgBoss">
-            <div class="rg-boss-top"><b id="rgBossName"></b><i id="rgBossPct"></i></div>
-            <div class="rg-boss-bar"><i id="rgBossFill"></i></div>
           </div>
           <div class="rg-build">
             <div class="rg-build-row" id="rgWeapons"></div>
@@ -131,9 +155,9 @@ export class RogueUI {
     this.root = hostEl.firstElementChild as HTMLElement
     this.canvas = this.root.querySelector('.rg-canvas') as HTMLCanvasElement
     this.overlay = this.root.querySelector('#rgOverlay') as HTMLElement
-    for (const id of ['rgChar', 'rgLv', 'rgHpFill', 'rgHpNum', 'rgXpFill', 'rgTime', 'rgStage', 'rgKills', 'rgGold',
+    for (const id of ['rgChar', 'rgLv', 'rgHpFill', 'rgHpNum', 'rgXpFill', 'rgXpNum', 'rgXpNext', 'rgTime', 'rgStage', 'rgKills', 'rgGold',
       'rgDashFill', 'rgBoss', 'rgBossName', 'rgBossPct', 'rgBossFill', 'rgWeapons', 'rgPassives', 'rgToasts',
-      'rgBanner', 'rgFlash', 'rgSfx', 'rgPause', 'rgMobile', 'rgStick', 'rgKnob', 'rgCombo']) {
+      'rgBanner', 'rgFlash', 'rgSfx', 'rgPause', 'rgMobile', 'rgStick', 'rgKnob', 'rgCombo', 'rgComboBox']) {
       const e = this.root.querySelector('#' + id)
       if (e) this.el[id] = e as HTMLElement
     }
@@ -145,8 +169,16 @@ export class RogueUI {
       if (!act) return
       ev.preventDefault()
       if (act === 'dash') { this.host.onDash(); return }
+      /* 升级 / 宝箱卡：先落一个「已选」态再提交，手上有回执，画面不空跳 */
+      if ((act === 'pick' || act === 'chest') && b.classList.contains('rg-offer')) { this.confirmCard(b); return }
       this.host.onAction(act, b.getAttribute('data-id') || b.getAttribute('data-char') || b.getAttribute('data-i') || '')
     })
+    this.overlay.addEventListener('focusin', (ev) => {
+      const t = ev.target as HTMLElement
+      const i = this.cards.indexOf(t)
+      if (i >= 0 && i !== this.selIndex) this.selectCard(i, false)
+    })
+    document.addEventListener('keydown', this.onDocKey, true)
     this.overlay.addEventListener('input', (ev) => {
       const t = ev.target as HTMLInputElement
       const kind = t.getAttribute('data-vol')
@@ -161,7 +193,91 @@ export class RogueUI {
     this.toastTimer = []
     if (this.bannerTimer) window.clearTimeout(this.bannerTimer)
     if (this.flashTimer) window.clearTimeout(this.flashTimer)
+    if (this.pickTimer) window.clearTimeout(this.pickTimer)
+    document.removeEventListener('keydown', this.onDocKey, true)
     this.root.remove()
+  }
+
+  /* ---------------- 卡片的键盘选择 ---------------- */
+  private onDocKey = (e: KeyboardEvent): void => {
+    if (!this.overlay.classList.contains('is-on')) return
+    const phase = this.root.getAttribute('data-phase')
+    if (phase !== 'levelup' && phase !== 'chest') return
+    const cards = this.cards
+    if (!cards.length) return
+    const k = e.key
+    const dir = k === 'ArrowLeft' || k === 'ArrowUp' ? -1 : k === 'ArrowRight' || k === 'ArrowDown' ? 1 : 0
+    if (dir) {
+      e.preventDefault()
+      e.stopPropagation()
+      this.selectCard((this.selIndex + dir + cards.length) % cards.length, true)
+      return
+    }
+    if (k === 'Enter' || k === ' ' || k === 'Spacebar') {
+      /* 焦点停在同一屏的重摇 / 关闭按钮上时，把回车让给浏览器原生行为 */
+      const active = document.activeElement as HTMLElement | null
+      if (active && active !== document.body && !cards.includes(active)) return
+      e.preventDefault()
+      e.stopPropagation()
+      this.confirmCard(cards[this.selIndex] || cards[0])
+      return
+    }
+    if (/^[1-9]$/.test(k)) {
+      const i = Number(k) - 1
+      if (i < cards.length) {
+        e.preventDefault()
+        e.stopPropagation()
+        this.selectCard(i, false)
+        this.confirmCard(cards[i])
+      }
+      return
+    }
+    if (phase === 'levelup' && (k === 'r' || k === 'R')) {
+      e.preventDefault()
+      e.stopPropagation()
+      this.host.onAction('reroll', '')
+    }
+  }
+
+  private bindCards(): void {
+    this.cards = Array.from(this.overlay.querySelectorAll<HTMLElement>('.rg-offer'))
+    this.selIndex = 0
+    this.pickLock = false
+    this.cards.forEach((c, i) => {
+      c.setAttribute('role', 'option')
+      c.setAttribute('aria-selected', i === 0 ? 'true' : 'false')
+    })
+    if (this.cards[0]) {
+      this.cards[0].classList.add('is-current')
+      try { this.cards[0].focus({ preventScroll: true }) } catch { /* ignore */ }
+    }
+  }
+
+  private selectCard(i: number, focus: boolean): void {
+    if (!this.cards.length) return
+    const idx = Math.max(0, Math.min(this.cards.length - 1, i))
+    this.cards.forEach((c, k) => {
+      const on = k === idx
+      c.classList.toggle('is-current', on)
+      c.setAttribute('aria-selected', on ? 'true' : 'false')
+    })
+    this.selIndex = idx
+    if (focus) {
+      try { this.cards[idx].focus({ preventScroll: true }) } catch { /* ignore */ }
+    }
+  }
+
+  private confirmCard(card: HTMLElement): void {
+    if (this.pickLock || !card) return
+    this.pickLock = true
+    card.classList.add('is-picked')
+    const act = card.getAttribute('data-act') || ''
+    const arg = card.getAttribute('data-i') || card.getAttribute('data-id') || ''
+    if (this.pickTimer) window.clearTimeout(this.pickTimer)
+    this.pickTimer = window.setTimeout(() => {
+      this.pickLock = false
+      this.host.onAction(act, arg)
+    }, 110)
   }
 
   /* ---------------- 摇杆（只在触屏设备上挂出来） ---------------- */
@@ -204,6 +320,7 @@ export class RogueUI {
 
   showMobile(on: boolean): void {
     if (this.el.rgMobile) this.el.rgMobile.classList.toggle('is-on', on)
+    this.root.setAttribute('data-touch', on ? '1' : '0')
   }
 
   setPhase(phase: string): void { this.root.setAttribute('data-phase', phase) }
@@ -226,11 +343,14 @@ export class RogueUI {
     }
     const xpPct = Math.max(0, Math.min(1, h.xp / Math.max(1, h.xpNext)))
     if (this.el.rgXpFill) this.el.rgXpFill.style.transform = `scaleX(${xpPct})`
+    set('rgXpNum', String(Math.floor(h.xp)))
+    set('rgXpNext', String(Math.round(h.xpNext)))
     set('rgTime', h.time)
     set('rgStage', h.stage)
     set('rgKills', String(h.kills))
     set('rgGold', String(h.gold))
     set('rgCombo', String(h.combo))
+    if (this.el.rgComboBox) this.el.rgComboBox.classList.toggle('is-hot', h.combo > 0)
     if (this.el.rgDashFill) this.el.rgDashFill.style.transform = `scaleY(${Math.max(0, Math.min(1, h.dash))})`
 
     if (h.boss) {
@@ -301,10 +421,14 @@ export class RogueUI {
   hideOverlay(): void {
     this.overlay.classList.remove('is-on')
     this.overlay.innerHTML = ''
+    this.cards = []
+    this.pickLock = false
     this.setPhase('play')
   }
 
   private openOverlay(inner: string, phase: string): void {
+    this.cards = []
+    this.pickLock = false
     this.overlay.innerHTML = inner
     this.overlay.classList.add('is-on')
     this.setPhase(phase)
@@ -356,35 +480,57 @@ export class RogueUI {
             <button class="rg-go" data-act="start" data-char="${d.lastChar}">进入墨潮</button>
           </div>
         </div>
-        <div class="rg-foot-note">WASD / 拖动移动 · 空格 / 冲键冲刺 · P 暂停 · 武器自动出手 · 死了就结算，没有终点</div>
+        <div class="rg-foot-note">WASD / 拖动移动 · 空格 冲刺 · P 暂停 · 武器自动出手 · 无尽模式，死了就结算</div>
       </div>`, 'start')
   }
 
   /* ---------------- 升级 ---------------- */
-  showLevel(offers: OfferView[], rerolls: number): void {
+  showLevel(offers: OfferView[], rerolls: number, info?: LevelInfo): void {
     const cards = offers.map((o, i) => {
-      const pips = Array.from({ length: 8 }, (_, k) => `<i class="${k < o.level ? 'on' : ''}"></i>`).join('')
+      const pips = o.max
+        ? Array.from({ length: o.max }, (_, k) => `<i class="${k < o.level ? 'on' : ''}"></i>`).join('')
+        : ''
       const cls = o.kind === 'evolve' ? 'is-evo' : o.kind === 'weapon' ? 'is-weapon' : o.kind === 'passive' ? 'is-pass' : 'is-fill'
+      const deltas = o.deltas && o.deltas.length
+        ? `<span class="rg-offer-deltas">${o.deltas.map(d => `<b>${d}</b>`).join('')}</span>`
+        : ''
+      const compare = (o.now || o.then)
+        ? `<span class="rg-offer-compare">
+            <span class="rg-cmp-row"><i>现在</i><b>${o.now || '—'}</b></span>
+            <span class="rg-cmp-row is-next"><i>${o.thenLabel || '升级后'}</i><b>${o.then || '—'}</b></span>
+          </span>`
+        : ''
       return `
       <button class="rg-offer ${cls}" data-act="pick" data-i="${i}" style="--c:${o.color}">
-        <span class="rg-offer-key">${i + 1}</span>
-        <span class="rg-offer-glyph">${o.glyph}</span>
-        <span class="rg-offer-name">${o.name}</span>
-        <span class="rg-offer-tag">${o.tag}${o.level ? ` · Lv.${o.level}` : ''}</span>
+        <span class="rg-offer-top">
+          <span class="rg-offer-glyph" aria-hidden="true">${o.glyph}</span>
+          <span class="rg-offer-id">
+            <span class="rg-offer-tag">${o.tag}</span>
+            <span class="rg-offer-name">${o.name}</span>
+          </span>
+          <span class="rg-offer-key" aria-hidden="true">${i + 1}</span>
+        </span>
         <span class="rg-offer-desc">${o.desc}</span>
-        <span class="rg-offer-next">${o.next}</span>
-        <span class="rg-pips">${pips}</span>
+        ${compare}
+        ${deltas}
+        ${pips ? `<span class="rg-pips" aria-hidden="true">${pips}</span>` : ''}
       </button>`
     }).join('')
+    const sub = info ? `Lv.${info.level} · 还剩 ${info.pending} 次` : '选一项'
     this.openOverlay(`
-      <div class="rg-panel rg-levelup">
-        <div class="rg-level-head"><span class="rg-lv-rule"></span><h2>落笔</h2><p>选一项 · 按 1 / 2 / 3</p></div>
-        <div class="rg-offers">${cards}</div>
+      <div class="rg-panel rg-levelup" role="dialog" aria-modal="true" aria-label="落笔 · 选择升级">
+        <div class="rg-level-head">
+          <span class="rg-lv-rule"></span>
+          <div class="rg-level-title"><h2>落笔</h2><p>${sub}</p></div>
+          <span class="rg-key-note"><b>← →</b> 切换 <b>Enter</b> 落定 <b>1-3</b> 直选</span>
+        </div>
+        <div class="rg-offers" role="listbox" aria-label="升级选项">${cards}</div>
         <div class="rg-level-foot">
-          <button class="rg-mini ${rerolls ? '' : 'is-off'}" data-act="reroll" ${rerolls ? '' : 'disabled'}>重摇 ×${rerolls}</button>
+          <button class="rg-mini ${rerolls ? '' : 'is-off'}" data-act="reroll" ${rerolls ? '' : 'disabled'}>重摇 ×${rerolls}${rerolls ? ' · R' : ''}</button>
           <span class="rg-lock-note">战斗已暂停</span>
         </div>
       </div>`, 'levelup')
+    this.bindCards()
   }
 
   /* ---------------- 暂停 ---------------- */
@@ -460,19 +606,29 @@ export class RogueUI {
   /* ---------------- 宝箱 ---------------- */
   showChest(rewards: RewardView[]): void {
     this.openOverlay(`
-      <div class="rg-panel rg-chest">
-        <div class="rg-level-head"><span class="rg-lv-rule"></span><h2>开箱</h2><p>挑一样带走 · 按 1 / 2 / 3</p></div>
-        <div class="rg-offers rg-three">
+      <div class="rg-panel rg-chest" role="dialog" aria-modal="true" aria-label="开箱 · 选择奖励">
+        <div class="rg-level-head">
+          <span class="rg-lv-rule"></span>
+          <div class="rg-level-title"><h2>开箱</h2><p>挑一样带走</p></div>
+          <span class="rg-key-note"><b>← →</b> 切换 <b>Enter</b> 落定 <b>1-3</b> 直选</span>
+        </div>
+        <div class="rg-offers rg-three" role="listbox" aria-label="宝箱奖励">
           ${rewards.map((r, i) => `
-            <button class="rg-offer is-weapon" data-act="chest" data-i="${i}" style="--c:${r.color}">
-              <span class="rg-offer-key">${i + 1}</span>
-              <span class="rg-offer-glyph">${r.glyph}</span>
-              <span class="rg-offer-name">${r.name}</span>
+            <button class="rg-offer is-weapon is-loot" data-act="chest" data-i="${i}" style="--c:${r.color}">
+              <span class="rg-offer-top">
+                <span class="rg-offer-glyph" aria-hidden="true">${r.glyph}</span>
+                <span class="rg-offer-id">
+                  <span class="rg-offer-tag">宝箱 · 选一</span>
+                  <span class="rg-offer-name">${r.name}</span>
+                </span>
+                <span class="rg-offer-key" aria-hidden="true">${i + 1}</span>
+              </span>
               <span class="rg-offer-desc">${r.desc}</span>
             </button>`).join('')}
         </div>
         <div class="rg-level-foot"><span class="rg-lock-note">战斗已暂停</span></div>
       </div>`, 'chest')
+    this.bindCards()
   }
 
   /* ---------------- 商人 ---------------- */

@@ -1,0 +1,72 @@
+/* pile · 写了个写 台专属样式。
+ * 基类 / 响应式 / 横屏规则仍在 ../hall.css；本文件只放本轮新增的私有反馈规则，
+ * 覆盖基类时用同等或更高选择器优先级，不改 hall.css。 */
+
+/* ---------- 可点牌：去掉双击缩放延迟，按压即抬升 ---------- */
+.ptile{touch-action:manipulation}
+
+.ptile.is-pick:not(.is-lock){
+  transform:translateY(-5px) scale(1.04);
+  box-shadow:3px 6px 0 rgba(37,37,37,.3);
+  z-index:60!important;
+}
+
+/* 刚从压住里露出来的牌：浮现落定一拍 */
+@keyframes ptreveal{
+  0%{opacity:0;transform:translateY(9px) scale(.92)}
+  100%{opacity:1;transform:none}
+}
+.ptile.is-reveal{animation:ptreveal .24s cubic-bezier(.22,1.3,.4,1) both}
+
+/* 盘上可动、且槽里已有同字的牌：黄圈联动，一眼看出"再拿一张就凑" */
+.ptile.is-match:not(.is-lock){
+  box-shadow:2px 2px 0 rgba(37,37,37,.16),0 0 0 3px rgba(255,209,102,.9);
+  transform:translateY(-2px);
+}
+
+/* 掀这张能放出下面的牌：右上角一枚朱色小点 */
+.ptile.is-cover::before{
+  content:'';position:absolute;top:4px;right:4px;width:5px;height:5px;border-radius:50%;
+  background:var(--nb-coral);opacity:.9;pointer-events:none;
+}
+
+/* ---------- 入槽轨迹残影 ---------- */
+.pghost{
+  position:absolute;z-index:80;pointer-events:none;display:grid;place-items:center;
+  font-family:var(--font-heavy);font-weight:800;line-height:1;
+  color:var(--nb-ink);background:var(--nb-sheet);border:2.5px solid var(--nb-ink);
+  box-shadow:2px 2px 0 rgba(37,37,37,.18);opacity:.96;
+  transition:transform .2s cubic-bezier(.3,.9,.4,1),opacity .2s ease;
+}
+
+/* ---------- 槽内重复字：底沿一道黄线，标记"这字已经在槽里" ---------- */
+.sitem.is-dup{
+  box-shadow:2px 2px 0 rgba(37,37,37,.14),inset 0 -3px 0 var(--nb-yellow);
+}
+
+/* ---------- 槽位分级压力：剩两格黄灯预警，剩一格朱灯紧逼 ---------- */
+.pile-slot.is-strain .slot{
+  border-color:var(--nb-yellow);
+  animation:pstrain 1.1s ease-in-out infinite;
+}
+@keyframes pstrain{50%{border-color:#e8b83a}}
+.pile-slot.is-hot .slot{border-color:var(--nb-coral)}
+
+/* ---------- 钥牌：金环 + 右上角「钥」角标，字面照旧 ---------- */
+/* 金环改成内描边：外扩的环在台面最上一排会被边框裁掉，留在牌内才永远完整 */
+.ptile.is-key{
+  box-shadow:inset 0 0 0 3px var(--nb-yellow),2px 2px 0 rgba(37,37,37,.18);
+}
+.ptile.is-key .pkey{
+  position:absolute;top:2px;right:3px;width:18px;height:18px;display:grid;place-items:center;
+  font-style:normal;font-size:11px;font-weight:800;line-height:1;
+  color:var(--nb-yellow);background:var(--nb-ink);border-radius:50%;
+  pointer-events:none;
+}
+
+/* ---------- 减弱动态：残影 / 浮现 / 预警脉冲一并关掉 ---------- */
+@media (prefers-reduced-motion:reduce){
+  .ptile.is-reveal{animation:none}
+  .pghost{transition:none}
+  .pile-slot.is-strain .slot{animation:none}
+}

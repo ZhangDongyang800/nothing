@@ -1,0 +1,66 @@
+/* merge · 叠山 台私有演出规则。
+ * 基类（格位、阶梯配色、象形记号、响应式与横屏）仍在 ../hall.css，本文件只放
+ * 本轮新增的合成分镜与可合对子提示，不改基类级联顺序。 */
+
+/* 第一拍：两源向心聚合 —— 滑向落点、收窄、变淡，让位给新字 */
+.mtile.mg-conv{
+  transition: transform .13s cubic-bezier(.3,.7,.4,1), opacity .13s ease;
+  opacity: .5;
+  z-index: 2;
+}
+.mtile.mg-conv::after{ opacity: .3; }
+
+/* 第二拍：新字从落点浮起落定 —— 先浮高一截、放大回弹，再坐回格子 */
+.mtile.mg-bloom{ animation: mg-bloom .24s cubic-bezier(.2,1.4,.3,1) both; }
+@keyframes mg-bloom{
+  0%{ transform: var(--tf) translateY(-8px) scale(.5); opacity: .35; }
+  60%{ transform: var(--tf) translateY(-2px) scale(1.06); opacity: 1; }
+  100%{ transform: var(--tf) translateY(0) scale(1); opacity: 1; }
+}
+
+/* 可合对子描黄边：空闲时提示"这两张推一下就能长"，不用逐格心算 */
+.mtile.is-pair{
+  outline: 3px solid var(--nb-yellow);
+  outline-offset: -3px;
+  box-shadow: 2px 2px 0 rgba(37,37,37,.14), 0 0 0 1px rgba(255,209,102,.55);
+}
+
+/* C4 收口：触屏/窄视口下回退钮热区提到 44×44。
+ * 真实命中框 44×44，负边距把布局占位收回原视觉尺寸（上 17 / 下 5、左右各 9），
+ * 边框/底色/硬阴影由 ::before 在中心画回原来的 50×22 芯片；扩出的一圈不占布局，
+ * 不挤压 HUD 读数、不撑高行、不压盘面滑动区。桌面 ≥901px 不受影响。 */
+@media (pointer:coarse), (max-width:900px){
+  #pane-merge #mergeUndo{
+    position: relative;
+    isolation: isolate;
+    width: 44px;
+    height: 44px;
+    margin: -17px -9px -5px -9px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    display: grid;
+    place-items: center;
+    flex: none;
+  }
+  #pane-merge #mergeUndo::before{
+    content: '';
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+    left: 50%; top: 17px;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 22px;
+    border: 2px solid var(--nb-ink);
+    background: var(--nb-sheet);
+    box-shadow: 2px 2px 0 rgba(37,37,37,.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .mtile.mg-conv{ transition: opacity .1s ease; }
+  .mtile.mg-bloom{ animation: none; }
+  .mtile.is-pair{ outline-offset: -2px; }
+}

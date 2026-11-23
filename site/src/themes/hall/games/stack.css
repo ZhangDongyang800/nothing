@@ -1,0 +1,55 @@
+/* stack · 垒塔 台私有样式（第二轮精品化）。
+ * 全站基类规则（HUD、开局面板、判词、响应式与横屏规则）仍在 ../hall.css；
+ * 本文件只写垒塔私有覆盖与私有件，同等选择器优先级后置打包，不改 hall.css 级联顺序。 */
+
+/* 台面不允许横向溢出；去掉点按高亮与文本选中，触屏操作更干净 */
+.pane-stack{ overflow:hidden; }
+#stackCanvas{
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+
+/* 触控：画布就是落砖触控区，整块可点、不遮挡塔体；粗指针下去掉光标 */
+@media (pointer:coarse){
+  #stackCanvas{ cursor:default; }
+  .stack-wrap{ min-height:120px; }
+}
+
+/* 窄屏竖屏：画布吃满宽度，HUD 不挤压出横向滚动 */
+@media (max-width:900px){
+  .pane-stack{ gap:6px; }
+  #stackCanvas{ max-width:100%; }
+}
+
+/* 触屏 / 窄视口：暂停钮热区提到 44×44。
+   真实命中框 44×44，用 -9px 负边距把布局占位收回 26×26，视觉边框由 ::before 画在中心；
+   扩出来的一圈不占布局，不挤压 HUD、不压落砖画布。桌面鼠标视角不受影响。 */
+@media (pointer:coarse), (max-width:900px){
+  #stackPause{
+    position:relative;
+    isolation:isolate;
+    width:44px;
+    height:44px;
+    margin:-9px;
+    padding:0;
+    background:transparent;
+    border:none;
+    box-shadow:none;
+    display:grid;
+    place-items:center;
+    flex:none;
+  }
+  #stackPause::before{
+    content:'';
+    position:absolute;
+    inset:9px;
+    z-index:-1;
+    border:2px solid var(--nb-ink, #252525);
+    background:var(--nb-sheet, #fff8e8);
+    box-shadow:2px 2px 0 rgba(37,37,37,.2);
+    pointer-events:none;
+  }
+}

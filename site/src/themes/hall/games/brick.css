@@ -1,0 +1,94 @@
+/* brick · 砖块 台私有样式（基类 / 响应式规则仍在 ../hall.css，这里只写本台覆盖与私有件）。
+ * 级联顺序：hall.css 先打包，本文件后打包；同等优先级的覆盖以本文件为准。 */
+
+/* 触屏不选字、不弹系统菜单；棋盘允许点按但不触发双击缩放 */
+.pane-brick,
+.pane-brick .bcell,
+.pane-brick .bpiece{
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+#brkBoard{ touch-action: manipulation; }
+
+/* 障碍石：灰纸底 + 墨色斜纹印，一眼区别于可放的彩砖；不可作为落点 */
+.bcell.is-stone{
+  background: #c9c2b0;
+  border-color: rgba(37, 37, 37, .65);
+  box-shadow: inset 0 0 0 1px rgba(37, 37, 37, .28);
+  cursor: not-allowed;
+}
+.bcell.is-stone::before{
+  content: '';
+  position: absolute;
+  inset: 24%;
+  background:
+    linear-gradient(45deg, transparent 44%, rgba(37, 37, 37, .34) 44%, rgba(37, 37, 37, .34) 56%, transparent 56%),
+    linear-gradient(-45deg, transparent 44%, rgba(37, 37, 37, .34) 44%, rgba(37, 37, 37, .34) 56%, transparent 56%);
+}
+
+/* 消行轨道闪：被削的一行 / 一列先亮一道黄边，再按格碎 */
+.bcell.is-track{
+  box-shadow: inset 0 0 0 2px rgba(255, 209, 102, .95);
+}
+
+/* 托盘里放不下的死砖：朱色虚线框 + 降透明度，砖格退成灰纸色 */
+.bpiece.is-stuck{
+  opacity: .42;
+  outline: 2px dashed var(--nb-coral);
+}
+.bpiece.is-stuck .bp-grid i.on{
+  background: var(--nb-sheet);
+  border-color: rgba(37, 37, 37, .4);
+}
+
+/* 待放砖块原来是一列裸方块浮在棋盘右边，看不出那是"料盘"。
+   给它一块自己的纸牌框 + 竖排小标题，砖格放大到看得清形状。 */
+.pane-brick .brk-tray{
+  width:clamp(104px,10vw,168px);
+  padding:clamp(10px,1.2vw,16px) clamp(8px,.9vw,12px);
+  background:var(--nb-paper);
+  border:3px solid var(--nb-ink);
+  box-shadow:4px 4px 0 rgba(37,37,37,.16);
+  gap:clamp(10px,1.6vh,18px);
+}
+.pane-brick .brk-tray::before{
+  content:'待放';
+  font-family:var(--font-mono);font-size:clamp(9px,.8vw,11px);letter-spacing:.24em;
+  color:rgba(37,37,37,.55);
+}
+.pane-brick .brk-tray .bp-grid i{width:clamp(14px,1.6vw,22px);height:clamp(14px,1.6vw,22px)}
+@media (max-width:900px){
+  .pane-brick .brk-tray{
+    width:100%;padding:8px 10px;border-width:2px;box-shadow:3px 3px 0 rgba(37,37,37,.14);
+  }
+  .pane-brick .brk-tray::before{display:none}
+  .pane-brick .brk-tray .bp-grid i{width:16px;height:16px}
+}
+@media (max-width:420px){
+  .pane-brick .brk-tray .bp-grid i{width:15px;height:15px}
+}
+
+@media (max-width: 420px){
+  .bpiece{
+    min-width: 40px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .brk-board{ gap: clamp(2px, 1vw, 3px); }
+}
+
+/* 减弱动效：消行缩放动画与过渡一并关掉（粒子由 fx.ts 的 reduced 开关统一处理） */
+@media (prefers-reduced-motion: reduce){
+  .bcell.is-clear{ animation: none; }
+  .bcell, .bpiece{ transition: none; }
+}
+
+/* 棋盘格原来只有 1.5px 淡边、底色接近纸，八乘八摊开像一张空白表格。
+   只把格线加深、加一道内描边——不动底色，免得盖掉落子后的黄/蓝/绿反馈。 */
+.pane-brick .bcell{
+  border-color: rgba(37,37,37,.30);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.55);
+}

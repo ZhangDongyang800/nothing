@@ -44,6 +44,25 @@ export function createFx(signal) {
 
   const PAPER = '#fff8e8';
   const PALETTE = ['#252525', '#f28b82', '#ffd166', '#9cc7f5', '#efe9da'];
+  const INK = '#252525';
+  const RED = '#b5342b';
+
+  /* 新原语自带样式：只挂一次，不往 hall.css 里塞——那张站点样式表有它自己的分块，
+     特效层的东西应该跟着特效层走，否则改一台游戏的样式会顺手改坏另一台。 */
+  if (!document.getElementById('fx-prim-css')) {
+    const st = document.createElement('style');
+    st.id = 'fx-prim-css';
+    st.textContent = '.fx-path{position:fixed;inset:0;z-index:95;pointer-events:none}'
+      + '.fx-stamp{position:fixed;z-index:97;pointer-events:none;color:' + RED + ';border:2px solid ' + RED
+      + ';padding:3px 9px 4px;background:rgba(255,248,232,.22);box-shadow:2px 2px 0 rgba(37,37,37,.18);'
+      + 'font:700 21px/1 "Songti SC","SimSun",serif;letter-spacing:.14em;'
+      + 'transform:translate(-50%,-50%) rotate(var(--fx-rot,0deg));white-space:nowrap}'
+      + '.fx-stamp.is-live{animation:fx-stamp .44s cubic-bezier(.2,1.45,.3,1) both}'
+      + '@keyframes fx-stamp{0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--fx-rot,0deg)) scale(1.5)}'
+      + '56%{opacity:1;transform:translate(-50%,-50%) rotate(var(--fx-rot,0deg)) scale(.96)}'
+      + '100%{opacity:.94;transform:translate(-50%,-50%) rotate(var(--fx-rot,0deg)) scale(1)}}';
+    document.head.appendChild(st);
+  }
 
   /* ---------- 对象池 ---------- */
   const BASE_CAP = 420;
@@ -328,6 +347,119 @@ export function createFx(signal) {
     kick();
   }
 
+  /* ---------- 向内聚合：合成 / 进化 / 叠山的"两样东西合成一样" ----------
+     burst 是"炸开"，聚合是它的反向语义。没有这一下，玩家只看到"结果变了"，
+     看不到"两样东西走到了一起"——合成类玩法最要紧的就是这一拍。 */
+  function converge(x, y, opt) {
+    opt = opt || {};
+    const n = Math.round((opt.count == null ? 12 : opt.count) * (reduced ? 0.4 : 1) * budget);
+    const R = opt.radius || 44;
+    const colors = opt.colors || PALETTE;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + Math.random() * 0.25;
+      const p = take('dot');
+      p.x = x + Math.cos(a) * R * (0.82 + Math.random() * 0.3);
+      p.y = y + Math.sin(a) * R * 0.72 * (0.82 + Math.random() * 0.3);
+      /* 用 0.32s 左右正好收到中心：v = R / t，留一点随机让它们不是同一个朝圣队伍 */
+      p.vx = -Math.cos(a) * R * (2.1 + Math.random() * 0.7);
+      p.vy = -Math.sin(a) * R * 1.7 * (0.9 + Math.random() * 0.3);
+      p.g = 0; p.drag = 0.955;
+      p.w = 1.8 + Math.random() * 2.8;
+      p.c = colors[i % colors.length];
+      p.t = 0; p.max = 0.3 + Math.random() * 0.14;
+      push(p);
+    }
+    if (opt.ring !== false) ringAt(x, y, Math.max(5, R * 0.2), R * 0.92, 2.4, opt.ringColor || RED);
+    if (opt.flash !== false && !reduced) {
+      const p = take('flash');
+      p.x = x; p.y = y; p.w = Math.max(14, R * 0.42); p.c = '#ffffff';
+      p.t = 0; p.max = 0.15;
+      push(p);
+    }
+    kick();
+  }
+
+  /* ---------- 折线闪：沿"真实走出来的路径"点亮 ----------
+     连字/走墨的路径本身是玩法的一部分，用粒子去"糊"一条线永远不如把那条线画出来。
+     用 SVG 描边 + dashoffset 从 0 走到满：玩家看到的是"这一笔是这么拐过去的"。
+     节点池上限 6，用完就复用，不留给 DOM 一堆死节点。 */
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svgFree = [];
+  function flashPath(pts, opt) {
+    if (!pts || pts.length < 2) return;
+    opt = opt || {};
+    let sv = svgFree.pop();
+    if (!sv) {
+      sv = document.createElementNS(SVGNS, 'svg');
+      sv.setAttribute('class', 'fx-path');
+      sv.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(sv);
+    }
+    const w = window.innerWidth, h = window.innerHeight;
+    sv.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    sv.setAttribute('preserveAspectRatio', 'none');
+    while (sv.firstChild) sv.removeChild(sv.firstChild);
+    let d = '', len = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const x = Math.round(pts[i][0]), yv = Math.round(pts[i][1]);
+      /* polyline 的 points 要的是 "x,y x,y"，不是 path 的 "M/L" 指令 —— 写错了浏览器会整条不画 */
+      d += (i ? ' ' : '') + x + ',' + yv;
+      if (i) len += Math.abs(x - Math.round(pts[i - 1][0])) + Math.abs(yv - Math.round(pts[i - 1][1]));
+    }
+    const line = document.createElementNS(SVGNS, 'polyline');
+    line.setAttribute('points', d);
+    line.setAttribute('fill', 'none');
+    line.setAttribute('stroke', opt.color || INK);
+    line.setAttribute('stroke-width', String(opt.width || 3));
+    line.setAttribute('stroke-linecap', 'round');
+    line.setAttribute('stroke-linejoin', 'miter');
+    sv.appendChild(line);
+    sv.style.display = '';
+    const dur = reduced ? 90 : (opt.dur || 300);
+    if (!reduced) {
+      line.style.strokeDasharray = String(Math.max(1, len));
+      line.style.strokeDashoffset = String(Math.max(1, len));
+      void line.getBoundingClientRect();
+      line.style.transition = 'stroke-dashoffset ' + dur + 'ms linear, opacity 140ms linear';
+      line.style.strokeDashoffset = '0';
+    }
+    window.setTimeout(function () {
+      line.style.opacity = '0';
+      window.setTimeout(function () {
+        if (sv.parentNode) sv.style.display = 'none';
+        if (svgFree.length < 6) svgFree.push(sv);
+      }, 160);
+    }, dur + (opt.hold || 90));
+  }
+
+  /* ---------- 印章砸下：落印 / 结算 / 阶段牌 ----------
+     纸上的"盖章"是一个有重量的动作：先大后小、斜一点点、朱色带一点压痕。 */
+  const stampFree = [];
+  function stampAt(x, y, text, opt) {
+    opt = opt || {};
+    let n = stampFree.pop();
+    if (!n) {
+      n = document.createElement('span');
+      n.addEventListener('animationend', function () {
+        n.classList.remove('is-live');
+        n.style.display = 'none';
+        if (stampFree.length < 8) stampFree.push(n);
+      });
+      document.body.appendChild(n);
+    }
+    n.style.display = '';
+    n.className = 'fx-stamp' + (opt.cls ? ' ' + opt.cls : '');
+    n.textContent = text;
+    n.style.left = Math.round(x) + 'px';
+    n.style.top = Math.round(y) + 'px';
+    n.style.setProperty('--fx-rot', (opt.rot == null ? (Math.random() * 7 - 3.5) : opt.rot) + 'deg');
+    n.style.color = opt.color || RED;
+    n.style.borderColor = opt.color || RED;
+    if (opt.size) n.style.fontSize = opt.size + 'px';
+    void n.offsetWidth;
+    n.classList.add('is-live');
+  }
+
   function shake(el, amp) {
     if (!el || reduced) return;
     el.style.setProperty('--fx-amp', String(amp || 3) + 'px');
@@ -436,7 +568,9 @@ export function createFx(signal) {
 
   return {
     burst, burstAt, sparks, ring: ringAt, trail, rise, shake, pop, combo,
+    converge, flashPath, stamp: stampAt,
     freeze, frozen: phaseFreeze, stop, canvas: cv, perf, bench,
+    reduced: function () { return reduced; },
     budget: function () { return budget; }
   };
 }

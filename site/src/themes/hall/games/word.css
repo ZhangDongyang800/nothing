@@ -1,0 +1,117 @@
+/* word · 抽词 台私有样式。
+ * 级联注意：打包时 hall.css 在 games/*.css 之后注入，覆盖基类一律用 #pane-word / #pairGrid 提权，
+ * 不改 hall.css 级联顺序。基类（卡阵网格、3D 翻转、进场落下、消失虚线位、HUD、判词、
+ * 响应式与横屏规则）仍在 ../hall.css，本文件只写牌面设计与本轮新增反馈规则。 */
+
+#pairGrid .pcard{ touch-action:manipulation; }
+
+/* ---------- 牌背：统一纸纹 + 内框 + 四角刻痕 + 中心印字 ---------- */
+#pairGrid .pback{
+  display:grid;place-items:center;
+  background:
+    repeating-linear-gradient(45deg, rgba(37,37,37,.07) 0 4px, transparent 4px 9px),
+    var(--nb-sheet);
+  box-shadow:2px 2px 0 rgba(37,37,37,.16);
+}
+#pairGrid .pback::before{
+  content:'';position:absolute;inset:5px;
+  border:1.5px solid rgba(37,37,37,.26);border-radius:2px;
+}
+#pairGrid .pback i{
+  font-style:normal;font-family:var(--font-heavy);
+  font-size:clamp(13px,1.7vw,22px);line-height:1;opacity:.24;
+}
+#pairGrid .pback::after{
+  content:'';position:absolute;inset:9px;pointer-events:none;opacity:.22;
+  background:
+    linear-gradient(var(--nb-ink),var(--nb-ink)) left top/9px 1.5px,
+    linear-gradient(var(--nb-ink),var(--nb-ink)) left top/1.5px 9px,
+    linear-gradient(var(--nb-ink),var(--nb-ink)) right top/9px 1.5px,
+    linear-gradient(var(--nb-ink),var(--nb-ink)) right top/1.5px 9px,
+    linear-gradient(var(--nb-ink),var(--nb-ink)) left bottom/9px 1.5px,
+    linear-gradient(var(--nb-ink),var(--nb-ink)) left bottom/1.5px 9px,
+    linear-gradient(var(--nb-ink),var(--nb-ink)) right bottom/9px 1.5px,
+    linear-gradient(var(--nb-ink),var(--nb-ink)) right bottom/1.5px 9px;
+  background-repeat:no-repeat;
+}
+
+/* 三档牌背只做墨色深浅 / 纹样密度的细微层级，同一套风格 */
+#pairGrid[data-tier="easy"] .pback{
+  background:repeating-linear-gradient(45deg, rgba(37,37,37,.05) 0 4px, transparent 4px 9px), var(--nb-sheet);
+}
+#pairGrid[data-tier="easy"] .pback i{ opacity:.18; }
+#pairGrid[data-tier="mid"] .pback i{ opacity:.26; }
+#pairGrid[data-tier="hard"] .pback{
+  background:repeating-linear-gradient(45deg, rgba(37,37,37,.1) 0 3px, transparent 3px 7px), var(--nb-sheet);
+}
+#pairGrid[data-tier="hard"] .pback i{ opacity:.34; }
+
+/* ---------- 牌面：字为主、词注为辅，留白讲究 ---------- */
+#pairGrid .pfront{ gap:5%; }
+#pairGrid .pfront .pg{
+  font-family:var(--font-heavy);line-height:1;
+  font-size:clamp(22px,2.9vw,38px);
+}
+#pairGrid .pfront .pn{
+  font-family:var(--font-mono);letter-spacing:.12em;opacity:.55;margin-top:2px;
+  font-size:clamp(5.5px,.6vw,7.5px);
+}
+/* 难档：牌面不注词，只认字——记忆负担落在字形与位置上 */
+#pairGrid[data-face="bare"] .pn{ display:none; }
+#pairGrid[data-face="bare"] .pg{ font-size:1.14em; }
+
+/* ---------- 错误配对：朱色描边 + 淡朱底，轻倾角比较，不做暴力震屏 ---------- */
+#pairGrid .pcard.is-miss{ animation:ptilt .36s ease; }
+@keyframes ptilt{
+  0%,100%{transform:none}
+  30%{transform:rotate(-1.6deg)}
+  70%{transform:rotate(1.6deg)}
+}
+#pairGrid .pcard.is-miss .pfront{
+  background:#fbe7e4;
+  box-shadow:0 0 0 3px var(--nb-coral),3px 3px 0 rgba(37,37,37,.18);
+}
+
+/* ---------- 配对成功：描金 + 露勾（基类勾标保留，这里加固金框） ---------- */
+#pairGrid .pcard.is-match .pfront{
+  box-shadow:0 0 0 3px var(--nb-yellow),3px 3px 0 rgba(37,37,37,.22);
+}
+
+/* ---------- 零失误通关：全盘描金一闪 + 金印 ---------- */
+#pairGrid.is-flaw{ animation:pflaw 1.1s ease both; }
+@keyframes pflaw{
+  0%,100%{filter:none}
+  35%{filter:drop-shadow(0 0 10px rgba(255,209,102,.55))}
+}
+#pairVSeal.is-flawless{
+  background:var(--nb-yellow);
+  border-color:#b8860b;
+  box-shadow:0 0 0 3px rgba(255,209,102,.45);
+}
+
+/* ---------- 步数耗尽：余牌压暗 ---------- */
+#pairGrid.is-dead .pcard{ opacity:.5; }
+#pairGrid.is-dead .pcard .pfront{ filter:saturate(.6); }
+
+/* ---------- 窄屏 / 手机端：难档五列仍要点得准 ---------- */
+@media (max-width:900px){
+  #pairGrid .pfront .pg{ font-size:clamp(18px,5.6vw,26px); }
+  #pairGrid .pfront .pn{ font-size:6px; }
+  #pairGrid[data-face="bare"] .pg{ font-size:1.12em; }
+}
+@media (max-width:420px){
+  #pairGrid{ gap:6px; }
+}
+
+/* ---------- 减弱动态 ---------- */
+@media (prefers-reduced-motion:reduce){
+  #pairGrid .pcard.is-miss{ animation:none; }
+  #pairGrid.is-flaw{ animation:none; }
+}
+
+/* 牌阵原来锁死在 430px 宽：1440 的屏上四列牌只有一百来像素，抽词要看清人名，
+   把宽度改成跟屏宽走；手机上仍旧按 88vw，不溢出。 */
+#pairGrid{ width: min(100%, clamp(320px, 42vw, 580px)); }
+@media (max-width: 900px){
+  #pairGrid{ width: min(100%, 88vw); }
+}

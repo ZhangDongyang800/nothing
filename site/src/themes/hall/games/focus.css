@@ -1,0 +1,177 @@
+/* focus · 专注台私有样式。
+ * 级联注意：本工程打包时 hall.css 在 games/*.css 之后注入，冲突属性用
+ * #pane-focus id 选择器提权，保证本台覆盖生效；不改 hall.css 级联顺序。
+ *
+ * 排版口径（多视口实测后定值，探针 probe-focus-r2.mjs 复核）：
+ *   1920×1080  字号 30px  行高 1.9  行宽上限 600px
+ *   1366×768   字号 28px  行高 1.9  行宽上限 560px
+ *   1024×640   字号 26px  行高 1.9  行宽上限 520px
+ *   390×844    字号 20px  行高 1.8  行宽上限 340px
+ * 一行一句：句长 6–12 字，单行不折行；当前行固定在左侧文字列，视线不来回扫。 */
+
+#pane-focus{
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+}
+
+#pane-focus .focus-block{
+  width:min(90%, 600px);
+  display:flex;
+  flex-direction:column;
+  gap:clamp(6px, 1.4vh, 14px);
+  padding:clamp(10px, 2.4vh, 28px) 0;
+}
+@media (max-width:1400px){
+  #pane-focus .focus-block{width:min(92%, 560px)}
+}
+@media (max-width:1100px){
+  #pane-focus .focus-block{width:min(92%, 520px)}
+}
+
+/* ---------- 逐行 ---------- */
+#pane-focus .fline{
+  position:relative;
+  display:flex;
+  align-items:baseline;
+  gap:clamp(10px, 1.4vw, 18px);
+  padding:clamp(2px, .5vh, 6px) 0;
+  font-family:var(--font-heavy);
+  font-weight:900;
+  font-size:clamp(26px, 2.3vw, 30px);
+  line-height:1.9;
+  letter-spacing:.01em;
+  opacity:.26;
+  cursor:pointer;
+  transition:opacity .32s ease, transform .32s ease, color .32s ease;
+}
+#pane-focus .fline i{
+  flex:none;
+  width:clamp(22px, 2.4vw, 30px);
+  font-family:var(--font-mono);
+  font-style:normal;
+  font-size:10px;
+  letter-spacing:.12em;
+  color:var(--nb-coral);
+  opacity:.25;
+  transition:opacity .32s ease;
+}
+#pane-focus .fline .txt{position:relative}
+
+/* 当前行：点亮 + 行位微移（普通档）；左侧短印线只在当前行亮 */
+#pane-focus .fline.is-live{opacity:1;transform:translateX(3px)}
+#pane-focus .fline.is-live i{opacity:1}
+#pane-focus .fline::before{
+  content:'';
+  position:absolute;
+  left:calc(clamp(22px, 2.4vw, 30px) - 9px);
+  width:3px;
+  height:1.1em;
+  background:var(--nb-coral);
+  opacity:0;
+  transition:opacity .28s ease;
+}
+#pane-focus .fline.is-live::before{opacity:1}
+
+/* 已读行：落定，留一道淡痕（比未读略深，不抢当前行） */
+#pane-focus .fline.is-done{opacity:.4}
+#pane-focus .fline.is-done i{opacity:.35}
+
+/* 中分档：1366 收一档字号，1024 再收一档（须在基础 .fline 规则之后才盖得住） */
+@media (max-width:1400px){
+  #pane-focus .fline{font-size:28px}
+}
+@media (max-width:1100px){
+  #pane-focus .fline{font-size:26px}
+}
+
+#pane-focus .focus-source{
+  margin-top:clamp(10px, 2vh, 20px);
+  padding-left:clamp(32px, 3.6vw, 48px);
+  font-family:var(--font-mono);
+  font-size:10px;
+  letter-spacing:.2em;
+  color:rgba(255,248,232,.55);
+  transition:opacity .32s ease;
+}
+
+/* ---------- 收束 ---------- */
+#pane-focus .focus-end{
+  display:flex;
+  align-items:center;
+  gap:clamp(10px, 1.2vw, 16px);
+  flex:none;
+  margin-top:clamp(12px, 2.4vh, 24px);
+  padding-left:clamp(32px, 3.6vw, 48px);
+  opacity:0;
+  transform:translateY(8px);
+  animation:focus-end-in .45s .1s cubic-bezier(.22,1,.36,1) forwards;
+}
+@keyframes focus-end-in{to{opacity:1;transform:none}}
+
+/* 终印：独立于稿纸填朱方印——透明底、朱色描边、宋体单字、轻斜，不填朱、不压重影。
+   压印动画：先大后小带一点回弹，落定后持久留在收束行左侧。 */
+#pane-focus .focus-seal{
+  display:grid;
+  place-items:center;
+  width:clamp(26px, 2.4vw, 32px);
+  height:clamp(26px, 2.4vw, 32px);
+  background:transparent;
+  color:#b5342b;
+  border:2px solid #b5342b;
+  font-family:var(--font-heavy);
+  font-size:clamp(12px, 1.2vw, 15px);
+  line-height:1;
+  transform:rotate(-5deg);
+  box-shadow:2px 2px 0 rgba(37,37,37,.35);
+  animation:focus-seal-in .42s cubic-bezier(.2,1.45,.3,1) both;
+}
+@keyframes focus-seal-in{
+  0%{opacity:0;transform:rotate(-5deg) scale(1.5)}
+  56%{opacity:1;transform:rotate(-5deg) scale(.96)}
+  100%{opacity:1;transform:rotate(-5deg) scale(1)}
+}
+
+#pane-focus .focus-end-text{
+  display:inline-flex;
+  overflow:hidden;
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:.22em;
+  color:rgba(255,248,232,.72);
+}
+#pane-focus .fchar{
+  display:inline-block;
+  opacity:0;
+  transform:translateY(8px);
+  animation:fchar-up .3s cubic-bezier(.22,1,.36,1) forwards;
+  animation-delay:var(--d, 0ms);
+}
+@keyframes fchar-up{to{opacity:1;transform:none}}
+
+/* 终印落下后：全诗压暗，只留收束一行亮着 */
+#pane-focus.is-ended .fline{opacity:.13}
+#pane-focus.is-ended .fline.is-done{opacity:.18}
+#pane-focus .focus-block.is-ended .focus-source{opacity:.35}
+
+/* ---------- 窄屏 / 手机 ---------- */
+@media (max-width:900px){
+  #pane-focus .focus-block{width:min(100%, 340px);gap:clamp(5px, 1.2vh, 10px)}
+  #pane-focus .fline{font-size:clamp(17px, 5.2vw, 21px);line-height:1.8;gap:10px}
+  #pane-focus .fline i{width:18px;font-size:8px}
+  #pane-focus .fline::before{left:11px;width:2px}
+  #pane-focus .focus-source{padding-left:28px;font-size:9px}
+  #pane-focus .focus-end{padding-left:28px}
+}
+
+/* 横屏（粗指针 + 宽高比 ≥1）：高度紧，字号收一档，块不撑满 */
+@media (pointer:coarse) and (min-aspect-ratio:1/1){
+  #pane-focus .focus-block{width:min(92%, 520px)}
+  #pane-focus .fline{font-size:clamp(18px, 3.4vw, 22px);line-height:1.7}
+}
+
+/* 减弱动效：过渡与动画一并关掉，文案直接落定 */
+@media (prefers-reduced-motion:reduce){
+  #pane-focus .fline,#pane-focus .focus-end,#pane-focus .fchar,#pane-focus .focus-seal{transition:none!important;animation:none!important}
+  #pane-focus .fchar{opacity:1;transform:none}
+}

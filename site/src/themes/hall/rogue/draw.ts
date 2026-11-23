@@ -49,7 +49,8 @@ export function drawGame(g: Game): void {
   const step = 64;
   const lx = Math.floor((g.camX - vw / 2) / step) * step;
   const ty = Math.floor((g.camY - vh / 2) / step) * step;
-  ctx.strokeStyle = 'rgba(38,34,30,.055)';
+  /* 背景网格再压淡一档：它是纸的纹理，不是路标。 */
+  ctx.strokeStyle = 'rgba(38,34,30,.028)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   for (let x = lx; x < g.camX + vw / 2 + step; x += step) {
@@ -62,8 +63,9 @@ export function drawGame(g: Game): void {
   }
   ctx.stroke();
 
-  /* 纸上的旧墨渍：按格子哈希，走到哪都在同一处 —— 像一张真的旧纸 */
-  const cell = 420;
+  /* 纸上的旧墨渍：按格子哈希，走到哪都在同一处 —— 像一张真的旧纸。
+     格子放大、透明度压低，装饰退到背景层，不和敌人抢注意力。 */
+  const cell = 500;
   const cx0 = Math.floor((g.camX - vw / 2) / cell) - 1;
   const cx1 = Math.floor((g.camX + vw / 2) / cell) + 1;
   const cy0 = Math.floor((g.camY - vh / 2) / cell) - 1;
@@ -72,12 +74,12 @@ export function drawGame(g: Game): void {
     for (let cy = cy0; cy <= cy1; cy++) {
       const a = hash2(cx, cy);
       const b = hash2(cx + 11, cy - 7);
-      ctx.fillStyle = `rgba(38,34,30,${0.02 + a * 0.02})`;
+      ctx.fillStyle = `rgba(38,34,30,${0.012 + a * 0.014})`;
       ctx.beginPath();
       ctx.ellipse(cx * cell + a * cell, cy * cell + b * cell, 24 + a * 40, 10 + b * 20, a * 3, 0, Math.PI * 2);
       ctx.fill();
       if (b > 0.62) {
-        ctx.strokeStyle = 'rgba(38,34,30,.035)';
+        ctx.strokeStyle = 'rgba(38,34,30,.022)';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(cx * cell + 40, cy * cell + 30);
@@ -101,19 +103,28 @@ export function drawGame(g: Game): void {
     if (!gem.active) continue;
     if (gem.x < g.camX - vw / 2 - 30 || gem.x > g.camX + vw / 2 + 30) continue;
     if (gem.y < g.camY - vh / 2 - 30 || gem.y > g.camY + vh / 2 + 30) continue;
+    /* 每颗掉落先垫一块纸：压在墨渍/网格上也能一眼看见 */
+    const pulse = gem.kind === 'heal' ? 1 + Math.sin(g.time * 5 + gem.x) * 0.12 : 1;
+    ctx.fillStyle = 'rgba(255,253,247,.94)';
+    ctx.beginPath(); ctx.arc(gem.x, gem.y, (gem.kind === 'heal' ? 11 : 9) * pulse, 0, Math.PI * 2); ctx.fill();
+    if (gem.kind === 'heal') {
+      ctx.strokeStyle = 'rgba(79,119,87,.55)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(gem.x, gem.y, 11 + Math.sin(g.time * 4) * 2, 0, Math.PI * 2); ctx.stroke();
+    }
     if (gem.kind === 'gold') {
       ctx.fillStyle = GOLD;
       ctx.strokeStyle = INK;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(gem.x, gem.y, 5, 0, Math.PI * 2);
+      ctx.arc(gem.x, gem.y, 6, 0, Math.PI * 2);
       ctx.fill(); ctx.stroke();
       ctx.fillStyle = INK;
-      ctx.fillRect(gem.x - 1.5, gem.y - 2.5, 3, 5);
+      ctx.fillRect(gem.x - 1.8, gem.y - 3, 3.6, 6);
     } else if (gem.kind === 'heal') {
       ctx.fillStyle = '#4f7757';
-      ctx.fillRect(gem.x - 6, gem.y - 2, 12, 4);
-      ctx.fillRect(gem.x - 2, gem.y - 6, 4, 12);
+      ctx.fillRect(gem.x - 7, gem.y - 2.5, 14, 5);
+      ctx.fillRect(gem.x - 2.5, gem.y - 7, 5, 14);
     } else {
       const a = gem.age * 2.2;
       ctx.save();
@@ -121,7 +132,7 @@ export function drawGame(g: Game): void {
       ctx.rotate(a);
       ctx.fillStyle = INK;
       ctx.beginPath();
-      ctx.moveTo(0, -5); ctx.lineTo(4, 0); ctx.lineTo(0, 5); ctx.lineTo(-4, 0);
+      ctx.moveTo(0, -6.5); ctx.lineTo(5, 0); ctx.lineTo(0, 6.5); ctx.lineTo(-5, 0);
       ctx.closePath();
       ctx.fill();
       ctx.restore();
@@ -145,10 +156,13 @@ export function drawGame(g: Game): void {
       ctx.fillStyle = '#fff8e8';
       ctx.fillRect(-3, -2, 6, 5);
       ctx.restore();
-      ctx.fillStyle = 'rgba(38,34,30,.5)';
-      ctx.font = '10px monospace';
+      ctx.fillStyle = 'rgba(38,34,30,.62)';
+      ctx.font = `700 ${Math.round(12 / zoom)}px "Microsoft YaHei", sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText('宝箱', it.x, it.y + 30);
+      ctx.strokeStyle = 'rgba(255,253,247,.9)';
+      ctx.lineWidth = 3 / zoom;
+      ctx.strokeText('宝箱', it.x, it.y + 32);
+      ctx.fillText('宝箱', it.x, it.y + 32);
     } else {
       ctx.save();
       ctx.translate(it.x, it.y);
@@ -165,10 +179,13 @@ export function drawGame(g: Game): void {
       ctx.textAlign = 'center';
       ctx.fillText('商', 0, 14);
       ctx.restore();
-      ctx.fillStyle = 'rgba(38,34,30,.5)';
-      ctx.font = '10px monospace';
+      ctx.fillStyle = 'rgba(38,34,30,.62)';
+      ctx.font = `700 ${Math.round(12 / zoom)}px "Microsoft YaHei", sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText('墨商', it.x, it.y + 38);
+      ctx.strokeStyle = 'rgba(255,253,247,.9)';
+      ctx.lineWidth = 3 / zoom;
+      ctx.strokeText('墨商', it.x, it.y + 40);
+      ctx.fillText('墨商', it.x, it.y + 40);
     }
   }
 
@@ -250,10 +267,20 @@ export function drawGame(g: Game): void {
     ctx.save();
     ctx.translate(s.x, s.y);
     ctx.rotate(Math.atan2(s.vy, s.vx));
+    /* 敌弹是"必须躲"的东西：先垫纸、再压墨边，纸底上永远看得见 */
+    ctx.fillStyle = 'rgba(255,253,247,.92)';
+    ctx.beginPath();
+    ctx.ellipse(-s.r * 0.2, 0, s.r * 2.35, s.r * 1.05, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = s.color;
     ctx.beginPath();
     ctx.ellipse(0, 0, s.r * 2, s.r * 0.7, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = 'rgba(38,34,30,.62)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s.r * 2, s.r * 0.7, 0, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -355,19 +382,41 @@ export function drawGame(g: Game): void {
   ctx.globalAlpha = 1;
 
   if (g.save.settings.dmgNumbers) {
+    /* 伤害数字按屏幕像素写，不跟 world 缩放一起变小；
+       外面套一圈纸色描边，压在敌人、墨渍、弹幕上都还是能读。 */
+    const z = zoom
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.lineJoin = 'round'
     for (const t of g.texts) {
       if (!t.active) continue;
-      const k = t.age / t.life;
-      ctx.globalAlpha = Math.max(0, 1 - k * k);
-      ctx.fillStyle = t.kind === 'crit' ? RED : t.kind === 'heal' ? '#4f7757' : t.kind === 'bad' ? RED : t.kind === 'info' ? GOLD : INK;
-      ctx.font = `bold ${t.kind === 'crit' ? t.size * 1.35 : t.size}px "Microsoft YaHei", sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText(t.text, t.x, t.y);
-      ctx.globalAlpha = 1;
+      const k = t.age / t.life
+      /* 前 2/3 的寿命保持满不透明，最后一段才淡出 —— 伤害数字不是装饰，得读完 */
+      const alpha = k < 0.66 ? 1 : Math.max(0, (1 - k) / 0.34)
+      if (alpha <= 0) continue
+      const size = (t.kind === 'crit' ? t.size * 1.35 : t.size) / z
+      ctx.globalAlpha = alpha
+      ctx.font = `900 ${size}px "Microsoft YaHei", "Noto Sans SC", sans-serif`
+      /* 不用 strokeText：3px 描边会把 17px 的字芯一起吃进去，看起来发灰。
+         改成在八个方向各印一层纸色，字芯完整，纸底上也永远有边。 */
+      const halo = (t.kind === 'crit' ? 2.4 : 2) / z
+      ctx.fillStyle = 'rgba(255,253,247,.98)'
+      for (let hx = -1; hx <= 1; hx++) {
+        for (let hy = -1; hy <= 1; hy++) {
+          if (hx === 0 && hy === 0) continue
+          ctx.fillText(t.text, t.x + hx * halo, t.y + hy * halo)
+        }
+      }
+      ctx.fillStyle = t.kind === 'crit' ? RED : t.kind === 'heal' ? '#4f7757' : t.kind === 'bad' ? RED : t.kind === 'info' ? GOLD : INK
+      ctx.fillText(t.text, t.x, t.y)
     }
+    ctx.globalAlpha = 1
   }
 
   ctx.restore();
+
+  /* ---------- 进化重大档演出（屏幕空间，纯视觉） ---------- */
+  if (g.evoAnim > 0) drawEvoCeremony(ctx, g, w, h, zoom);
 
   /* ---------- 雨 ---------- */
   if (g.rain > 0) {
@@ -527,12 +576,22 @@ function drawPlayer(ctx: CanvasRenderingContext2D, p: Game['player'], g: Game): 
   }
   ctx.save()
   ctx.translate(p.x, p.y)
-  /* 一圈纸色垫底：几十个墨点围上来时，玩家不能"融进"敌群里 */
-  ctx.fillStyle = 'rgba(255,253,247,.95)'
-  ctx.beginPath(); ctx.arc(0, 0, p.r + 4.5, 0, Math.PI * 2); ctx.fill()
+  /* 一圈纸色垫底 + 墨边：几十个墨点围上来时，玩家不能"融进"敌群里。
+     朱砂色整圈 + 头顶的小三角是"你在哪"的固定记号，敌人只垫白纸不描红。 */
+  ctx.fillStyle = 'rgba(255,253,247,.97)'
+  ctx.beginPath(); ctx.arc(0, 0, p.r + 8, 0, Math.PI * 2); ctx.fill()
   ctx.strokeStyle = INK
+  ctx.lineWidth = 3
+  ctx.beginPath(); ctx.arc(0, 0, p.r + 8, 0, Math.PI * 2); ctx.stroke()
+  ctx.strokeStyle = 'rgba(232,84,63,.72)'
   ctx.lineWidth = 2
-  ctx.beginPath(); ctx.arc(0, 0, p.r + 4.5, 0, Math.PI * 2); ctx.stroke()
+  ctx.beginPath(); ctx.arc(0, 0, p.r + 12, 0, Math.PI * 2); ctx.stroke()
+  ctx.fillStyle = 'rgba(232,84,63,.92)'
+  ctx.beginPath()
+  ctx.moveTo(0, -p.r - 10)
+  ctx.lineTo(-5, -p.r - 19)
+  ctx.lineTo(5, -p.r - 19)
+  ctx.closePath(); ctx.fill()
   const face = moving ? Math.atan2(p.vy, p.vx) : p.face
   ctx.rotate(face)
   /* 笔杆 */
@@ -570,14 +629,14 @@ function drawPlayer(ctx: CanvasRenderingContext2D, p: Game['player'], g: Game): 
     ctx.strokeStyle = '#c7a45a'
     ctx.globalAlpha = 0.55 + Math.sin(g.time * 4) * 0.15
     ctx.lineWidth = 2.5
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 9, 0, Math.PI * 2); ctx.stroke()
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 14, 0, Math.PI * 2); ctx.stroke()
     ctx.globalAlpha = 1
   }
   if (p.buffDmg > 0) {
     ctx.strokeStyle = '#4f7757'
     ctx.globalAlpha = 0.4
     ctx.setLineDash([5, 7])
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 15, g.time * 1.2, g.time * 1.2 + Math.PI * 2); ctx.stroke()
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 18, g.time * 1.2, g.time * 1.2 + Math.PI * 2); ctx.stroke()
     ctx.setLineDash([])
     ctx.globalAlpha = 1
   }
@@ -597,6 +656,12 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, time: number): void 
   ctx.translate(e.x, e.y)
   ctx.scale(scale, scale)
   ctx.globalAlpha = (e.spawnT > 0 ? 0.5 : 1) * (dying ? 0.7 : 1)
+  /* 纸垫：每一个墨点都压在自己的纸片上，网格与墨渍不会从身体里透出来。
+     Boss 不垫，它本来就够大，垫了反而像挖了个洞。 */
+  if (!e.boss) {
+    ctx.fillStyle = 'rgba(255,253,247,.84)';
+    ctx.beginPath(); ctx.arc(0, 0, e.r + 3.5, 0, Math.PI * 2); ctx.fill();
+  }
   if (e.elite) {
     ctx.strokeStyle = 'rgba(181,52,43,.55)'
     ctx.lineWidth = 2
@@ -618,11 +683,12 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, time: number): void 
     ctx.restore()
     return
   }
-  const col = flash ? '#fff8e8' : e.kind === 'bomber' ? RED : e.kind === 'caster' ? '#3f5c86' : e.kind === 'weaver' ? '#4f7757' : e.kind === 'chanter' ? '#7c4a63' : e.kind === 'warder' ? '#5b5751' : INK
+  /* 受击闪白改成闪朱：白闪压在白纸垫上等于隐身，朱色闪一下才是"打到了" */
+  const col = flash ? '#ffc9b9' : e.kind === 'bomber' ? RED : e.kind === 'caster' ? '#3f5c86' : e.kind === 'weaver' ? '#4f7757' : e.kind === 'chanter' ? '#7c4a63' : e.kind === 'warder' ? '#5b5751' : INK
   const r = e.r
   ctx.fillStyle = col
-  ctx.strokeStyle = flash ? '#fff8e8' : INK
-  ctx.lineWidth = 1.2
+  ctx.strokeStyle = INK
+  ctx.lineWidth = 2.2
   switch (e.kind) {
     case 'streak': {
       ctx.rotate(Math.atan2(e.hy, e.hx))
@@ -836,6 +902,9 @@ function drawShot(ctx: CanvasRenderingContext2D, s: Game['shots'][number]): void
   ctx.save()
   ctx.translate(s.x, s.y)
   ctx.rotate(a)
+  /* 玩家弹体先垫一圈纸：压在深色敌群上也不会融进墨团里 */
+  ctx.fillStyle = 'rgba(255,253,247,.72)'
+  ctx.beginPath(); ctx.arc(0, 0, s.r * 1.7, 0, Math.PI * 2); ctx.fill()
   if (s.kind === 'stroke' || s.kind === 'stroke-e') {
     ctx.fillStyle = s.color
     ctx.beginPath()
@@ -888,27 +957,83 @@ function drawShot(ctx: CanvasRenderingContext2D, s: Game['shots'][number]): void
   ctx.restore()
 }
 
+/* ===================== 进化演出 ===================== */
+function drawEvoCeremony(ctx: CanvasRenderingContext2D, g: Game, w: number, h: number, zoom: number): void {
+  const p = g.player;
+  const sx = (p.x - g.camX) * zoom + w / 2;
+  const sy = (p.y - g.camY) * zoom + h / 2;
+  const t = g.evoAnim;
+  /* 档一：外圈虚线向心收拢 */
+  if (t > 0.63) {
+    const k = 1 - (0.95 - t) / 0.32;
+    const R = 150 * (1 - k * 0.8) + 20;
+    ctx.save();
+    ctx.globalAlpha = 0.5 * (1 - k * 0.5);
+    ctx.strokeStyle = g.evoColor || RED;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 8]);
+    ctx.beginPath(); ctx.arc(sx, sy, R, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+  /* 档三：居中朱框印章，落地后稍停再淡出 */
+  if (t <= 0.4 && g.evoName) {
+    const k = 1 - t / 0.4;
+    const alpha = t < 0.12 ? t / 0.12 : 1;
+    const scale = 1.5 - 0.5 * Math.min(1, k * 1.4);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(w / 2, h * 0.34);
+    ctx.scale(scale, scale);
+    ctx.font = '900 34px "Songti SC","SimSun",serif';
+    const tw = ctx.measureText(g.evoName).width;
+    ctx.fillStyle = 'rgba(255,248,232,.88)';
+    ctx.fillRect(-tw / 2 - 18, -28, tw + 36, 56);
+    ctx.strokeStyle = RED;
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(-tw / 2 - 18, -28, tw + 36, 56);
+    ctx.fillStyle = RED;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(g.evoName, 0, 1);
+    ctx.restore();
+  }
+}
+
 /* ===================== 预警 ===================== */
 function drawTelegraphs(ctx: CanvasRenderingContext2D, g: Game): void {
   const b = g.boss
   if (!b || !b.active || b.dead) return
+  /* 预警进行中：Boss 头顶挂朱色感叹号，先于伤害判定提示走位 */
+  if (b.teleT > 0) {
+    const wy = b.y - b.r - 26
+    ctx.save()
+    ctx.globalAlpha = 0.85 + Math.sin(g.time * 14) * 0.15
+    ctx.fillStyle = '#fffdf7'
+    ctx.beginPath(); ctx.arc(b.x, wy, 11, 0, Math.PI * 2); ctx.fill()
+    ctx.strokeStyle = RED; ctx.lineWidth = 2; ctx.stroke()
+    ctx.fillStyle = RED
+    ctx.font = '900 15px "Microsoft YaHei", sans-serif'
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillText('!', b.x, wy + 1)
+    ctx.restore()
+  }
   ctx.save()
-  ctx.globalAlpha = 0.5 + Math.sin(g.time * 12) * 0.2
+  ctx.globalAlpha = 0.62 + Math.sin(g.time * 12) * 0.2
   if (b.bossId === 'niu') {
     if (b.pattern === 0) {
       ctx.strokeStyle = RED
-      ctx.lineWidth = 3
+      ctx.lineWidth = 4
       ctx.setLineDash([10, 8])
       ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x + b.hx * 460, b.y + b.hy * 460); ctx.stroke()
       ctx.setLineDash([])
     } else if (b.pattern === 3) {
       ctx.strokeStyle = RED
-      ctx.lineWidth = 2
+      ctx.lineWidth = 3
       ctx.beginPath(); ctx.arc(b.x, b.y, 175, 0, Math.PI * 2); ctx.stroke()
     }
   } else if (b.bossId === 'zhiyuan' && b.pattern === 0) {
     ctx.strokeStyle = RED
-    ctx.lineWidth = 2
+    ctx.lineWidth = 3
     ctx.beginPath()
     ctx.moveTo(b.x, b.y)
     ctx.arc(b.x, b.y, 380, Math.atan2(b.hy, b.hx) - 0.55, Math.atan2(b.hy, b.hx) + 0.55)
@@ -917,7 +1042,7 @@ function drawTelegraphs(ctx: CanvasRenderingContext2D, g: Game): void {
     const r = b.pattern === 1 ? 130 : b.pattern === 2 ? 200 : b.pattern === 3 ? 275 : 0
     if (r) {
       ctx.strokeStyle = RED
-      ctx.lineWidth = 2
+      ctx.lineWidth = 3
       ctx.setLineDash([9, 7])
       ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, Math.PI * 2); ctx.stroke()
       ctx.setLineDash([])

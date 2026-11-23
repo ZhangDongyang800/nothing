@@ -88,6 +88,8 @@ export interface WeaponDef {
   glyph: string
   color: string
   tag: string
+  /** 战术角色一句话：索敌 / 几何 / 节奏，验收探针按它逐把比对 */
+  role: string
   intro: string
   /** 八级成长；第八级满级后才可能进化 */
   levels: WeaponLevel[]
@@ -148,6 +150,9 @@ export interface Enemy {
   /** 受击方向（画喷溅用） */
   hx: number
   hy: number
+  /** 预警：剩余预警秒数 / 招式类型。>0 表示伤害判定还没落下，画面先画预警 */
+  teleT: number
+  teleKind: string
 }
 
 export interface Shot {
@@ -352,6 +357,10 @@ export interface GameApi {
   enemyShot(x: number, y: number, angle: number, speed: number, dmg: number, color: string, r?: number): void
   /** Boss 的横扫光柱：先画预警，再落下来伤玩家 */
   enemyBeam(x1: number, y1: number, x2: number, y2: number, width: number, dmg: number, color: string): void
+  /** Boss 起手预警：登记预警开始时刻与招式类型，供画面与探针读取 */
+  telegraph(kind: string, dur: number): void
+  /** Boss 范围震击：同 ring 结算，单独留命中时刻 */
+  enemyRing(x: number, y: number, r: number, dmg: number, knock: number, color: string): void
   /** 敌人造成的伤害：护甲 / 护盾 / 无敌帧 / 反伤都在这里统一算 */
   damagePlayer(dmg: number, sx: number, sy: number): void
   spawnEnemy(kind: string, x: number, y: number, elite?: boolean, pack?: boolean): void

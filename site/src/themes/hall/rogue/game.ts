@@ -12,7 +12,7 @@
  */
 import type {
   Beam, Chain, Enemy, EShot, FloatText, GameApi, Gem, Meteor, Particle, Pickup, Player,
-  PlayerStats, Shockwave, Shot, Turret, WeaponInst, Zone,
+  PlayerStats, Shockwave, Shot, Turret, WeaponInst, WeaponLevel, Zone,
 } from './types';
 import { WEAPON_BY_ID, WEAPON_DEFS, statsOf, isEvolvedAvailable } from './data/weapons';
 import { PASSIVES, PASSIVE_BY_ID } from './data/passives';
@@ -51,7 +51,7 @@ function blankEnemy(): Enemy {
     dmg: 0, speed: 0, xp: 0, gold: 0, elite: false, boss: false, bossId: '', hitT: 0, atkCd: 0,
     st: 0, st2: 0, phase: 1, shield: 0, shieldMax: 0, shieldT: 0, slowT: 0, spawnT: 0,
     orbitCd: 0, pack: false, pattern: 0, phaseT: 0, enrage: false, dead: false, dieT: 0,
-    hx: 0, hy: 0,
+    hx: 0, hy: 0, teleT: 0, teleKind: '',
   };
 }
 
@@ -85,6 +85,25 @@ function newPlayer(): Player {
 
 function nextXp(level: number): number {
   return Math.round(12 + (level - 1) * 7 + Math.pow(level, 1.55) * 2.4);
+}
+
+/** 升级卡上的「现状」行：只写玩家真能比较的几个数，不写形容词。 */
+function weaponStatsLine(l: WeaponLevel): string {
+  const parts: string[] = [`伤害 ${l.dmg}`];
+  if (l.count > 1) parts.push(`${l.count} 发`);
+  parts.push(`间隔 ${l.cd}s`);
+  if (l.pierce > 0) parts.push(`穿透 ${l.pierce}`);
+  return parts.join(' · ');
+}
+
+function weaponDeltas(cur: WeaponLevel, next: WeaponLevel): string[] {
+  const out: string[] = [];
+  const dmg = Math.round((next.dmg - cur.dmg) * 10) / 10;
+  if (dmg > 0) out.push(`伤害 +${dmg}`);
+  if (next.cd < cur.cd) out.push(`间隔 -${Math.round((cur.cd - next.cd) * 100) / 100}s`);
+  if (next.count > cur.count) out.push(`弹数 +${next.count - cur.count}`);
+  if (next.pierce > cur.pierce) out.push(`穿透 +${next.pierce - cur.pierce}`);
+  return out;
 }
 
 export class Game implements GameApi {
@@ -164,6 +183,18 @@ export class Game implements GameApi {
   private needDraw = false;
   private mutedSfx = 0;
   private qbuf: Enemy[] = [];
+
+  /* 进化重大档演出：聚合 → 爆环 → 印章，纯视觉，不暂停操作 */
+  evoAnim = 0;
+  evoName = '';
+  evoColor = '';
+  /* 演出未结束前压住下一张升级卡，避免印章被新弹层盖住 */
+  private evoHold = false;
+  /* 预警计时：探针量 telegraph → 命中的帧差用 */
+  private lastTeleAt = -1;
+  private lastTeleKind = '';
+  private lastHitAt = -1;
+  private lastHitKind = '';
 
   fps = 60;
   maxEnemiesSeen = 0;
@@ -467,6 +498,8 @@ export class Game implements GameApi {
     this.boss = null;
     this.packAlive = 0;
     this.rain = 0;
+    this.evoAnim = 0; this.evoName = ''; this.evoColor = ''; this.evoHold = false;
+    this.lastTeleAt = -1; this.lastHitAt = -1;
     this.elapsed = 0;
     this.time = 0;
     this.camX = 0; this.camY = 0;
@@ -678,7 +711,11 @@ export class Game implements GameApi {
       if (isEvolvedAvailable(w, def, this.passives)) {
         evo.push({
           kind: 'evolve', id: def.id, name: def.evo.name, glyph: def.evo.glyph, tag: '进化 · 条件已满足',
-          desc: def.evo.intro, next: def.evo.stats.text, level: 8, color: '#b5342b', evolved: true,
+          desc: def.evo.intro, next: def.evo.stats.text,
+          now: `${def.name} Lv.8 · ${weaponStatsLine(statsOf(w, def))}`,
+          then: `${def.evo.name} · ${weaponStatsLine(def.evo.stats)}`,
+          thenLabel: '进化后',
+          level: 8, max: 8, color: '#b5342b', evolved: true,
         });
         break;
       }
@@ -690,9 +727,13 @@ export class Game implements GameApi {
       const cur = statsOf(w, def);
       const next = def.levels[w.level];
       pool.push({
-        kind: 'weapon', id: def.id, name: def.name, glyph: def.glyph, tag: '武器 · 升级',
-        desc: '现在：' + cur.text, next: '→ ' + next.text,
-        level: w.level, color: def.color, evolved: false,
+        kind: 'weapon', id: def.id, name: def.name, glyph: def.glyph, tag: `武器 · Lv.${w.level} → ${w.level + 1}`,
+        desc: next.text, next: '→ ' + next.text,
+        now: weaponStatsLine(cur),
+        then: weaponStatsLine(next),
+        thenLabel: '升级后',
+        deltas: weaponDeltas(cur, next),
+        level: w.level, max: def.levels.length, color: def.color, evolved: false,
       });
     }
     if (this.weapons.length < 6) {
@@ -700,7 +741,11 @@ export class Game implements GameApi {
         if (this.weapons.some(w => w.id === def.id)) continue;
         pool.push({
           kind: 'weapon', id: def.id, name: def.name, glyph: def.glyph, tag: '武器 · 新',
-          desc: def.intro, next: '新武器 · Lv.1', level: 0, color: def.color, evolved: false,
+          desc: def.intro, next: '新武器 · Lv.1',
+          now: '未持有',
+          then: `Lv.1 · ${weaponStatsLine(def.levels[0])}`,
+          thenLabel: '拿到后',
+          level: 0, max: def.levels.length, color: def.color, evolved: false,
         });
       }
     }
@@ -709,18 +754,27 @@ export class Game implements GameApi {
       if (lv >= p.max) continue;
       pool.push({
         kind: 'passive', id: p.id, name: p.name, glyph: p.glyph, tag: `${p.tag} · 被动`,
-        desc: lv ? '现在：' + p.desc(lv) : '还没有',
-        next: '→ ' + p.desc(lv + 1), level: lv, color: '#3f5c86', evolved: false,
+        desc: `可叠 ${p.max} 级 · 现在 ${lv} 级`,
+        next: '→ ' + p.desc(lv + 1),
+        now: lv ? `Lv.${lv} · ${p.desc(lv)}` : '未持有',
+        then: `Lv.${lv + 1} · ${p.desc(lv + 1)}`,
+        thenLabel: lv ? '升级后' : '拿到后',
+        level: lv, max: p.max, color: '#3f5c86', evolved: false,
       });
     }
     const out: OfferView[] = [];
     if (evo.length) out.push(evo[0]);
     while (out.length < 3) {
       if (pool.length === 0) {
+        const isGold = out.length % 2 !== 0;
         out.push({
-          kind: 'fill', id: out.length % 2 ? 'gold' : 'heal', name: out.length % 2 ? '一把铜钱' : '一口回墨',
-          glyph: out.length % 2 ? '金' : '墨', tag: '补给', desc: out.length % 2 ? '金币 +80' : '回复 45% 生命',
-          next: '', level: 0, color: '#8a6a3a', evolved: false,
+          kind: 'fill', id: isGold ? 'gold' : 'heal', name: isGold ? '一把铜钱' : '一口回墨',
+          glyph: isGold ? '金' : '墨', tag: '补给', desc: '立刻生效，不占武器位',
+          next: '',
+          now: isGold ? `金币 ${this.player.gold}` : `生命 ${Math.ceil(this.player.hp)} / ${Math.round(this.statsData.maxHp)}`,
+          then: isGold ? `金币 ${this.player.gold + 80}` : `回复 ${Math.round(this.statsData.maxHp * 0.45)} 生命`,
+          thenLabel: '拿走',
+          level: 0, color: '#8a6a3a', evolved: false,
         });
         continue;
       }
@@ -737,8 +791,74 @@ export class Game implements GameApi {
     this.phase = 'levelup';
     this.offers = this.rollOffers();
     this.audio.sfx('level');
-    this.ui.showLevel(this.offers, this.rerolls);
+    this.ui.showLevel(this.offers, this.rerolls, { level: this.player.level, pending: this.pendingLevels });
     this.saveCheckpoint();
+  }
+
+  private applyEvolve(w: WeaponInst, def: typeof WEAPON_BY_ID[string]): void {
+    w.evolved = true;
+    w.cool = 0;
+    this.evolutions++;
+    this.audio.sfx('evolve');
+    this.ui.banner(def.evo.name, def.evo.intro, 'evo');
+    this.ui.flash('gold');
+    this.shake = 8;
+    this.ui.toast(`${def.name} → ${def.evo.name}`, 'good');
+    this.evoHold = true;
+    this.startEvoCeremony(def.evo.name, def.color);
+  }
+
+  /** 进化三档演出：向内聚合 → 中心爆环 → 武器名印章。纯视觉，不暂停模拟。 */
+  private startEvoCeremony(name: string, color: string): void {
+    const p = this.player;
+    this.evoAnim = 0.95;
+    this.evoName = name;
+    this.evoColor = color;
+    /* 档一：外圈墨点向内聚合到笔尖 */
+    const budget = this.save.settings.quality === 'low' ? 0.6 : 1;
+    const n = Math.round(26 * budget);
+    for (let i = 0; i < n; i++) {
+      const pt = this.particles.find(v => !v.active);
+      if (!pt) break;
+      const a = (i / n) * Math.PI * 2 + this.rnd() * 0.3;
+      const R = 120 + this.rnd() * 60;
+      pt.active = true;
+      pt.x = p.x + Math.cos(a) * R;
+      pt.y = p.y + Math.sin(a) * R;
+      /* 速度指向中心，约 0.32s 收到 */
+      pt.vx = -Math.cos(a) * R * 3.1;
+      pt.vy = -Math.sin(a) * R * 3.1;
+      pt.life = 0.34; pt.age = 0;
+      pt.size = 2.4 + this.rnd() * 3;
+      pt.color = color; pt.kind = 'dot'; pt.spin = 0; pt.rot = a;
+    }
+  }
+
+  private updateEvoAnim(dt: number): void {
+    if (this.evoAnim <= 0) return;
+    const prev = this.evoAnim;
+    this.evoAnim = Math.max(0, this.evoAnim - dt);
+    const p = this.player;
+    /* 档二：聚合收满的一瞬，中心爆环外推 */
+    if (prev > 0.63 && this.evoAnim <= 0.63) {
+      this.shockwave(p.x, p.y, 150, 0.42, this.evoColor, 7);
+      this.burst(p.x, p.y, this.evoColor, 22, 300);
+      this.audio.sfx('boom', 0.6);
+    }
+    if (this.evoAnim <= 0) {
+      this.evoName = ''; this.evoColor = ''
+      if (this.evoHold) {
+        this.evoHold = false
+        if (this.phase === 'levelup') {
+          if (this.pendingLevels > 0) {
+            this.offers = this.rollOffers()
+            this.ui.showLevel(this.offers, this.rerolls, { level: this.player.level, pending: this.pendingLevels })
+          } else {
+            this.phase = 'playing'; this.ui.hideOverlay(); this.lastTs = performance.now()
+          }
+        }
+      }
+    }
   }
 
   private pickOffer(i: number): void {
@@ -747,17 +867,7 @@ export class Game implements GameApi {
     if (o.kind === 'evolve') {
       const w = this.weapons.find(x => x.id === o.id);
       const def = WEAPON_BY_ID[o.id];
-      if (w && def) {
-        w.evolved = true;
-        w.cool = 0;
-        this.evolutions++;
-        this.audio.sfx('evolve');
-        this.ui.banner(def.evo.name, def.evo.intro, 'evo');
-        this.ui.flash('gold');
-        this.shake = 8;
-        this.burst(this.player.x, this.player.y, def.color, 40, 300);
-        this.ui.toast(`${def.name} → ${def.evo.name}`, 'good');
-      }
+      if (w && def) this.applyEvolve(w, def);
     } else if (o.kind === 'weapon') {
       const def = WEAPON_BY_ID[o.id];
       const w = this.weapons.find(x => x.id === o.id);
@@ -784,9 +894,14 @@ export class Game implements GameApi {
     this.refreshStats(true);
     this.pendingLevels--;
     if (this.pendingLevels > 0) {
-      this.offers = this.rollOffers();
-      this.ui.showLevel(this.offers, this.rerolls);
-    } else {
+      if (this.evoHold) {
+        /* 演出进行中：先收掉当前卡，让出画面；updateEvoAnim 结束后再开下一张 */
+        this.ui.hideOverlay()
+      } else {
+        this.offers = this.rollOffers();
+        this.ui.showLevel(this.offers, this.rerolls, { level: this.player.level, pending: this.pendingLevels });
+      }
+    } else if (!this.evoHold) {
       this.phase = 'playing';
       this.ui.hideOverlay();
       this.lastTs = performance.now();
@@ -798,7 +913,7 @@ export class Game implements GameApi {
     this.rerolls--;
     this.offers = this.rollOffers();
     this.audio.sfx('ui');
-    this.ui.showLevel(this.offers, this.rerolls);
+    this.ui.showLevel(this.offers, this.rerolls, { level: this.player.level, pending: this.pendingLevels });
   }
 
   /* ================= 输入 ================= */
@@ -813,12 +928,17 @@ export class Game implements GameApi {
       if (k === '1' || k === '2' || k === '3') { e.preventDefault(); this.pickChest(Number(k) - 1); }
       return;
     }
+    if (k === 'p') {
+      /* P 是开关：页脚只写了「P 暂停」，但它同样得能继续，不然暂停后只能动鼠标 */
+      if (this.phase === 'playing') { e.preventDefault(); this.pauseGame(); }
+      else if (this.phase === 'paused') { e.preventDefault(); this.resumeGame(); }
+      return;
+    }
     if (this.phase !== 'playing') return;
     if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) {
       e.preventDefault();
     }
     if (k === ' ') { this.tryDash(); return }
-    if (k === 'p') { this.pauseGame(); return }
     this.keys.add(k);
   }
 
@@ -975,6 +1095,11 @@ export class Game implements GameApi {
     if (this.phase === 'playing') {
       this.timeScale += (1 - this.timeScale) * Math.min(1, real * 4);
       this.update(real * this.timeScale, real);
+      this.needDraw = true;
+    } else if (this.evoAnim > 0) {
+      /* 进化演出在升级弹层后也要走完：只推粒子与演出计时，不推进敌人/武器 */
+      this.updateFx(real);
+      this.updateEvoAnim(real);
       this.needDraw = true;
     }
     if (this.needDraw) {
@@ -1173,6 +1298,7 @@ export class Game implements GameApi {
       e.slowT = Math.max(0, e.slowT - dt);
 
       if (e.boss) {
+        e.teleT = Math.max(0, e.teleT - dt);
         const bd = BOSS_BY_ID[e.bossId];
         if (bd) bd.think(e, this, dt);
         if (!e.enrage && e.hp < e.maxHp * 0.5) {
@@ -1241,8 +1367,9 @@ export class Game implements GameApi {
         this.hitEnemy(e, s.dmg, { silent: s.kind === 'stroke-e' });
         if (s.explodeR > 0) {
           this.explodeAt(s.x, s.y, s.explodeR, s.explodeDmg, s.color);
-          if (s.kind === 'ember-e') {
-            this.zone(s.x, s.y, { r: s.explodeR * 0.7, life: 2.6, dmg: s.dmg * 0.24, tick: 0.4, type: 'fire', color: s.color });
+          if (s.kind === 'ember-e' || s.kind === 'ember') {
+            const big = s.kind === 'ember-e';
+            this.zone(s.x, s.y, { r: s.explodeR * (big ? 0.7 : 0.5), life: big ? 2.6 : 1.6, dmg: s.dmg * 0.24, tick: 0.4, type: 'fire', color: s.color });
           }
           dead = true;
           break;
@@ -1262,8 +1389,9 @@ export class Game implements GameApi {
       if (s.life <= 0 && !dead) {
         if (s.explodeR > 0) {
           this.explodeAt(s.x, s.y, s.explodeR, s.explodeDmg, s.color);
-          if (s.kind === 'ember-e') {
-            this.zone(s.x, s.y, { r: s.explodeR * 0.7, life: 2.6, dmg: s.dmg * 0.24, tick: 0.4, type: 'fire', color: s.color });
+          if (s.kind === 'ember-e' || s.kind === 'ember') {
+            const big = s.kind === 'ember-e';
+            this.zone(s.x, s.y, { r: s.explodeR * (big ? 0.7 : 0.5), life: big ? 2.6 : 1.6, dmg: s.dmg * 0.24, tick: 0.4, type: 'fire', color: s.color });
           }
         }
         dead = true;
@@ -1498,7 +1626,7 @@ export class Game implements GameApi {
     this.totalDmg += d;
     if (!opts?.silent) {
       const big = crit || e.boss;
-      this.pop(e.x + (this.rnd() - 0.5) * 14, e.y - e.r - 4, crit ? String(Math.round(d)) + '!' : String(Math.round(d)), crit ? 'crit' : 'hit', big ? 17 : 13);
+      this.pop(e.x + (this.rnd() - 0.5) * 14, e.y - e.r - 4, crit ? String(Math.round(d)) + '!' : String(Math.round(d)), crit ? 'crit' : 'hit', big ? 22 : 17);
       this.audio.sfx('hit', 0.5);
     }
     if (e.hp <= 0) this.killEnemy(e);
@@ -1513,7 +1641,7 @@ export class Game implements GameApi {
     this.combo++;
     this.comboT = 2.2;
     if (this.combo % 10 === 0) {
-      this.pop(p.x, p.y - 36, '连击 ×' + this.combo, 'crit', 16);
+      this.pop(p.x, p.y - 36, '连击 ×' + this.combo, 'crit', 18);
       this.shake = Math.max(this.shake, 2.5);
     }
     if (this.statsData.streak > 0) {
@@ -1708,7 +1836,9 @@ export class Game implements GameApi {
     e.shield = 0; e.shieldMax = 0; e.shieldT = 0;
     e.spawnT = 0.8; e.dead = false; e.dieT = 0;
     e.slowT = 0; e.hx = -1; e.hy = 0;
+    e.teleT = 0; e.teleKind = '';
     this.boss = e;
+    this.lastTeleAt = -1; this.lastHitAt = -1; this.lastTeleKind = ''; this.lastHitKind = '';
     this.audio.sfx('boss');
     this.ui.banner(e.name, `「${def.title}」`, 'boss');
     this.ui.toast(def.note, 'bad');
@@ -1916,11 +2046,7 @@ export class Game implements GameApi {
       const w = this.weapons.find(x => { const d = WEAPON_BY_ID[x.id]; return d && isEvolvedAvailable(x, d, this.passives) });
       if (w) {
         const def = WEAPON_BY_ID[w.id];
-        w.evolved = true;
-        this.evolutions++;
-        this.audio.sfx('evolve');
-        this.ui.banner(def ? def.evo.name : '进化', '宝箱里抽出的那一步', 'evo');
-        this.ui.flash('gold');
+        if (def) this.applyEvolve(w, def);
       } else {
         this.player.gold += 120;
       }
@@ -2079,6 +2205,11 @@ export class Game implements GameApi {
     Object.assign(s, o);
     s.hitIds = [];
     s.x = o.x; s.y = o.y; s.dmg = o.dmg;
+    /* 穿石被动：额外穿透统一叠到弹体上，不用每把武器各自记 */
+    s.pierce += this.statsData.pierce;
+    /* 笔势：弹体尺寸与爆点半径随范围放大 */
+    s.r *= this.statsData.area;
+    if (s.explodeR > 0) s.explodeR *= this.statsData.area;
   }
 
   beam(x1: number, y1: number, x2: number, y2: number, o: Partial<Beam> & { dmg: number }): void {
@@ -2086,7 +2217,7 @@ export class Game implements GameApi {
     if (!b) return;
     b.active = true;
     b.x1 = x1; b.y1 = y1; b.x2 = x2; b.y2 = y2;
-    b.width = o.width ?? 12;
+    b.width = (o.width ?? 12) * this.statsData.area;
     b.life = o.life ?? 0.2;
     b.age = 0;
     b.dmg = o.dmg;
@@ -2110,7 +2241,7 @@ export class Game implements GameApi {
     if (!z) return;
     z.active = true;
     z.x = x; z.y = y;
-    z.r = o.r;
+    z.r = o.r * this.statsData.area;
     z.life = o.life;
     z.age = 0;
     z.dmg = o.dmg;
@@ -2168,7 +2299,7 @@ export class Game implements GameApi {
     m.active = true;
     m.x = x; m.y = y;
     m.t = delay; m.delay = delay;
-    m.dmg = dmg; m.r = r; m.color = color;
+    m.dmg = dmg; m.r = r * this.statsData.area; m.color = color;
   }
 
   turret(x: number, y: number, o: Partial<Turret> & { dmg: number }): void {
@@ -2287,10 +2418,31 @@ export class Game implements GameApi {
       b.width = width; b.life = 0.32; b.age = 0;
       b.dmg = dmg; b.color = color; b.hitIds = []; b.kind = 'enemy';
     }
+    /* 命中时刻留痕：探针量 telegraph → 命中的帧差 */
+    this.lastHitAt = this.time;
+    this.lastHitKind = 'beam';
+    if (this.boss) { this.boss.teleT = 0; this.boss.teleKind = '' }
     const p = this.player;
     if (pointSegDist(p.x, p.y, x1, y1, x2, y2) < width / 2 + p.r) this.damagePlayer(dmg, p.x, p.y);
     this.audio.sfx('boom', 0.7);
     this.ui.flash('bad');
+  }
+
+  /** Boss 起手预警：记录预警开始时刻与招式类型，画面先画预警，判定后落。
+   *  按招式类型边沿触发：上一段预警已在命中时清空 teleKind，新一轮起手才记录时刻。 */
+  telegraph(kind: string, dur: number): void {
+    if (this.boss) {
+      if (this.boss.teleKind === '' || this.boss.teleKind !== kind) { this.lastTeleAt = this.time; this.lastTeleKind = kind }
+      this.boss.teleT = dur; this.boss.teleKind = kind
+    }
+  }
+
+  /** Boss 的范围震击：与玩家钟鸣共用 ring 结算，单独留命中时刻供探针量预警窗。 */
+  enemyRing(x: number, y: number, r: number, dmg: number, knock: number, color: string): void {
+    this.lastHitAt = this.time;
+    this.lastHitKind = 'ring';
+    if (this.boss) { this.boss.teleT = 0; this.boss.teleKind = '' }
+    this.ring(x, y, r, dmg, knock, color);
   }
 
   explode(x: number, y: number, r: number, dmg: number, color: string): void {
@@ -2302,6 +2454,7 @@ export class Game implements GameApi {
   }
 
   private explodeAt(x: number, y: number, r: number, dmg: number, color: string): void {
+    r *= this.statsData.area;
     const list = this.grid.query(x, y, r, this.qbuf).slice();
     for (const e of list) {
       if (!e.active || e.dead) continue;
@@ -2344,6 +2497,10 @@ export class Game implements GameApi {
       phase: this.phase,
       char: this.char.id,
       time: this.elapsed,
+      minutes: Math.round(this.minutes * 10) / 10,
+      bossIndex: this.bossIndex,
+      hpScale: Math.round(this.hpScale() * 100) / 100,
+      dmgScale: Math.round(this.dmgScale() * 100) / 100,
       x: Math.round(this.player.x),
       y: Math.round(this.player.y),
       level: this.player.level,
@@ -2357,7 +2514,10 @@ export class Game implements GameApi {
       dmg: this.totalDmg,
       bossKills: this.bossKills,
       evolutions: this.evolutions,
-      boss: this.boss ? { name: this.boss.name, hp: this.boss.hp, max: this.boss.maxHp, phase: this.boss.phase, pattern: this.boss.pattern } : null,
+      boss: this.boss ? { name: this.boss.name, hp: this.boss.hp, max: this.boss.maxHp, phase: this.boss.phase, pattern: this.boss.pattern, teleT: Math.round(this.boss.teleT * 1000) / 1000, teleKind: this.boss.teleKind } : null,
+      tele: { at: this.lastTeleAt, kind: this.lastTeleKind, hitAt: this.lastHitAt, hitKind: this.lastHitKind, gap: this.lastHitAt >= 0 && this.lastTeleAt >= 0 ? Math.round((this.lastHitAt - this.lastTeleAt) * 1000) / 1000 : -1 },
+      evoAnim: Math.round(this.evoAnim * 1000) / 1000,
+      evoName: this.evoName,
       enemies: this.countActive(),
       elites: this.enemies.filter(e => e.active && e.elite && !e.dead).length,
       shots: this.shots.filter(s => s.active).length,
@@ -2368,6 +2528,7 @@ export class Game implements GameApi {
       rain: this.rain > 0,
       particles: this.particles.filter(p => p.active).length,
       loop: !!this.raf,
+      god: this.god,
       quality: this.save.settings.quality,
       dpr: this.view.dpr,
       weapons: this.weapons.map(w => ({ id: w.id, level: w.level, evolved: w.evolved })),
@@ -2434,6 +2595,12 @@ export class Game implements GameApi {
     if (this.boss && this.boss.active && !this.boss.dead) this.hitEnemy(this.boss, n, { silent: true, noCrit: true });
   }
 
+  /** 验收用：不等时间表，直接召出当前 Boss，便于测预警窗口。 */
+  debugBoss(): void {
+    if (this.phase !== 'playing') return;
+    if (!this.boss) this.spawnBoss();
+  }
+
   debugAddXp(n: number): void { this.gainXp(n); }
 
   /** 验收用：在脚边放一个宝箱 / 商人，省得走位去找。 */
@@ -2457,6 +2624,20 @@ export class Game implements GameApi {
   }
 
   debugPassive(id: string, lv: number): void { this.passives[id] = lv; this.refreshStats(true) }
+
+  /** 验收用：逐把武器的角色标签与 1 级 / 8 级 / 进化数值，探针据此比对差异 */
+  debugWeaponProfiles(): Record<string, unknown> {
+    const snap = (l: WeaponLevel) => ({ dmg: l.dmg, cd: l.cd, count: l.count, pierce: l.pierce, size: l.size, life: Math.round(l.life * 100) / 100 });
+    const out: Record<string, unknown> = {};
+    for (const def of WEAPON_DEFS) {
+      out[def.id] = {
+        id: def.id, name: def.name, glyph: def.glyph, role: def.role, tag: def.tag, color: def.color,
+        l1: snap(def.levels[0]), l8: snap(def.levels[def.levels.length - 1]),
+        evo: { name: def.evo.name, glyph: def.evo.glyph, reqPassive: def.evo.passive, reqLv: def.evo.passiveLv, stats: snap(def.evo.stats) },
+      };
+    }
+    return out;
+  }
 
   debugStart(charId = 'moke'): void { this.startRun(charId); }
 

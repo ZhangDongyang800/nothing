@@ -738,23 +738,18 @@ p,h1,h2,h3{margin:0}
   transition:transform .16s ease,box-shadow .16s ease,background .2s ease;
 }
 .ptile:hover{transform:translateY(-3px) scale(1.02);box-shadow:3px 5px 0 rgba(37,37,37,.26);z-index:60!important}
-/* 被上层压住：字被盖住、只留一道斜纹底，点不动 */
+/* 被上层压住：字还在、只是淡下去；点不动 */
 .ptile.is-lock{
-  color:transparent;cursor:default;
-  border-color:rgba(37,37,37,.34);
-  background:
-    repeating-linear-gradient(45deg, rgba(37,37,37,.07) 0 4px, transparent 4px 9px),
-    #efe9da;
-  box-shadow:1px 1px 0 rgba(37,37,37,.06);
+  color:rgba(37,37,37,.24);cursor:default;
+  border-color:rgba(37,37,37,.10);
+  background:#f4efe1;
+  box-shadow:none;
 }
-/* 牌背的记号：一枚小菱形，让人看出这是压住的一张牌而不是一块布 */
-.ptile.is-lock::after{
-  content:'';position:absolute;top:50%;left:50%;
-  width:26%;height:26%;
-  border:1.5px solid rgba(37,37,37,.26);
-  transform:translate(-50%,-50%) rotate(45deg);
-}
-.ptile.is-lock:hover{transform:none;box-shadow:1px 1px 0 rgba(37,37,37,.06)}
+/* 被压住的牌不再画偏旁小记号：几层叠一起时那些小图标才是最吵的东西 */
+.ptile.is-lock[data-ic]::after{display:none}
+/* 再往里收 8%：牌与牌之间露一条缝，叠了几层这件事才看得出来 */
+.ptile.is-lock{transform:scale(.92)}
+.ptile.is-lock:hover{transform:none;box-shadow:0 1px 0 rgba(37,37,37,.1)}
 /* 最上层那张留一道黄边：一眼知道现在能动的是哪几张 */
 .ptile:not(.is-lock){box-shadow:2px 2px 0 rgba(37,37,37,.16),0 0 0 3px rgba(255,209,102,0)}
 /* 取走：朝底座方向坠下去 */
@@ -1639,9 +1634,86 @@ body.is-playing .cabs *{animation-play-state:paused!important}
    "叠在画面上的读数"，不占布局、不挡操作。
    ================================================================= */
 
-/* 十二台：桌面 4 列 × 3 行。分区长页里不再"撑满一屏"，
-   每行给一个固定下限（214px），否则 1fr 在自动高度容器里会塌成标题条。 */
-.cabs{grid-template-rows:repeat(3,minmax(214px,auto))}
+/* 十三台：桌面 4 列 × 4 行，头一台《纸上军团》占 2×2 当旗舰位。
+   分区长页里不再"撑满一屏"，每行给一个固定下限（214px），否则 1fr 在自动高度容器里会塌成标题条。 */
+.cabs{grid-template-rows:repeat(4,minmax(214px,auto))}
+
+/* 旗舰卡：2×2。边框加厚、阴影用朱砂色，一闪就知道这台和别的不是一回事。 */
+.cab-flag{
+  grid-column:span 2;grid-row:span 2;
+  box-shadow:8px 8px 0 var(--nb-ink),11px 11px 0 var(--nb-coral,#e8543f);
+}
+.cab-flag:hover{box-shadow:11px 11px 0 var(--nb-ink),15px 15px 0 var(--nb-coral,#e8543f)}
+.cab-flag .cab-name{font-size:clamp(19px,2vw,28px)}
+
+/* 「纸上军团」演示屏：一张摊开的宣纸战场，六格兵、一条山道、一枚营寨印。
+   静态只给构图；悬停时兵卒呼吸、波次印淡入淡出。 */
+.scr-legion{background-color:var(--nb-paper,#fff8e8);background-image:
+  radial-gradient(70% 60% at 50% 55%, rgba(37,37,37,.03), transparent 72%),
+  linear-gradient(to right, rgba(37,37,37,.045) 1px, transparent 1px),
+  linear-gradient(to bottom, rgba(37,37,37,.045) 1px, transparent 1px);
+  background-size:auto,clamp(18px,2vw,26px) clamp(18px,2vw,26px);
+}
+.lg-prev{position:absolute;inset:0}
+.lg-prev-path{
+  position:absolute;left:-6%;top:58%;width:112%;height:14%;
+  background:repeating-linear-gradient(90deg, rgba(37,37,37,.22) 0 7px, transparent 7px 15px);
+  transform:rotate(-8deg);opacity:.55;
+}
+.lg-prev-cell{
+  position:absolute;width:clamp(22px,2.4vw,30px);height:clamp(22px,2.4vw,30px);
+  display:grid;place-items:center;
+  border:2px solid var(--nb-ink,#252525);
+  background:#fffdf7;color:var(--nb-ink,#252525);
+  font:700 clamp(10px,1vw,13px)/1 var(--font-heavy,"serif");
+  font-style:normal;
+  box-shadow:2px 2px 0 rgba(37,37,37,.22);
+  transition:transform .18s cubic-bezier(.2,1.4,.4,1);
+}
+.lg-prev-cell.c1{left:11%;top:21%;color:#6b6255}
+.lg-prev-cell.c2{left:31%;top:15%;color:#3f6b3a}
+.lg-prev-cell.c3{left:53%;top:26%;color:#6b6255}
+.lg-prev-cell.c4{left:72%;top:17%;color:#33628f}
+.lg-prev-cell.c5{left:24%;top:45%;color:#6b4a8f}
+.lg-prev-cell.c6{left:60%;top:48%;color:#b8860b}
+.lg-prev-cell.c1,.lg-prev-cell.c4{transform:rotate(-3deg)}
+.lg-prev-cell.c3,.lg-prev-cell.c6{transform:rotate(2.5deg)}
+.cab:hover .lg-prev-cell.c1,.cab:hover .lg-prev-cell.c5{transform:translateY(-3px) rotate(-2deg)}
+.cab:hover .lg-prev-cell.c2,.cab:hover .lg-prev-cell.c4{transform:translateY(-1px) rotate(1.5deg)}
+.lg-prev-base{
+  position:absolute;right:9%;bottom:13%;
+  width:clamp(26px,2.8vw,34px);aspect-ratio:1;display:grid;place-items:center;
+  border:2.5px solid var(--nb-ink,#252525);border-radius:50%;
+  background:radial-gradient(circle at 50% 45%,#fff6e0,#ffd166);
+  box-shadow:0 0 0 3px rgba(232,84,63,.55);
+}
+.lg-prev-base::after{
+  content:'';width:52%;height:52%;
+  background:
+    linear-gradient(to bottom,transparent 44%,var(--nb-ink,#252525) 44% 56%,transparent 56%),
+    linear-gradient(to right,transparent 44%,var(--nb-ink,#252525) 44% 56%,transparent 56%);
+  transform:rotate(45deg);opacity:.7;
+}
+.lg-prev-wave{
+  position:absolute;left:7%;bottom:8%;
+  font:700 clamp(8px,.8vw,10px)/1 var(--font-mono,monospace);font-style:normal;
+  letter-spacing:.18em;color:#7a5a2e;
+  padding:2px 5px;border:1.5px solid rgba(37,37,37,.4);background:rgba(255,246,224,.8);
+}
+.cab:hover .lg-prev-wave{animation:lgwave 2.6s ease-in-out infinite}
+@keyframes lgwave{0%,100%{opacity:.72}50%{opacity:1}}
+.lg-prev-tags{
+  position:absolute;right:6%;top:6%;display:flex;flex-direction:column;gap:3px;align-items:flex-end;
+}
+.lg-prev-tags b{
+  font:700 clamp(7px,.72vw,9px)/1 var(--font-mono,monospace);letter-spacing:.08em;
+  padding:2px 4px;border:1.5px solid rgba(37,37,37,.32);background:rgba(255,253,247,.86);
+  color:#3a332a;
+}
+
+/* 「纸上军团」：机台弹层里整块交给游戏自己的界面层，机台厅只负责摆满。 */
+.pane-legion{padding:0;overflow:hidden}
+.pane-legion #legionRoot{position:absolute;inset:0}
 
 /* 「墨潮」：无尽战场。弹层里整块交给游戏自己的界面层，
    机台厅只负责把它摆到满屏。 */
@@ -1971,6 +2043,10 @@ body.is-playing .cabs *{animation-play-state:paused!important}
 /* 窄屏：新机器与读数要换行，别把 HUD 挤成一串看不清的字 */
 @media (max-width:900px){
   .cabs{grid-template-rows:none}
+  /* 手机上旗舰卡改成横跨两列的一条，不然 2×2 会占掉整屏的一半 */
+  .cab-flag{grid-column:1/-1;grid-row:auto;min-height:178px}
+  .cab-flag .cab-name{font-size:17px}
+  .lg-prev-tags b{font-size:7px}
   .hud-score,.hud-combo{font-size:9px}
   .tap-hud,.run-hud,.stack-hud{gap:8px}
   .tap-board{height:auto;width:min(100%,92vw);aspect-ratio:4/3;max-height:100%}
@@ -2124,4 +2200,78 @@ body.is-playing .cabs *{animation-play-state:paused!important}
   /* 11 垒塔：画布按高度尽量吃满 */
   .pane-stack #stackCanvas{height:min(100%,78vh,780px);width:auto}
 }
+
+/* =================================================================
+   2026-11-22 · 十一台统一可读性（桌面 ≥901px）
+   与「墨潮」同一套口径：注记不小于 11px、读数抬到 19–27px、
+   读数分三层（标签 < 数值 < 分数/连击），页脚改键帽。
+   只动机台弹层内部与顶/底栏，不碰首页；手机布局保持原样。
+   ================================================================= */
+@media (min-width:901px){
+  /* ---------- 顶栏 ---------- */
+  .m-no{font-size:10.5px;letter-spacing:.18em;opacity:.6}
+  .m-name{font-size:clamp(15px,1.35vw,19px)}
+  .m-tag{font-size:11px;padding:3px 8px;letter-spacing:.12em}
+
+  /* ---------- 页脚：键帽 + 动作，分隔点退成留白 ---------- */
+  .m-hint{
+    font-family:var(--font-mono);font-size:clamp(11.5px,.72vw,13px);
+    letter-spacing:.06em;line-height:1.9;color:#4b463d;opacity:1;
+  }
+  .m-hint b{
+    display:inline-block;margin:0 2px;padding:1px 6px 2px;
+    border:1.5px solid var(--nb-ink);background:var(--nb-paper);color:var(--nb-ink);
+    font-family:var(--font-heavy);font-weight:800;font-size:.96em;letter-spacing:.02em;
+    box-shadow:2px 2px 0 rgba(37,37,37,.12);line-height:1.5;
+  }
+  .m-hint i{font-style:normal;margin:0 6px;opacity:.38}
+  .m-count{font-size:11px;letter-spacing:.16em;opacity:.55}
+  .m-btn{font-size:12px;padding:7px 12px}
+
+  /* ---------- 台面读数：标签灰一档、数值黑一档、分数/连击单独一档 ---------- */
+  .pile-hud,.onet-hud,.merge-hud,.bk-hud,.pair-hud,
+  .brk-hud,.tap-hud,.run-hud,.stack-hud{
+    font-size:clamp(12px,.8vw,13.5px);letter-spacing:.1em;
+    opacity:1;color:#6b6255;gap:clamp(12px,1.5vw,26px);
+  }
+  .pile-hud b,.onet-hud b,.merge-hud b,.bk-hud b,.pair-hud b,
+  .brk-hud b,.tap-hud b,.run-hud b,.stack-hud b{
+    font-size:1.75em;color:var(--nb-ink);font-weight:900;letter-spacing:0;
+  }
+  .hud-score{padding-left:clamp(9px,.9vw,14px);border-left:1.5px solid rgba(37,37,37,.2)}
+  .hud-score b{font-size:2.05em;color:var(--nb-coral)}
+  .hud-combo{padding-left:clamp(9px,.9vw,14px);border-left:1.5px solid rgba(37,37,37,.2);opacity:.5}
+  .hud-combo.is-on{opacity:1}
+  .hud-combo b{font-size:1.9em}
+  .hud-combo .combo-lab{font-size:.86em;letter-spacing:.14em;opacity:.8}
+  .hud-theme{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:.86em;letter-spacing:.12em;padding:2px 8px;
+    border:1.5px solid var(--nb-ink);background:var(--nb-paper);opacity:1;
+    box-shadow:2px 2px 0 rgba(37,37,37,.1);
+  }
+  .hud-theme::before{width:6px;height:6px}
+  .hud-btn{font-size:11.5px;padding:5px 9px}
+  .pair-hud .pair-peek{font-size:11.5px;padding:3px 8px}
+
+  /* ---------- 稿纸 / 专注：纸上的小字 ---------- */
+  .sheet-head,.sheet-foot{font-size:10.5px;letter-spacing:.12em;padding:7px 11px}
+  .ro-meta{font-size:11px;line-height:1.65;opacity:.62}
+  .source,.focus-source{font-size:11px;opacity:.62}
+  .pane-focus .focus-source{opacity:.8}
+  .fline i{font-size:11px}
+  .focus-end-text{font-size:11px;letter-spacing:.14em;opacity:.7}
+
+  /* ---------- 抽词的牌面角标 ---------- */
+  .pcard.is-match .pfront::after{font-size:10px;padding:2px 6px}
+  .pfront .pn{font-size:11px;opacity:.72}
+
+  /* ---------- 键盘可达：所有台面控件同一条焦点环 ---------- */
+  .ptile:focus-visible,.sitem:focus-visible,.o-tile:focus-visible,.pcard:focus-visible,
+  .hud-btn:focus-visible,.pair-tier button:focus-visible,.onet-tools button:focus-visible,
+  .g-go:focus-visible,.pair-go:focus-visible,.m-btn:focus-visible,.m-close:focus-visible{
+    outline:3px solid var(--nb-coral);outline-offset:3px;
+  }
+}
+
 

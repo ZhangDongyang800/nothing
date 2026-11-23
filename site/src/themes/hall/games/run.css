@@ -1,0 +1,25 @@
+/* run · 走墨 台专属样式（第二轮精品化）。
+   全站基类规则仍在 ../hall.css；本文件只写走墨私有覆盖，不改动 hall.css 级联顺序。 */
+
+/* 台面不允许横向溢出；画布去掉点按高亮与选中，触屏操作更干净 */
+.pane-run{ overflow:hidden; }
+#runCanvas{
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+#runCanvas.is-pressed{ transform:translateY(2px); }
+
+/* 触屏：画布作为跳跃触控区，按下时给一点墨色反馈，不遮挡判定 */
+@media (pointer:coarse){
+  #runCanvas{ cursor:default; }
+  .pane-run .run-wrap{ min-height:120px; }
+}
+
+/* 窄屏竖屏：画布吃满宽度，HUD 不挤压出横向滚动 */
+@media (max-width:900px){
+  .pane-run{ gap:6px; }
+  #runCanvas{ max-width:100%; }
+}

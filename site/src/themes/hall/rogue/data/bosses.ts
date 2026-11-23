@@ -40,18 +40,20 @@ const NIU: BossDef = {
       /* 抬头蓄力：一条线，看清楚往哪冲 */
       toward(b, g);
       b.vx = 0; b.vy = 0;
+      g.telegraph('niu-charge', b.st);
       if (b.st <= 0) { b.pattern = 1; b.st = 0.5 / fast; }
     } else if (b.pattern === 1) {
       b.vx = b.hx * 640 * fast;
       b.vy = b.hy * 640 * fast;
-      if (b.st <= 0) { b.pattern = 2; b.st = 1.1; g.ring(b.x, b.y, 90, 16, 200, '#1e1b18'); }
+      if (b.st <= 0) { b.pattern = 2; b.st = 1.1; g.enemyRing(b.x, b.y, 90, 16, 200, '#1e1b18'); }
     } else if (b.pattern === 2) {
       b.vx *= 0.86; b.vy *= 0.86;
       if (b.st <= 0) { b.pattern = 3; b.st = 0.85; }
     } else {
       b.vx = 0; b.vy = 0;
+      g.telegraph('niu-ring', b.st);
       if (b.st <= 0) {
-        g.ring(b.x, b.y, 175, b.enrage ? 38 : 28, 300, '#1e1b18');
+        g.enemyRing(b.x, b.y, 175, b.enrage ? 38 : 28, 300, '#1e1b18');
         g.burst(b.x, b.y, '#1e1b18', 18, 200);
         if (b.enrage) {
           for (let i = 0; i < 3; i++) {
@@ -86,6 +88,7 @@ const ZHIYUAN: BossDef = {
     else if (d < keep - 40) { b.vx = -Math.cos(a) * 140; b.vy = -Math.sin(a) * 140; }
     else { b.vx = Math.cos(a + 1.57) * 90; b.vy = Math.sin(a + 1.57) * 90; }
     if (b.pattern === 0) {
+      g.telegraph('zhiyuan-cone', b.st);
       if (b.st <= 0) {
         b.st = b.enrage ? 1.4 : 2.3;
         const n = b.enrage ? 11 : 7;
@@ -128,18 +131,21 @@ const BEILING: BossDef = {
         b.pattern = 1; b.st = 0.7;
       }
     } else if (b.pattern === 1) {
+      g.telegraph('beiling-ring', b.st);
       if (b.st <= 0) {
-        g.ring(b.x, b.y, 130, b.dmg * 0.9, 260, '#5b5751');
+        g.enemyRing(b.x, b.y, 130, b.dmg * 0.9, 260, '#5b5751');
         b.pattern = 2; b.st = 0.35;
       }
     } else if (b.pattern === 2) {
+      g.telegraph('beiling-ring', b.st);
       if (b.st <= 0) {
-        g.ring(b.x, b.y, 200, b.dmg * 0.9, 300, '#7a756c');
+        g.enemyRing(b.x, b.y, 200, b.dmg * 0.9, 300, '#7a756c');
         b.pattern = 3; b.st = 0.35;
       }
     } else if (b.pattern === 3) {
+      g.telegraph('beiling-ring', b.st);
       if (b.st <= 0) {
-        g.ring(b.x, b.y, 275, b.dmg * 0.9, 340, '#5b5751');
+        g.enemyRing(b.x, b.y, 275, b.dmg * 0.9, 340, '#5b5751');
         b.pattern = 4; b.st = b.enrage ? 1.2 : 2.2;
       }
     } else {
@@ -176,6 +182,7 @@ const MOLONG: BossDef = {
     } else if (b.pattern === 1) {
       /* 预警：以 Boss 为起点，朝玩家拉一条长线 */
       b.vx = 0; b.vy = 0;
+      g.telegraph('molong-beam', b.st);
       if (b.st <= 0) {
         g.enemyBeam(b.x, b.y, b.x + b.hx * 1200, b.y + b.hy * 1200, 54, b.dmg * 1.1, '#26221e');
         g.burst(b.x + b.hx * 300, b.y + b.hy * 300, '#26221e', 20, 220);
@@ -216,12 +223,14 @@ const ZHIBI: BossDef = {
     } else if (b.pattern === 1) {
       /* 笔锋砸下：正前方一条宽线 */
       b.vx = 0; b.vy = 0;
+      g.telegraph('zhibi-beam', b.st);
       if (b.st <= 0) {
         g.enemyBeam(b.x, b.y, b.x + b.hx * 900, b.y + b.hy * 900, 92, b.dmg * 1.2, '#b5342b');
         g.explode(b.x + b.hx * 120, b.y + b.hy * 120, 90, b.dmg * 0.6, '#b5342b');
         b.pattern = 2; b.st = 0.6;
       }
     } else if (b.pattern === 2) {
+      g.telegraph('zhibi-cross', b.st);
       if (b.st <= 0) {
         /* 四向横扫：十字，两道错开 */
         for (let k = 0; k < 4; k++) {

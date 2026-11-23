@@ -1,0 +1,56 @@
+/* tap · 敲印 台私有样式（r2 精品化）。
+ * 全站规则（基类格盘、响应式、横屏、判词）仍集中在 ../hall.css；
+ * 本文件只写本台新增的状态与反馈覆盖，同等选择器后置生效，不改 hall.css。 */
+
+/* 点按消除高亮 + 选中不被划词 */
+.tap-cell{
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+/* 普通命中：印章下压一拍（普通档反馈，160ms 内回弹） */
+.tap-cell.is-hit{
+  transform: translate(2px, 2px) scale(.93);
+  box-shadow: 1px 1px 0 rgba(37, 37, 37, .16);
+  transition: transform .07s ease, box-shadow .1s ease, background .12s ease;
+}
+
+/* 急闪印：浅蓝底 + 虚线蓝边，一眼与朱字印 / 金印 / 墨印区分开 */
+.tap-cell.is-quick{ background: #e9f1fb; }
+.tap-seal.is-quick{
+  border-style: dashed;
+  border-color: #5b7fa8;
+  color: #5b7fa8;
+  box-shadow: inset 0 0 0 2px rgba(255, 253, 247, .9), inset 0 0 0 4px #5b7fa8;
+}
+.tap-seal.is-quick::after{ background: rgba(91, 127, 168, .85); }
+
+/* ×2 角标：钉在印角上，不参与判定（seal 本身 pointer-events:none） */
+.tap-badge{
+  position: absolute;
+  top: -8px; right: -8px;
+  min-width: 17px; height: 17px;
+  display: grid; place-items: center;
+  background: #5b7fa8; color: #fff8e8;
+  border: 1.5px solid #252525;
+  box-shadow: 1.5px 1.5px 0 rgba(37, 37, 37, .25);
+  font: 700 10px/1 ui-monospace, monospace;
+  letter-spacing: 0;
+}
+
+/* 重大档 · 阶段突破：整盘底色一闪（360ms 内落回纸色，不留常驻色） */
+.tap-board.is-stageup{ animation: tap-stageup .36s ease-out; }
+@keyframes tap-stageup{
+  0%{ background: rgba(255, 209, 102, .55); }
+  100%{ background: rgba(255, 209, 102, 0); }
+}
+
+/* 空角标不占位：普通/金/墨印格上不留蓝方块 */
+.tap-badge:empty{ display: none; }
+
+/* 窄屏：角标再收半号，避免压到印面 */
+@media (max-width: 900px){
+  .tap-badge{ min-width: 15px; height: 15px; top: -6px; right: -6px; font-size: 9px; }
+}
