@@ -722,3 +722,34 @@
   .lg .lg-item-row { padding-top: 0; }
   .lg .lg-items { padding-bottom: 4px; }
 }
+/* 属性四格：用容器黑底当分隔线，格子自身不再加边框（否则会挤成 3+1） */
+.lg .lg-inspect-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px;
+  padding: 2px;
+  border: 2px solid #252525;
+  border-radius: 0;
+  background: #252525;
+}
+.lg .lg-inspect-stats span {
+  border: 0;
+  border-radius: 0;
+  background: #fffdf7;
+  padding: 3px 5px;
+}
+.lg .lg-inspect-stats i { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 1px; color: #252525; opacity: 0.72; }
+.lg .lg-inspect-stats b { font-family: var(--font-heavy); color: #252525; }
+.lg .lg-inspect-stats span:last-child { display: flex; }
+.lg .lg-inspect-syn,
+.lg .lg-inspect-note { display: flex; gap: 4px; font-size: 11.5px; color: #252525; }
+.lg .lg-inspect-note { display: block; }
+.lg .lg-inspect-syn em,
+.lg .lg-inspect-note em {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 1px;
+  color: #fffdf7;
+  background: #252525;
+  padding: 1px 4px;
+  margin-right: 3px;
+}
