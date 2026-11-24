@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>纸上军团 · UI 设计样板 v1</title>
+<link rel="stylesheet" href="../src/themes/hall/legion/design/tokens.css" />
+<link rel="stylesheet" href="../src/themes/hall/legion/design/components.css" />
+<style>
+  /* 样板外壳：只负责切屏，不属于设计系统 */
+  html, body { margin: 0; height: 100%; background: #f6eedc; }
+  .spec-page { display: none; height: 100%; }
+  .spec-page.is-on { display: block; }
+  .spec-nav {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    display: flex; gap: 6px; padding: 6px; z-index: 99;
+    border: 2px solid #23201a; background: #fbf6e8; box-shadow: 4px 4px 0 rgba(35,32,26,.18);
+    transition: opacity .3s;
+  }
+  .spec-nav a {
+    padding: 6px 12px; font: 12px/1 'Microsoft YaHei', sans-serif; color: #23201a;
+    text-decoration: none; border: 1px solid rgba(35,32,26,.2);
+  }
+  .spec-nav a:hover, .spec-nav a.is-on { background: #23201a; color: #fbf6e8; }
+  .spec-nav.is-hidden { opacity: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<!-- ============================== 1. 主界面 ============================== -->
+<section class="spec-page is-on" id="main">
+  <div class="ds-screen">
+    <div class="ds-main">
+      <div class="ds-main__grid">
+
+        <div class="ds-main__title">
+          <span class="ds-kicker">单人无尽守卫 · 山道第七日</span>
+          <div class="ds-title-row">
+            <span class="ds-seal ds-seal--xl ds-seal--stamp">守</span>
+            <h1 class="ds-title">纸上军团</h1>
+          </div>
+          <p style="margin:0;font-size:15px;line-height:1.7;color:var(--lg-ink-1);max-width:30ch">
+            招募、合兵、布阵，守住山道。兵就是塔，文字就是兵。
+          </p>
+          <div class="ds-loop">
+            <div class="ds-loop__step"><i>壹</i><b>招募</b><span>每波结束三选一：兵、强化，或换成金铢。</span></div>
+            <div class="ds-loop__step"><i>贰</i><b>合兵</b><span>同名两枚并作一枚，升一阶；阶越高字越沉，也越贵。</span></div>
+            <div class="ds-loop__step"><i>叁</i><b>布阵</b><span>兵只落在土路两侧的格，锋线决定敌人先撞谁。</span></div>
+            <div class="ds-loop__step"><i>肆</i><b>守</b><span>敌军自「入」走到「寨」，寨血掉光即破印。</span></div>
+          </div>
+          <div class="ds-records">
+            <div class="ds-record"><span>最高波次</span><b>27</b></div>
+            <div class="ds-record"><span>最长生存</span><b>18:42</b></div>
+            <div class="ds-record"><span>已战</span><b>9 局</b></div>
+            <div class="ds-record"><span>金铢</span><b>1,284</b></div>
+          </div>
+        </div>
+
+        <div class="ds-main__side">
+          <div class="ds-minimap">
+            <span class="ds-kicker">本局山道 · 窄口</span>
+            <div class="ds-minimap__board">
+              <i class="is-path is-entry"><b>入</b></i><i></i><i class="is-unit"><b>枪</b></i><i class="is-unit"><b>弓</b></i><i class="is-unit"><b>刀</b></i><i></i>
+              <i class="is-path"></i><i class="is-unit"><b>弓</b></i><i></i><i></i><i></i><i></i>
+              <i class="is-path"></i><i class="is-path"></i><i class="is-path"></i><i></i><i></i><i></i>
+              <i></i><i></i><i class="is-path"></i><i></i><i class="is-unit"><b>法</b></i><i></i>
+              <i></i><i class="is-unit"><b>骑</b></i><i class="is-path"></i><i></i><i class="is-unit"><b>工</b></i><i></i>
+              <i></i><i></i><i class="is-path"></i><i class="is-path"></i><i class="is-unit"><b>术</b></i><i></i>
+              <i></i><i></i><i></i><i class="is-path is-camp"><b>寨</b></i><i></i><i></i>
+            </div>
+            <p class="ds-note">22 格可布阵 · 开局 8 格<br />敌军自「入」沿土路推进至「寨」</p>
+          </div>
+
+          <div class="ds-main__actions">
+            <button class="ds-btn ds-btn--primary ds-btn--lg" style="justify-content:flex-start">开始守卫</button>
+            <button class="ds-btn" style="justify-content:flex-start">继续上局 · 第 20 波</button>
+            <button class="ds-btn ds-btn--quiet" style="justify-content:space-between">
+              局外成长 <span style="font-size:11px;color:var(--lg-ink-3)">金铢 · 材料 · 兵种解锁</span>
+            </button>
+            <div class="ds-rowflex" style="gap:16px">
+              <button class="ds-btn ds-btn--ghost">玩法</button>
+              <button class="ds-btn ds-btn--ghost">设置</button>
+            </div>
+            <p class="ds-note" style="font-size:11px">进度自动存在本机。关掉机台不会丢。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-lastrun">
+        <span>上一局</span><b style="color:var(--lg-ink-0)">第 27 波</b>
+        <span>斩 412</span><span>守 18:42</span><span>带走 316 金 · 42 材</span>
+        <span style="margin-left:auto">v1.0 · 自动存档</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 2. 择将 ============================== -->
+<section class="spec-page" id="hero">
+  <div class="ds-screen">
+    <div class="ds-hero">
+      <div class="ds-hero__bar">
+        <span class="ds-kicker">战前</span>
+        <h2>择将 · 点将台</h2>
+        <button class="ds-btn ds-btn--ghost" style="margin-left:auto">返回</button>
+      </div>
+      <div class="ds-hero__body">
+
+        <div class="ds-hero__list">
+          <button class="ds-hero-item is-on">
+            <span class="ds-seal">锋</span>
+            <span class="ds-hero-item__text"><b>青锋</b><span>执刀校尉 · 整军</span></span>
+            <span class="ds-hero-item__state is-on">出战</span>
+          </button>
+          <button class="ds-hero-item">
+            <span class="ds-seal">鸢</span>
+            <span class="ds-hero-item__text"><b>赤鸢</b><span>焚原术者 · 引燃</span></span>
+            <span class="ds-hero-item__state">待命</span>
+          </button>
+          <button class="ds-hero-item">
+            <span class="ds-seal is-locked">鹭</span>
+            <span class="ds-hero-item__text"><b>白鹭</b><span>落羽弓主 · 听风</span></span>
+            <span class="ds-hero-item__state">0 / 90</span>
+          </button>
+          <button class="ds-hero-item">
+            <span class="ds-seal is-locked">雪</span>
+            <span class="ds-hero-item__text"><b>踏雪</b><span>踏阵骑将 · 蹄声</span></span>
+            <span class="ds-hero-item__state">0 / 160</span>
+          </button>
+        </div>
+
+        <div class="ds-hero__detail">
+          <div class="ds-hero__head">
+            <span class="ds-seal ds-seal--xl">锋</span>
+            <div>
+              <h1>青锋</h1>
+              <p>执刀校尉 · 生命 560 · 护甲 32</p>
+            </div>
+            <span class="ds-chip is-seal" style="margin-left:auto">联动 · 刀兵</span>
+          </div>
+
+          <div class="ds-stats">
+            <div class="ds-stat"><label>生命</label><b>560</b></div>
+            <div class="ds-stat"><label>攻击</label><b>44</b></div>
+            <div class="ds-stat"><label>护甲</label><b>32</b></div>
+            <div class="ds-stat"><label>射程</label><b>1.5</b></div>
+          </div>
+
+          <div class="ds-ability">
+            <div class="ds-ability__k"><b>被动 · 整军</b></div>
+            <p>全体友军护甲 +12%；刀兵暴击伤害 +20%。</p>
+          </div>
+          <div class="ds-ability">
+            <div class="ds-ability__k"><b>主动 · 铁壁</b><span class="ds-kbd">Q</span><span style="margin-left:auto">冷却 38s</span></div>
+            <p>6 秒内全体友军减伤 35%，基地恢复 8% 生命。留在手里的那一次，通常决定第 30 波守不守得住。</p>
+          </div>
+          <div class="ds-ability" style="border-bottom:1px solid rgba(35,32,26,.16)">
+            <div class="ds-ability__k"><b>阵中联动</b></div>
+            <p style="font-size:13px">同排三名以上成「横锋」，同列三名以上成「直锋」。青锋站在锋首时，这条锋线不会被断笔者一次抹掉。</p>
+          </div>
+        </div>
+
+        <div class="ds-hero__side">
+          <button class="ds-btn ds-btn--primary ds-btn--lg">以此将出战</button>
+          <div class="ds-rule" style="margin:6px 0"></div>
+          <p class="ds-note"><b style="color:var(--lg-ink-0)">英雄占棋盘一格。</b>敌人会贴上来打，阵亡后下一波以 60% 生命归队。</p>
+          <p class="ds-note"><b style="color:var(--lg-ink-0)">主动技手动放。</b>不自动开，什么时候留、什么时候交，是这一局的决策点。</p>
+          <div class="ds-rule" style="margin:6px 0"></div>
+          <div class="ds-record"><span>当前最高波次</span><b style="font-size:var(--lg-fs-h2)">27</b></div>
+          <div class="ds-record"><span>本将最高波次</span><b style="font-size:var(--lg-fs-h2)">27</b></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 3. 战斗 ============================== -->
+<section class="spec-page" id="battle">
+  <div class="ds-screen">
+    <div class="ds-battle">
+
+      <div class="ds-hud">
+        <div class="ds-hud__wave"><small>第</small><em>20</em><small>波</small></div>
+        <div class="ds-hud__stage" data-phase="fight">交战 06:24</div>
+        <div class="ds-hud__base">
+          <div class="ds-hud__base-line">
+            <span class="ds-hud__base-label">营寨</span>
+            <b class="ds-hud__base-value">760 / 1000</b>
+          </div>
+          <div class="ds-bar"><i style="width:76%"></i></div>
+        </div>
+        <div class="ds-hud__res">
+          <span class="ds-res"><i>粮</i><b>306</b></span>
+          <span class="ds-res"><i>银</i><b>88</b></span>
+        </div>
+        <div class="ds-hud__stroke is-on">笔 · 横 1 直 2</div>
+        <div class="ds-hud__tools">
+          <button class="ds-btn ds-btn--sm ds-btn--quiet" disabled>交战中</button>
+          <button class="ds-btn ds-btn--sm ds-btn--accent">铁壁 <span class="ds-kbd">Q</span></button>
+          <button class="ds-btn ds-btn--sm ds-btn--icon" aria-label="倍速">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"><path d="M3 6l7 6-7 6zM12 6l7 6-7 6z"/></svg>
+          </button>
+          <button class="ds-btn ds-btn--sm ds-btn--icon" aria-label="暂停">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"><path d="M9 5v14M15 5v14"/></svg>
+          </button>
+          <button class="ds-btn ds-btn--sm ds-btn--icon" aria-label="设置">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"><path d="M4 7h16M4 12h16M4 17h16M9 4v6M16 9v6M7 14v6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="ds-rail">
+        <div class="ds-rail__block">
+          <span class="ds-rail__k">战场</span>
+          <b class="ds-rail__v">山道 · 窄口</b>
+          <span style="font-size:12px;color:var(--lg-ink-1)">本波剩余 <b style="font-variant-numeric:tabular-nums">5 / 14</b></span>
+        </div>
+        <div class="ds-rail__block">
+          <span class="ds-rail__k">敌情</span>
+          <div class="ds-rowflex" style="flex-wrap:wrap;gap:6px">
+            <span class="ds-chip is-seal">寇 ×3</span>
+            <span class="ds-chip is-seal">驰 ×1</span>
+            <span class="ds-chip is-seal">断 ×1</span>
+          </div>
+          <p class="ds-note" style="margin-top:4px">断笔者会压掉它经过的笔势，优先点名。</p>
+        </div>
+        <div class="ds-rail__block">
+          <span class="ds-rail__k">笔势</span>
+          <div style="display:grid;gap:6px;font-size:12px">
+            <span style="display:flex;justify-content:space-between"><span>横 · 第 1 行</span><b style="color:var(--lg-seal)">×3</b></span>
+            <span style="display:flex;justify-content:space-between"><span>直 · E 列</span><b style="color:var(--lg-seal)">×3</b></span>
+          </div>
+          <p class="ds-note" style="margin-top:4px">整行 / 整列才算成阵，断一格就失效。</p>
+        </div>
+        <div class="ds-rail__block">
+          <span class="ds-rail__k">战术构筑</span>
+          <div class="ds-rowflex" style="flex-wrap:wrap;gap:6px">
+            <span class="ds-chip">锋 ×1</span>
+            <span class="ds-chip">田 ×2</span>
+            <span class="ds-chip">城 ×1</span>
+            <span class="ds-chip is-off">+2</span>
+          </div>
+        </div>
+        <div class="ds-rail__block" style="margin-top:auto">
+          <span class="ds-rail__k">下个 Boss</span>
+          <b class="ds-rail__v" style="font-size:15px">第 30 波 · 赤蛛母</b>
+          <span style="font-size:11px;color:var(--lg-ink-3)">产卵 · 铺网 · 毒雾</span>
+        </div>
+      </div>
+
+      <div class="ds-board-wrap">
+        <div class="ds-board-col">
+          <div class="ds-boss">
+            <span class="ds-boss__name">铁浮屠</span>
+            <span class="ds-boss__track"><u style="transform:scaleX(.68)"></u></span>
+            <span class="ds-boss__phase">第 2 段 · 崩甲</span>
+          </div>
+
+          <div class="ds-board-box">
+            <div class="ds-ruler ds-ruler--col">
+              <span>A</span><span>B</span><span>C</span><span>D</span>
+              <span class="is-stroke" data-mark="直">E</span><span>F</span>
+            </div>
+            <div class="ds-ruler ds-ruler--row">
+              <span class="is-stroke" data-mark="横">1</span><span>2</span><span>3</span><span>4</span>
+              <span>5</span><span>6</span><span>7</span>
+            </div>
+
+            <div class="ds-board">
+              <!-- r1 -->
+              <div class="ds-cell is-path is-entry"><b>入</b></div>
+              <div class="ds-cell"></div>
+              <div class="ds-cell is-stroke-h"><span class="ds-unit" style="--ds-rar:var(--lg-rar-fine)"><b>枪</b><span class="ds-unit__lv"><i></i><i></i></span></span></div>
+              <div class="ds-cell is-stroke-h"><span class="ds-unit" style="--ds-rar:var(--lg-rar-common)"><b>弓</b><span class="ds-unit__lv"><i></i></span></span></div>
+              <div class="ds-cell is-stroke-h"><span class="ds-unit" style="--ds-rar:var(--lg-rar-common)"><b>刀</b><span class="ds-unit__lv"><i></i><i></i><i></i></span></span></div>
+              <div class="ds-cell is-locked"></div>
+              <!-- r2 -->
+              <div class="ds-cell is-path"></div>
+              <div class="ds-cell"><span class="ds-unit" style="--ds-rar:var(--lg-rar-common)"><b>弓</b><span class="ds-unit__lv"><i></i><i></i></span></span></div>
+              <div class="ds-cell is-path"></div>
+              <div class="ds-cell"></div>
+              <div class="ds-cell"></div>
+              <div class="ds-cell is-locked"></div>
+              <!-- r3 -->
+              <div class="ds-cell is-path"></div>
+              <div class="ds-cell is-path"><span class="ds-enemy is-hurt" style="--ds-hp:55">断</span></div>
+              <div class="ds-cell is-path"></div>
+              <div class="ds-cell"></div>
+              <div class="ds-cell"></div>
+              <div class="ds-cell"></div>
+              <!-- r4 -->
+              <div class="ds-cell"></div>
+              <div class="ds-cell"></div>
+              <div class="ds-cell is-path"><span class="ds-enemy is-boss">铁</span></div>
+              <div class="ds-cell"></div>
+              <div class="ds-cell is-stroke-v"><span class="ds-unit is-selected" style="--ds-rar:var(--lg-rar-rare)"><b>法</b><span class="ds-unit__lv"><i></i><i></i></span></span></div>
+              <div class="ds-cell"></div>
+              <!-- r5 -->
+              <div class="ds-cell"></div>
+              <div class="ds-cell"><span class="ds-unit" style="--ds-rar:var(--lg-rar-epic)"><b>骑</b><span class="ds-unit__lv"><i></i></span></span></div>
+              <div class="ds-cell is-path"><span class="ds-enemy">寇</span></div>
+              <div class="ds-cell"></div>
+              <div class="ds-cell is-stroke-v"><span class="ds-unit" style="--ds-rar:var(--lg-rar-fine)"><b>工</b><span class="ds-unit__lv"><i></i></span></span></div>
+              <div class="ds-cell"></div>
+              <!-- r6 -->
+              <div class="ds-cell"></div>
+              <div class="ds-cell"></div>
+              <div class="ds-cell is-path"></div>
+              <div class="ds-cell is-path"><span class="ds-enemy">驰</span></div>
+              <div class="ds-cell is-stroke-v"><span class="ds-unit" style="--ds-rar:var(--lg-rar-legend)"><b>术</b><span class="ds-unit__lv"><i></i></span></span></div>
+              <div class="ds-cell"></div>
+              <!-- r7 -->
+              <div class="ds-cell is-locked"></div>
+              <div class="ds-cell is-locked"></div>
+              <div class="ds-cell"></div>
+              <div class="ds-cell is-path is-camp"><b>寨</b></div>
+              <div class="ds-cell"></div>
+              <div class="ds-cell is-locked"></div>
+            </div>
+          </div>
+
+          <div class="ds-readout">
+            <span class="ds-seal ds-seal--sm">法</span>
+            <div class="ds-readout__id">
+              <span class="ds-readout__name">法师</span>
+              <span class="ds-readout__meta">Lv.2 · 群伤 · 稀有</span>
+            </div>
+            <div class="ds-readout__stats">
+              <span><label>攻击</label><b>62</b></span>
+              <span><label>攻速</label><b>0.5 /s</b></span>
+              <span><label>射程</label><b>3.2</b></span>
+              <span><label>位次</label><b>E · 4</b></span>
+            </div>
+            <span class="ds-chip is-seal" style="margin-left:8px">直锋 ×3</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-dock">
+        <div class="ds-dock__sec">
+          <div class="ds-sec-head"><span>招贤榜</span><i>一次 9 粮</i></div>
+          <div class="ds-cards">
+            <button class="ds-card" style="--ds-rar:var(--lg-rar-common)">
+              <span class="ds-card__tier"><b>普通</b><em>远程持续</em></span>
+              <span class="ds-card__body"><span class="ds-seal ds-seal--sm">弓</span><span class="ds-card__name">弓兵</span></span>
+              <span class="ds-card__role">站得远、打得稳</span>
+              <span class="ds-card__foot"><span class="ds-card__cost"><i>粮</i>9</span><span class="ds-card__hint">可合 · 刀</span></span>
+            </button>
+            <button class="ds-card" style="--ds-rar:var(--lg-rar-fine)">
+              <span class="ds-card__tier"><b>优秀</b><em>直线穿透</em></span>
+              <span class="ds-card__body"><span class="ds-seal ds-seal--sm">枪</span><span class="ds-card__name">枪兵</span></span>
+              <span class="ds-card__role">打穿一整条路</span>
+              <span class="ds-card__foot"><span class="ds-card__cost"><i>粮</i>9</span><span class="ds-card__hint is-hot">差一 成阵</span></span>
+            </button>
+            <button class="ds-card" style="--ds-rar:var(--lg-rar-epic)">
+              <span class="ds-card__tier"><b>史诗</b><em>冲锋突击</em></span>
+              <span class="ds-card__body"><span class="ds-seal ds-seal--sm">骑</span><span class="ds-card__name">骑兵</span></span>
+              <span class="ds-card__role">一路冲到头</span>
+              <span class="ds-card__foot"><span class="ds-card__cost"><i>粮</i>12</span><span class="ds-card__hint">可合 · 骁</span></span>
+            </button>
+          </div>
+          <div class="ds-actions">
+            <button class="ds-btn ds-btn--sm ds-btn--quiet">刷新 · 4 银</button>
+            <button class="ds-btn ds-btn--sm ds-btn--accent">重金纳贤 · 12 银</button>
+          </div>
+          <button class="ds-btn ds-btn--sm ds-btn--link" style="justify-self:start">连招（能招多少招多少）</button>
+        </div>
+
+        <div class="ds-dock__sec">
+          <div class="ds-sec-head"><span>点将台</span><i>拖到另一张上合兵</i></div>
+          <div class="ds-slots">
+            <div class="ds-slot is-filled" style="--ds-rar:var(--lg-rar-fine)">
+              <span class="ds-slot__glyph">刀</span>
+              <span class="ds-slot__lv"><i></i><i></i></span>
+            </div>
+            <div class="ds-slot is-filled" style="--ds-rar:var(--lg-rar-common)">
+              <span class="ds-slot__glyph">弓</span>
+              <span class="ds-slot__lv"><i></i></span>
+            </div>
+            <div class="ds-slot is-empty">＋</div>
+            <div class="ds-slot is-empty">＋</div>
+          </div>
+          <p class="ds-note">同名同级叠放升一级；不同兵种按配方融合。</p>
+        </div>
+
+        <div class="ds-dock__sec">
+          <div class="ds-sec-head"><span>道具</span><i>点选后再用</i></div>
+          <div class="ds-items">
+            <button class="ds-item"><span class="ds-item__glyph">征</span><span class="ds-item__n">1</span></button>
+            <button class="ds-item"><span class="ds-item__glyph">药</span><span class="ds-item__n">2</span></button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 4. 结算 ============================== -->
+<section class="spec-page" id="result">
+  <div class="ds-screen" style="display:grid;place-items:center">
+    <div class="ds-modal ds-modal--l">
+      <div class="ds-modal__head">
+        <span class="ds-kicker">第 20 波 · 营寨破了</span>
+        <h2>本局结算</h2>
+        <div class="ds-modal__tools">
+          <button class="ds-btn ds-btn--sm ds-btn--icon ds-btn--quiet" aria-label="关闭">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="ds-modal__body">
+        <div class="ds-split">
+          <!-- 左栏只放"这一局是什么"，不放数字：数字全部在右栏的台账里，避免同一组数出现两次 -->
+          <div class="ds-stack ds-stack--lg">
+            <span class="ds-seal ds-seal--xl ds-seal--stamp">破</span>
+            <div>
+              <div style="font-family:var(--lg-font-display);font-size:28px;line-height:1.2">守到第 20 波</div>
+              <p class="ds-note" style="margin-top:6px">历史最高 27 波 · 差七波。</p>
+            </div>
+            <div class="ds-stack--sm" style="display:grid;gap:10px">
+              <div class="ds-record"><span>战场</span><b style="font-size:17px">山道 · 窄口</b></div>
+              <div class="ds-record"><span>领将</span><b style="font-size:17px">青锋 · 刀兵</b></div>
+            </div>
+          </div>
+
+          <div class="ds-stack ds-stack--lg">
+            <div>
+              <div class="ds-sec-head"><span>本局记录</span><i>本局 / 最佳</i></div>
+              <div class="ds-ledger">
+                <div class="ds-ledger__row"><span>最高波次</span><b>20</b><i class="is-best">27</i></div>
+                <div class="ds-ledger__row"><span>最长生存</span><b>18:42</b><i class="is-best">18:42</i></div>
+                <div class="ds-ledger__row"><span>单局斩敌</span><b>412</b><i>486</i></div>
+                <div class="ds-ledger__row"><span>单局伤害</span><b>96,430</b><i class="is-best">104,270</i></div>
+                <div class="ds-ledger__row"><span>最强单位</span><b>Ⅳ 级</b><i>Ⅴ 级</i></div>
+                <div class="ds-ledger__row"><span>带走</span><b>316 金</b><i>420 金</i></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="ds-sec-head"><span>最终军团</span><i>8 名</i></div>
+              <div class="ds-rowflex" style="flex-wrap:wrap;gap:6px;margin-top:10px">
+                <span class="ds-slot is-filled" style="width:44px;height:44px;--ds-rar:var(--lg-rar-fine)"><span class="ds-slot__glyph" style="font-size:var(--lg-fs-num)">刀</span></span>
+                <span class="ds-slot is-filled" style="width:44px;height:44px;--ds-rar:var(--lg-rar-rare)"><span class="ds-slot__glyph" style="font-size:var(--lg-fs-num)">法</span></span>
+                <span class="ds-slot is-filled" style="width:44px;height:44px;--ds-rar:var(--lg-rar-common)"><span class="ds-slot__glyph" style="font-size:var(--lg-fs-num)">弓</span></span>
+                <span class="ds-slot is-filled" style="width:44px;height:44px;--ds-rar:var(--lg-rar-fine)"><span class="ds-slot__glyph" style="font-size:var(--lg-fs-num)">枪</span></span>
+                <span class="ds-slot is-filled" style="width:44px;height:44px;--ds-rar:var(--lg-rar-epic)"><span class="ds-slot__glyph" style="font-size:var(--lg-fs-num)">骑</span></span>
+                <span class="ds-slot is-filled" style="width:44px;height:44px;--ds-rar:var(--lg-rar-legend)"><span class="ds-slot__glyph" style="font-size:var(--lg-fs-num)">术</span></span>
+                <span class="ds-slot is-filled" style="width:44px;height:44px;--ds-rar:var(--lg-rar-fine)"><span class="ds-slot__glyph" style="font-size:var(--lg-fs-num)">工</span></span>
+                <span class="ds-slot is-filled" style="width:44px;height:44px;--ds-rar:var(--lg-rar-epic)"><span class="ds-slot__glyph" style="font-size:var(--lg-fs-num)">骁</span></span>
+              </div>
+            </div>
+
+            <div>
+              <div class="ds-sec-head"><span>新成就</span><i>2</i></div>
+              <div class="ds-rowflex" style="gap:8px;margin-top:10px;flex-wrap:wrap">
+                <span class="ds-chip is-gold">挡下山魈 · +70 金</span>
+                <span class="ds-chip is-gold">满盘皆兵 · +100 金</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-modal__foot">
+        <button class="ds-btn ds-btn--primary" style="min-width:180px">再来一局</button>
+        <button class="ds-btn ds-btn--quiet">局外成长</button>
+        <button class="ds-btn ds-btn--ghost">回目录</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<nav class="spec-nav" id="nav">
+  <a href="#main" data-for="main">主界面</a>
+  <a href="#hero" data-for="hero">择将</a>
+  <a href="#battle" data-for="battle">战斗</a>
+  <a href="#result" data-for="result">结算</a>
+</nav>
+
+<script>
+  const pages = [...document.querySelectorAll('.spec-page')]
+  const nav = document.getElementById('nav')
+  let hideTimer = 0
+  function apply() {
+    const id = (location.hash || '#main').slice(1)
+    pages.forEach((p) => p.classList.toggle('is-on', p.id === id))
+    nav.querySelectorAll('a').forEach((a) => a.classList.toggle('is-on', a.dataset.for === id))
+  }
+  function wake() {
+    nav.classList.remove('is-hidden')
+    clearTimeout(hideTimer)
+    hideTimer = setTimeout(() => nav.classList.add('is-hidden'), 1600)
+  }
+  addEventListener('hashchange', () => { apply(); wake() })
+  addEventListener('pointermove', wake)
+  addEventListener('keydown', (e) => {
+    const i = +e.key
+    if (i >= 1 && i <= 4) location.hash = pages[i - 1].id
+  })
+  apply(); wake()
+</script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+/* 纸上军团 · Design Tokens
+ * ------------------------------------------------------------------
+ * 这是本作 UI 的唯一事实源。任何颜色、字号、间距、边框、圆角、阴影、
+ * 动效时长都必须从下面的变量取值；组件与页面不允许再写裸字面量。
+ *
+ * 命名约定：
+ *   --lg-<类别>-<序位>     序位越小越"靠里/越基础"
+ *   paper  纸（由浅到深）   ink 墨（由深到浅）   rule 分隔线（由弱到强）
+ *   seal   朱砂（危险/战斗/强调）    gold 金（稀有/奖励）
+ *
+ * 只在 :root 定义一次。现有 legion.css / -v6 / -v7 在迁移期继续存在，
+ * 但新代码只读 token；迁移完成后再删旧文件（见实施计划 P4）。
+ * ------------------------------------------------------------------ */
+:root {
+  /* ---------- 纸 ---------- */
+  --lg-paper-0: #f6eedc; /* 页面底 */
+  --lg-paper-1: #fbf6e8; /* 纸面、卡面 */
+  --lg-paper-2: #ede1c6; /* 凹槽、空位、禁用底 */
+  --lg-paper-3: #e3d5b5; /* 棋盘纸、土路 */
+  --lg-paper-4: #d8c79f; /* 棋盘纸的阴影面 */
+
+  /* ---------- 墨 ---------- */
+  --lg-ink-0: #23201a; /* 正文、强边框 */
+  --lg-ink-1: #57503f; /* 次级文字、弱边框 */
+  --lg-ink-2: #8a8069; /* 三级文字、标签 */
+  --lg-ink-3: #b6ab93; /* 禁用文字、装饰刻线 */
+
+  /* ---------- 分隔线（只有三级） ---------- */
+  --lg-rule-1: rgba(35, 32, 26, 0.16); /* 发丝线：行分隔、格线 */
+  --lg-rule-2: rgba(35, 32, 26, 0.32); /* 结构线：面板内分区 */
+  --lg-rule-3: rgba(35, 32, 26, 0.64); /* 强线：面板外框、棋盘外框 */
+
+  /* ---------- 语义色 ---------- */
+  --lg-seal: #a8342a; /* 朱砂：危险、战斗、当前选中 */
+  --lg-seal-deep: #8c2419; /* 朱砂暗部：按下、深底文字 */
+  --lg-seal-bg: rgba(168, 52, 42, 0.08); /* 朱砂浅底 */
+  --lg-gold: #b8860b; /* 金：传说、奖励、最高记录 */
+  --lg-gold-bg: rgba(184, 134, 11, 0.12);
+  --lg-jade: #3f6b3a; /* 青：治疗、正向、优秀 */
+  --lg-indigo: #33628f; /* 靛：法术、信息、稀有 */
+  --lg-violet: #6b4a8f; /* 紫：史诗、控制 */
+  --lg-grain: #9a6b1e; /* 粮（赭） */
+  --lg-silver: #5b6472; /* 银（青灰） */
+
+  /* ---------- 组件级派生色（只给组件用，页面不得直接引用） ---------- */
+  --lg-paper-hi: #ffffff; /* 纸面 hover 提亮：唯一允许的"比纸更白" */
+  --lg-ink-hi: #322e26; /* 墨底 hover 提亮 */
+  --lg-seal-hover: rgba(168, 52, 42, 0.06); /* 朱砂按钮 hover 底 */
+  --lg-seal-tint: rgba(168, 52, 42, 0.07); /* 笔势格底 */
+  --lg-seal-line: rgba(168, 52, 42, 0.55); /* 笔势虚线 */
+  --lg-seal-dim: rgba(168, 52, 42, 0.18); /* 血弧的"空槽" */
+  --lg-paper-on-ink: rgba(251, 246, 232, 0.18); /* 墨块上的 1px 反白内描边 */
+  --lg-paper-track: rgba(251, 246, 232, 0.28); /* 深底上的进度槽 */
+  --lg-ink-veil: rgba(35, 32, 26, 0.04); /* 失效笔势的压灰 */
+  --lg-scrim: rgba(28, 25, 20, 0.55); /* 弹层遮罩，不做模糊 */
+  --lg-mask: #000000; /* 只用于 mask 渐变，不作颜色 */
+
+  /* ---------- 品质（与 data/rarity.ts 一一对应，改这里必须同步那个文件） ---------- */
+  --lg-rar-common: #6b6255;
+  --lg-rar-fine: #3f6b3a;
+  --lg-rar-rare: #33628f;
+  --lg-rar-epic: #6b4a8f;
+  --lg-rar-legend: #b8860b;
+
+  /* ---------- 字体 ---------- */
+  --lg-font-display: 'Songti SC', 'Source Han Serif SC', 'Noto Serif SC', 'STSong', 'SimSun',
+    Georgia, serif; /* 只用于 ≥22px 的标题与大数字 */
+  --lg-font-ui: 'HarmonyOS Sans SC', 'PingFang SC', 'Source Han Sans SC', 'Microsoft YaHei',
+    system-ui, sans-serif;
+  --lg-font-mono: 'Cascadia Mono', 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+
+  /* ---------- 字号阶梯（8 级，不再有第 9 级） ---------- */
+  --lg-fs-display: clamp(34px, 3vw, 44px); /* 页面主标题 */
+  --lg-fs-h1: 28px; /* 弹层标题、屏内一级 */
+  --lg-fs-h2: 20px; /* 区块标题、卡片名 */
+  --lg-fs-num: 24px; /* 单个数码（战绩、总额）——唯一的数字档，不用于文字 */
+  --lg-fs-body-lg: 15px; /* 正文强调、说明段 */
+  --lg-fs-body: 13px; /* 正文 */
+  --lg-fs-label: 12px; /* 标签、按钮、表头 */
+  --lg-fs-caption: 11px; /* 角标、注释（承载信息的下限） */
+  --lg-fs-micro: 10px; /* 仅装饰性或已有 aria 复述的数字 */
+
+  --lg-lh-tight: 1.15;
+  --lg-lh-snug: 1.35;
+  --lg-lh-base: 1.6;
+
+  /* ---------- 间距（4 的倍数，例外只有 2 与 6） ---------- */
+  --lg-s1: 2px;
+  --lg-s2: 4px;
+  --lg-s3: 8px;
+  --lg-s4: 12px;
+  --lg-s5: 16px;
+  --lg-s6: 24px;
+  --lg-s7: 32px;
+  --lg-s8: 48px;
+  --lg-s9: 64px;
+
+  /* ---------- 边框（三级，没有 1.5px，没有第四级） ---------- */
+  --lg-b-hair: 1px;
+  --lg-b-rule: 2px;
+  --lg-b-frame: 3px;
+
+  /* ---------- 圆角（只有三种） ---------- */
+  --lg-r-0: 0; /* 纸、棋盘、面板 —— 默认直角 */
+  --lg-r-1: 2px; /* 卡片、按钮 */
+  --lg-r-2: 4px; /* 弹层 */
+  --lg-r-full: 999px; /* 圆点、计数气泡 */
+
+  /* ---------- 阴影（只有两级硬影 + 一条选中环） ---------- */
+  --lg-shadow-1: 2px 2px 0 rgba(35, 32, 26, 0.14);
+  --lg-shadow-2: 4px 4px 0 rgba(35, 32, 26, 0.18);
+  --lg-ring: 0 0 0 2px var(--lg-seal);
+
+  /* ---------- 尺寸 ---------- */
+  --lg-hud-h: 56px; /* 顶栏（所有断点同一高度，内容压缩而不重排） */
+  --lg-dock-w: 384px; /* 右栏桌面宽度：3 张招贤卡 112 + 2×8 + 32 内边距 = 384，恰好整除 */
+  --lg-dock-w-md: 320px; /* 1100–1439 */
+  --lg-rail-w: 208px; /* 左侧战术栏，仅 ≥1440 出现 */
+  --lg-tap: 44px; /* 触屏最小命中区 */
+  --lg-icon: 24px; /* 线符网格 */
+  --lg-icon-sm: 16px;
+  --lg-icon-lg: 32px;
+  --lg-card-s: 112px; /* 招贤卡宽（3 张 + 2 间隙 = 352 = 384 栏减 32 内边距） */
+  --lg-card-h: 136px;
+  --lg-slot: 72px; /* 点将台单格 */
+  --lg-modal-s: 480px; /* 小弹层：确认、设置 */
+  --lg-modal-m: 720px; /* 中弹层：事件、三选一、商店 */
+  --lg-modal-l: 960px; /* 大弹层：结算、局外成长 */
+
+  /* ---------- 动效 ---------- */
+  --lg-t-fast: 80ms;
+  --lg-t-base: 160ms;
+  --lg-t-slow: 240ms;
+  --lg-ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --lg-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---------- 层级（只有 6 层，不许出现 7/8/10） ---------- */
+  --lg-z-canvas: 0;
+  --lg-z-hud: 1;
+  --lg-z-dock: 2;
+  --lg-z-popover: 3;
+  --lg-z-overlay: 4;
+  --lg-z-toast: 5;
+}
+
+/* 触屏：把可点区域统一抬到 44，同时字号不缩小（缩字号是反设计） */
+@media (pointer: coarse) {
+  :root {
+    --lg-tap: 44px;
+    --lg-slot: 64px;
+  }
+}
+
+/* 减少动态：所有位移与闪烁归零，只保留透明度变化 */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --lg-t-fast: 1ms;
+    --lg-t-base: 1ms;
+    --lg-t-slow: 1ms;
+  }
+}

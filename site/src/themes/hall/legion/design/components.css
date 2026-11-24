@@ -1,0 +1,1691 @@
+/* 纸上军团 · 组件基底
+ * ------------------------------------------------------------------
+ * 只读 tokens.css 里的变量。所有类名用 ds- 前缀，避免与现役 lg- 类冲突；
+ * 迁移阶段一一对应（见《设计系统》7. 组件映射表）。
+ *
+ * 三条硬规则（写在这里，也由 qa-design-lint 检查）：
+ *   1. 面板不给自己加卡片背景，只用"纸 + 一条分隔线"。
+ *   2. 一个元素只表达一件事：选中只有朱砂框，禁用只有降墨，不叠加。
+ *   3. 承载信息的字号 ≥ 11px；10px 只能用于已被 aria-label 复述的装饰数字。
+ * ------------------------------------------------------------------ */
+
+/* ============ 0. 画布 ============ */
+/* 只作用于设计系统自己的树，不改宿主项目的全局 box-sizing */
+.ds-screen,
+.ds-screen *,
+.ds-screen *::before,
+.ds-screen *::after {
+  box-sizing: border-box;
+}
+
+.ds-screen {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--lg-paper-0);
+  color: var(--lg-ink-0);
+  font-family: var(--lg-font-ui);
+  font-size: var(--lg-fs-body);
+  line-height: var(--lg-lh-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 纸纹：24px 点阵，3% 墨。只作为底，不许叠在内容上 */
+.ds-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(var(--lg-rule-1) 0.6px, transparent 0.6px);
+  background-size: 24px 24px;
+  opacity: 0.45;
+  z-index: 0;
+}
+
+.ds-screen > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============ 1. 顶栏 HUD ============ */
+.ds-hud {
+  display: flex;
+  align-items: center;
+  gap: var(--lg-s4);
+  height: var(--lg-hud-h);
+  padding: 0 var(--lg-s5);
+  border-bottom: var(--lg-b-rule) solid var(--lg-rule-3);
+  background: var(--lg-paper-1);
+  z-index: var(--lg-z-hud);
+}
+
+/* 波次：唯一使用衬线大字的状态块 */
+.ds-hud__wave {
+  display: flex;
+  align-items: baseline;
+  gap: var(--lg-s2);
+  flex: 0 0 auto;
+  padding-right: var(--lg-s5);
+  border-right: var(--lg-b-hair) solid var(--lg-rule-2);
+}
+.ds-hud__wave small {
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-2);
+  letter-spacing: 0.06em;
+}
+.ds-hud__wave em {
+  font-family: var(--lg-font-display);
+  font-size: var(--lg-fs-h1);
+  font-style: normal;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 阶段：整备倒计时 / 交战中。只有交战用朱砂 */
+.ds-hud__stage {
+  display: flex;
+  align-items: center;
+  gap: var(--lg-s3);
+  flex: 0 0 auto;
+  font-size: var(--lg-fs-label);
+  color: var(--lg-ink-1);
+}
+.ds-hud__stage[data-phase='fight'] {
+  color: var(--lg-seal);
+}
+
+/* 营寨：横向血条 + 数值，永远是顶栏里最宽的一块，但不加外框 */
+.ds-hud__base {
+  display: grid;
+  grid-template-rows: auto 4px;
+  row-gap: var(--lg-s2);
+  flex: 1 1 220px;
+  max-width: 300px;
+  min-width: 160px;
+  padding-right: var(--lg-s5);
+  border-right: var(--lg-b-hair) solid var(--lg-rule-2);
+}
+.ds-hud__base-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--lg-s3);
+}
+.ds-hud__base-label {
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-2);
+  letter-spacing: 0.08em;
+}
+.ds-hud__base-value {
+  font-family: var(--lg-font-display);
+  font-size: var(--lg-fs-h2);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.ds-hud__base-value.is-low {
+  color: var(--lg-seal);
+}
+
+/* 资源：字印 + 数字。只有粮/银常驻 */
+.ds-hud__res {
+  display: flex;
+  align-items: center;
+  gap: var(--lg-s3);
+  flex: 0 0 auto;
+}
+.ds-res {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lg-s2);
+  font-size: var(--lg-fs-label);
+  font-variant-numeric: tabular-nums;
+  color: var(--lg-ink-0);
+}
+.ds-res b {
+  font-weight: 700;
+}
+.ds-res i {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: var(--lg-b-hair) solid var(--lg-rule-2);
+  font-size: var(--lg-fs-caption);
+  font-style: normal;
+  color: var(--lg-ink-1);
+}
+
+/* 笔势：这一栏是全作的核心机制指示，权重高于资源 */
+.ds-hud__stroke {
+  display: flex;
+  align-items: center;
+  gap: var(--lg-s3);
+  flex: 0 0 auto;
+  padding: 0 var(--lg-s4);
+  border-left: var(--lg-b-rule) solid var(--lg-seal);
+  font-size: var(--lg-fs-label);
+}
+.ds-hud__stroke.is-on {
+  color: var(--lg-ink-0);
+  font-weight: 700;
+}
+.ds-hud__stroke.is-off {
+  color: var(--lg-ink-2);
+  border-left-color: var(--lg-rule-2);
+}
+
+.ds-hud__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--lg-s2);
+  margin-left: auto;
+}
+
+/* 波次进度：贴在顶栏下沿的一条线，不占额外高度 */
+.ds-hud::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  background: linear-gradient(to right, var(--lg-seal) var(--ds-progress, 42%), transparent 0);
+}
+
+/* ============ 2. 按钮 ============ */
+.ds-btn {
+  --ds-btn-h: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lg-s3);
+  height: var(--ds-btn-h);
+  padding: 0 var(--lg-s5);
+  border: var(--lg-b-rule) solid var(--lg-ink-0);
+  border-radius: var(--lg-r-1);
+  background: var(--lg-paper-1);
+  color: var(--lg-ink-0);
+  font-family: inherit;
+  font-size: var(--lg-fs-label);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform var(--lg-t-fast) var(--lg-ease-out), box-shadow var(--lg-t-fast),
+    background-color var(--lg-t-fast);
+}
+.ds-btn:hover {
+  background: var(--lg-paper-hi);
+}
+.ds-btn:active {
+  transform: translate(1px, 1px);
+}
+/* 主按钮：墨底纸字 + 一级硬影。全屏只有一个 */
+.ds-btn--primary {
+  background: var(--lg-ink-0);
+  color: var(--lg-paper-1);
+  box-shadow: var(--lg-shadow-1);
+}
+.ds-btn--primary:hover {
+  background: var(--lg-ink-hi);
+}
+.ds-btn--primary:active {
+  box-shadow: none;
+}
+/* 次按钮：纸底墨框，无影 */
+.ds-btn--quiet {
+  border-color: var(--lg-rule-2);
+  font-weight: 400;
+  color: var(--lg-ink-1);
+}
+/* 幽灵：只有字与下划线，用于"玩法/设置" */
+.ds-btn--ghost {
+  border: 0;
+  padding: 0 var(--lg-s2);
+  background: none;
+  color: var(--lg-ink-2);
+  font-weight: 400;
+}
+.ds-btn--ghost:hover {
+  color: var(--lg-ink-0);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ds-btn--danger {
+  border-color: var(--lg-seal);
+  color: var(--lg-seal);
+}
+/* 强调动词（用命、花银）：1px 朱砂框 + 朱砂字。每屏最多 2 个 */
+.ds-btn--accent {
+  border-color: var(--lg-seal);
+  color: var(--lg-seal);
+  font-weight: 700;
+}
+.ds-btn--accent:hover {
+  background: var(--lg-seal-hover);
+}
+/* 文字动词（连招、查看玩法）：必须常驻下划线，否则被读成注释 */
+.ds-btn--link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--lg-ink-1);
+  font-weight: 400;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.ds-btn--link:hover {
+  color: var(--lg-seal);
+  background: none;
+}
+.ds-btn--icon {
+  width: var(--ds-btn-h);
+  padding: 0;
+}
+/* 线符是 flex 子项，必须禁止收缩，否则图标在小按钮里被压成 0 宽 */
+.ds-btn svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}
+.ds-btn--sm {
+  --ds-btn-h: 28px;
+  /* 小控件一律 1px 边：2px 在 28px 高上会读成"重按钮" */
+  border-width: var(--lg-b-hair);
+  padding: 0 var(--lg-s4);
+  font-size: var(--lg-fs-caption);
+}
+.ds-btn--lg {
+  --ds-btn-h: 48px;
+  padding: 0 var(--lg-s7);
+  font-size: var(--lg-fs-body-lg);
+}
+.ds-btn[disabled] {
+  border-color: var(--lg-rule-2);
+  background: var(--lg-paper-2);
+  color: var(--lg-ink-3);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* 键帽：只用于真实快捷键，不做装饰 */
+.ds-kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: var(--lg-b-hair) solid var(--lg-rule-2);
+  border-bottom-width: 2px;
+  border-radius: var(--lg-r-1);
+  background: var(--lg-paper-1);
+  font-family: var(--lg-font-mono);
+  font-size: var(--lg-fs-micro);
+  color: var(--lg-ink-1);
+}
+
+/* ============ 3. 区块头（全站唯一的分节语法） ============ */
+.ds-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--lg-s3);
+  height: 28px;
+  padding-bottom: var(--lg-s2);
+  border-bottom: var(--lg-b-hair) solid var(--lg-rule-1);
+  font-size: var(--lg-fs-label);
+  color: var(--lg-ink-0);
+}
+.ds-sec-head::before {
+  content: '';
+  width: 3px;
+  height: 12px;
+  background: var(--lg-seal);
+}
+.ds-sec-head span {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.ds-sec-head i {
+  margin-left: auto;
+  font-style: normal;
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-2);
+}
+
+/* ============ 4. 字印（兵种 / 英雄 / 道具 / 强化） ============ */
+.ds-seal {
+  --ds-seal-size: 44px;
+  display: grid;
+  place-items: center;
+  width: var(--ds-seal-size);
+  height: var(--ds-seal-size);
+  border: var(--lg-b-rule) solid var(--lg-ink-0);
+  border-radius: var(--lg-r-0);
+  background: var(--lg-paper-1);
+  color: var(--lg-ink-0);
+  font-family: var(--lg-font-display);
+  font-size: calc(var(--ds-seal-size) * 0.62);
+  line-height: 1;
+  overflow: hidden;
+}
+/* 选中：底色反过来。只此一种变化 */
+.ds-seal.is-on {
+  background: var(--lg-ink-0);
+  color: var(--lg-paper-1);
+}
+/* 锁定：降墨，不加锁图形（锁只出现在按钮旁） */
+.ds-seal.is-locked {
+  border-color: var(--lg-rule-2);
+  color: var(--lg-ink-3);
+  background: var(--lg-paper-2);
+}
+.ds-seal--sm { --ds-seal-size: 28px; }
+.ds-seal--xs { --ds-seal-size: 22px; }
+.ds-seal--lg { --ds-seal-size: 64px; }
+.ds-seal--xl { --ds-seal-size: 88px; }
+/* 朱砂印：只用于"标题印 / 判词印"，一屏最多一枚 */
+.ds-seal--stamp {
+  background: var(--lg-seal);
+  border-color: var(--lg-seal-deep);
+  color: var(--lg-paper-1);
+}
+
+/* ============ 5. 招贤卡 ============ */
+/* 卡面固定分区：带(18) / 字印+名(自适应) / 定位(32，允许两行) / 价(28) */
+.ds-card {
+  display: grid;
+  grid-template-rows: 18px minmax(0, 1fr) 32px 28px;
+  width: var(--lg-card-s);
+  min-width: 0;
+  height: var(--lg-card-h);
+  border: var(--lg-b-rule) solid var(--lg-ink-0);
+  border-radius: var(--lg-r-1);
+  background: var(--lg-paper-1);
+  overflow: hidden;
+  text-align: left;
+  cursor: pointer;
+  transition: transform var(--lg-t-fast) var(--lg-ease-out), box-shadow var(--lg-t-fast);
+}
+.ds-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--lg-shadow-1);
+}
+.ds-card:active {
+  transform: none;
+  box-shadow: none;
+}
+/* 品质只用"顶部 3px 带"表达，卡片不再有第二处品质色 */
+.ds-card__tier {
+  display: flex;
+  align-items: center;
+  gap: var(--lg-s2);
+  padding: 0 var(--lg-s3);
+  background: var(--ds-rar, var(--lg-rar-common));
+  color: var(--lg-paper-1);
+  font-size: var(--lg-fs-caption);
+  letter-spacing: 0.08em;
+}
+.ds-card__tier em {
+  margin-left: auto;
+  font-style: normal;
+  opacity: 0.85;
+}
+.ds-card__body {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--lg-s3);
+  padding: 0 var(--lg-s3);
+}
+.ds-card__name {
+  font-family: var(--lg-font-display);
+  font-size: var(--lg-fs-h2);
+  /* 宋体在 20px 需要 1.25 倍行盒才不被自己的 overflow 切掉 */
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 定位（远程持续 / 直线穿透）最多两行，11px，超出即截断——卡面不再往下长 */
+.ds-card__role {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding: 0 var(--lg-s3);
+  font-size: var(--lg-fs-caption);
+  line-height: 1.45;
+  color: var(--lg-ink-2);
+}
+.ds-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--lg-s2);
+  padding: 0 var(--lg-s3);
+  border-top: var(--lg-b-hair) dashed var(--lg-rule-1);
+  font-size: var(--lg-fs-label);
+  font-variant-numeric: tabular-nums;
+}
+.ds-card__cost {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lg-s2);
+  font-weight: 700;
+}
+/* 资源前缀（粮/银/金）是标注，不是图标，统一 11px 灰 */
+.ds-card__cost i {
+  font-style: normal;
+  font-size: var(--lg-fs-caption);
+  font-weight: 400;
+  color: var(--lg-ink-3);
+}
+/* 合成提示：默认中性；"差一 成阵"这种可立刻行动的才升为朱砂（.is-hot） */
+.ds-card__hint {
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-2);
+  white-space: nowrap;
+}
+.ds-card__hint.is-hot {
+  color: var(--lg-seal);
+  font-weight: 700;
+}
+/* 传说品质底色太浅，带条上的字改用墨色，保证 4.5:1 */
+.ds-card__tier.is-ink {
+  color: var(--lg-ink-0);
+}
+.ds-card.is-poor {
+  opacity: 0.45;
+}
+
+/* ============ 6. 点将台槽位 ============ */
+.ds-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: var(--lg-slot);
+  border: var(--lg-b-hair) dashed var(--lg-rule-2);
+  border-radius: var(--lg-r-1);
+  background: var(--lg-paper-2);
+  cursor: grab;
+}
+.ds-slot.is-empty {
+  cursor: default;
+  color: var(--lg-ink-3);
+  font-size: var(--lg-fs-body-lg);
+}
+/* 有单位：实线墨框 + 字印，品质用左缘 3px */
+.ds-slot.is-filled {
+  border-style: solid;
+  border-color: var(--lg-rule-2);
+  background: var(--lg-paper-1);
+  box-shadow: inset 3px 0 0 var(--ds-rar, var(--lg-rar-common));
+}
+.ds-slot.is-picked {
+  border-color: var(--lg-seal);
+  box-shadow: var(--lg-ring), inset 3px 0 0 var(--ds-rar, var(--lg-rar-common));
+}
+.ds-slot__glyph {
+  font-family: var(--lg-font-display);
+  font-size: calc(var(--lg-slot) * 0.42);
+  line-height: 1;
+}
+.ds-slot__lv {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: flex;
+  gap: 2px;
+}
+.ds-slot__lv i {
+  width: 3px;
+  height: 3px;
+  background: var(--lg-ink-0);
+  border-radius: var(--lg-r-full);
+}
+.ds-slot__mark {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  padding: 0 3px;
+  background: var(--lg-seal);
+  color: var(--lg-paper-1);
+  font-size: var(--lg-fs-micro);
+  line-height: 14px;
+}
+
+/* ============ 7. 道具 ============ */
+.ds-item {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: var(--lg-b-rule) solid var(--lg-ink-0);
+  border-radius: var(--lg-r-1);
+  background: var(--lg-paper-1);
+  position: relative;
+  cursor: pointer;
+}
+.ds-item__glyph {
+  font-family: var(--lg-font-display);
+  font-size: var(--lg-fs-h2);
+  line-height: 1;
+}
+.ds-item__n {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 2px;
+  background: var(--lg-ink-0);
+  color: var(--lg-paper-1);
+  font-size: var(--lg-fs-micro);
+  line-height: 14px;
+  text-align: center;
+  border-radius: var(--lg-r-full);
+}
+.ds-item.is-armed {
+  border-color: var(--lg-seal);
+  box-shadow: var(--lg-ring);
+}
+
+/* ============ 8. 属性 ============ */
+/* 复合值拆成两个字段，不再把"第2行·第4列"塞进一个数字格 */
+.ds-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: var(--lg-b-hair) solid var(--lg-rule-1);
+  border-bottom: var(--lg-b-hair) solid var(--lg-rule-1);
+}
+.ds-stat {
+  display: grid;
+  gap: 2px;
+  padding: var(--lg-s3);
+  border-right: var(--lg-b-hair) solid var(--lg-rule-1);
+}
+.ds-stat:last-child { border-right: 0; }
+.ds-stat label {
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-2);
+  letter-spacing: 0.06em;
+}
+.ds-stat b {
+  font-size: var(--lg-fs-body-lg);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* 位置类：行/列两个小字段，各自不换行 */
+.ds-stat .ds-stat__pair {
+  display: flex;
+  gap: var(--lg-s2);
+  font-size: var(--lg-fs-body);
+}
+
+/* ============ 9. 状态标签 ============ */
+.ds-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lg-s1);
+  height: 20px;
+  padding: 0 var(--lg-s2);
+  border: var(--lg-b-hair) solid var(--lg-rule-2);
+  border-radius: var(--lg-r-1);
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-1);
+  white-space: nowrap;
+}
+.ds-chip.is-seal {
+  border-color: var(--lg-seal);
+  color: var(--lg-seal);
+  background: var(--lg-seal-bg);
+}
+.ds-chip.is-jade {
+  border-color: var(--lg-jade);
+  color: var(--lg-jade);
+}
+.ds-chip.is-gold {
+  border-color: var(--lg-gold);
+  color: var(--lg-gold);
+}
+.ds-chip.is-off {
+  color: var(--lg-ink-3);
+  border-color: var(--lg-rule-1);
+}
+
+/* ============ 10. 列表行（商店 / 局外 / 成就 共用一套） ============ */
+/* 一行三栏：字印 40 / 文本 flex / 动作 96。文本列有 max-width，不让一行拉成一条 */
+.ds-row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 96px;
+  align-items: center;
+  gap: var(--lg-s3);
+  min-height: 44px;
+  padding: var(--lg-s2) 0;
+  border-bottom: var(--lg-b-hair) solid var(--lg-rule-1);
+}
+.ds-row__text {
+  display: grid;
+  gap: 1px;
+  max-width: 46ch;
+}
+.ds-row__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--lg-s2);
+  font-size: var(--lg-fs-body);
+  font-weight: 700;
+}
+.ds-row__title i {
+  font-style: normal;
+  font-size: var(--lg-fs-caption);
+  font-weight: 400;
+  color: var(--lg-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.ds-row__desc {
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-2);
+}
+.ds-row__act {
+  justify-self: end;
+}
+.ds-row.is-maxed {
+  opacity: 0.55;
+}
+
+/* ============ 11. 弹层 ============ */
+.ds-modal {
+  display: flex;
+  flex-direction: column;
+  width: var(--ds-modal-w, var(--lg-modal-m));
+  max-height: 88vh;
+  border: var(--lg-b-frame) solid var(--lg-ink-0);
+  border-radius: var(--lg-r-2);
+  background: var(--lg-paper-1);
+  box-shadow: var(--lg-shadow-2);
+  overflow: hidden;
+}
+.ds-modal__head {
+  display: flex;
+  align-items: center;
+  gap: var(--lg-s4);
+  height: 56px;
+  padding: 0 var(--lg-s5);
+  border-bottom: var(--lg-b-rule) solid var(--lg-ink-0);
+}
+.ds-modal__head h2 {
+  font-family: var(--lg-font-display);
+  font-size: var(--lg-fs-h1);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+.ds-modal__head .ds-kicker {
+  font-size: var(--lg-fs-caption);
+  letter-spacing: 0.14em;
+  color: var(--lg-seal);
+  text-transform: none;
+}
+.ds-modal__head .ds-modal__tools {
+  margin-left: auto;
+  display: flex;
+  gap: var(--lg-s2);
+}
+.ds-modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--lg-s5);
+  overflow-y: auto;
+}
+.ds-modal__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--lg-s3);
+  height: 64px;
+  padding: 0 var(--lg-s5);
+  border-top: var(--lg-b-hair) solid var(--lg-rule-2);
+  background: var(--lg-paper-0);
+}
+.ds-modal__foot > :first-child { margin-right: auto; }
+
+.ds-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: var(--lg-z-overlay);
+  display: grid;
+  place-items: center;
+  background: var(--lg-scrim);
+}
+
+/* 小/中/大三种版心，只有三种 */
+.ds-modal--s { --ds-modal-w: var(--lg-modal-s); }
+.ds-modal--m { --ds-modal-w: var(--lg-modal-m); }
+.ds-modal--l { --ds-modal-w: var(--lg-modal-l); }
+
+/* ============ 12. 棋盘下读数条（选中单位的唯一详情位） ============ */
+/* 常驻在棋盘正下方、与棋盘同宽。没选中时显示操作提示，选中时换成单位读数。
+   常驻的目的是"零布局跳动"——棋盘不会因为选中与否而改变大小。 */
+.ds-readout {
+  display: grid;
+  grid-template-columns: 36px auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--lg-s4);
+  height: 72px;
+  padding: var(--lg-s3) var(--lg-s4);
+  border: var(--lg-b-rule) solid var(--lg-rule-2);
+  border-radius: var(--lg-r-1);
+  background: var(--lg-paper-1);
+}
+.ds-readout.is-empty {
+  grid-template-columns: 1fr;
+  color: var(--lg-ink-2);
+  font-size: var(--lg-fs-label);
+}
+.ds-readout__id {
+  display: grid;
+  gap: 1px;
+}
+.ds-readout__name {
+  font-family: var(--lg-font-display);
+  font-size: var(--lg-fs-h2);
+  line-height: 1.15;
+}
+.ds-readout__meta {
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-2);
+}
+.ds-readout__stats {
+  display: flex;
+  gap: var(--lg-s4);
+}
+.ds-readout__stats > span {
+  display: grid;
+  gap: 1px;
+}
+.ds-readout__stats label {
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-2);
+}
+.ds-readout__stats b {
+  font-size: var(--lg-fs-body);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ============ 12b. 浮层提示（悬停 / 长按） ============ */
+.ds-tip {
+  position: absolute;
+  z-index: var(--lg-z-popover);
+  width: 240px;
+  padding: var(--lg-s3);
+  border: var(--lg-b-hair) solid var(--lg-rule-2);
+  border-radius: var(--lg-r-1);
+  background: var(--lg-paper-1);
+  box-shadow: var(--lg-shadow-1);
+  font-size: var(--lg-fs-caption);
+  line-height: 1.55;
+  color: var(--lg-ink-1);
+}
+
+/* ============ 13. 页签 ============ */
+.ds-tabs {
+  display: flex;
+  gap: var(--lg-s1);
+  border-bottom: var(--lg-b-hair) solid var(--lg-rule-2);
+}
+.ds-tab {
+  height: 32px;
+  padding: 0 var(--lg-s4);
+  border: 0;
+  border-bottom: var(--lg-b-rule) solid transparent;
+  background: none;
+  color: var(--lg-ink-2);
+  font-family: inherit;
+  font-size: var(--lg-fs-label);
+  cursor: pointer;
+}
+.ds-tab.is-on {
+  color: var(--lg-ink-0);
+  border-bottom-color: var(--lg-seal);
+  font-weight: 700;
+}
+
+/* ============ 14. 棋盘 ============ */
+/* 外框 2px 墨 + 四角套准线（这是唯一允许的角标记，只在棋盘出现一次） */
+.ds-board-box {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+}
+.ds-ruler {
+  position: absolute;
+  display: grid;
+  color: var(--lg-ink-2);
+  font-family: var(--lg-font-mono);
+  font-size: var(--lg-fs-micro);
+}
+.ds-ruler--col {
+  left: 0;
+  right: 0;
+  top: -18px;
+  height: 16px;
+  grid-template-columns: repeat(6, 1fr);
+}
+.ds-ruler--row {
+  top: 0;
+  bottom: 0;
+  left: -20px;
+  width: 18px;
+  grid-template-rows: repeat(7, 1fr);
+}
+.ds-ruler span {
+  display: grid;
+  place-items: center;
+}
+/* 有笔势的行/列：编号变朱砂，并在前面标出 横/直 */
+.ds-ruler span.is-stroke {
+  color: var(--lg-seal);
+  font-weight: 700;
+}
+.ds-ruler span.is-stroke::before {
+  content: attr(data-mark);
+  font-family: var(--lg-font-ui);
+  font-size: var(--lg-fs-micro);
+  margin-right: 2px;
+}
+
+/* 棋盘列：Boss 条 + 棋盘 + 读数条，三者同宽，Boss 不浮在格子上。
+   宽度由"可用高度反推"：棋盘 6:7，宽 = (视口高 - 顶栏 56 - 上下内边距 32
+   - Boss 36 - 题签间距 20 - 读数条 72 - 间距 12) * 6/7，即 (100vh - 228px)。 */
+.ds-board-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+  width: min(100%, calc((100vh - 228px) * 6 / 7));
+}
+.ds-board-col > .ds-boss { margin-bottom: 20px; }
+.ds-board-col > .ds-readout { margin-top: 12px; }
+
+.ds-board {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(7, 1fr);
+  width: 100%;
+  aspect-ratio: 6 / 7;
+  border: var(--lg-b-rule) solid var(--lg-ink-0);
+  background: var(--lg-paper-3);
+  container-type: inline-size;
+}
+/* 四角套准线：12px 折角，纸色，压在棋盘角上 */
+.ds-board::before,
+.ds-board::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--lg-paper-1);
+  pointer-events: none;
+}
+.ds-board::before { left: -3px; top: -3px; border-right: 0; border-bottom: 0; }
+.ds-board::after { right: -3px; bottom: -3px; border-left: 0; border-top: 0; }
+
+.ds-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-right: var(--lg-b-hair) solid var(--lg-rule-1);
+  border-bottom: var(--lg-b-hair) solid var(--lg-rule-1);
+  background: var(--lg-paper-2);
+}
+/* 未解锁：斜线纹，不画十字，不画点 */
+.ds-cell.is-locked {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 5px,
+    var(--lg-rule-1) 5px 6px
+  );
+}
+/* 土路：比空格深一档的纸色 + 中心点。差值靠"色调"而不是"描边" */
+.ds-cell.is-path {
+  background: var(--lg-paper-3);
+}
+.ds-cell.is-path::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--lg-r-full);
+  background: var(--lg-rule-2);
+}
+/* 入口 / 营寨 */
+.ds-cell.is-entry,
+.ds-cell.is-camp {
+  background: var(--lg-seal);
+  color: var(--lg-paper-1);
+}
+.ds-cell.is-entry b,
+.ds-cell.is-camp b {
+  font-family: var(--lg-font-display);
+  font-size: 5cqw;
+  font-weight: 400;
+}
+
+/* 我方单位：墨实底、纸色字。整格铺满 */
+.ds-unit {
+  position: absolute;
+  inset: 2px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--lg-r-1);
+  background: var(--lg-ink-0);
+  color: var(--lg-paper-1);
+  box-shadow: inset 0 0 0 1px var(--lg-paper-on-ink);
+}
+.ds-unit b {
+  font-family: var(--lg-font-display);
+  font-size: 7cqw;
+  font-weight: 400;
+  line-height: 1;
+}
+/* 等级：底部三个点以内，最多五点 */
+.ds-unit__lv {
+  position: absolute;
+  bottom: 3px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+}
+.ds-unit__lv i {
+  width: 3px;
+  height: 3px;
+  background: var(--lg-paper-1);
+  border-radius: var(--lg-r-full);
+  opacity: 0.9;
+}
+/* 品质：只在左缘 3px，不再有外圈 */
+.ds-unit::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--ds-rar, var(--lg-rar-common));
+  border-radius: var(--lg-r-1) 0 0 var(--lg-r-1);
+}
+.ds-unit.is-selected {
+  box-shadow: var(--lg-ring);
+}
+
+/* 敌方：朱砂实底、缩小到 74%，与"墨方块"形成尺寸+颜色双重区分 */
+.ds-enemy {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 74%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: var(--lg-r-full);
+  background: var(--lg-seal);
+  color: var(--lg-paper-1);
+  font-family: var(--lg-font-display);
+  font-size: 4cqw;
+}
+/* 血量：只有"受伤"时才在圆外长出一圈弧，满血不长——不允许常驻装饰环。
+   弧的读数是 --ds-hp（0–100），缺口留给"它还能挨几下"的直觉判断。 */
+.ds-enemy.is-hurt::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--lg-r-full);
+  background: conic-gradient(
+    from -90deg,
+    var(--lg-seal-deep) calc(var(--ds-hp, 60) * 1%),
+    var(--lg-seal-dim) 0
+  );
+  -webkit-mask: radial-gradient(circle, transparent 64%, var(--lg-mask) 65%);
+  mask: radial-gradient(circle, transparent 64%, var(--lg-mask) 65%);
+  filter: grayscale(0.15);
+}
+.ds-enemy.is-boss {
+  width: 92%;
+  border-radius: var(--lg-r-1);
+  box-shadow: var(--lg-shadow-1);
+}
+
+/* 笔势：直接标在格子上——一条朱砂淡底 + 上下两条虚线，跨格连续成一条线。
+   画在格子里而不是棋子上，所以永远不会遮住单位。 */
+.ds-cell.is-stroke-h {
+  background-color: var(--lg-seal-tint);
+  border-top: var(--lg-b-hair) dashed var(--lg-seal-line);
+  border-bottom: var(--lg-b-hair) dashed var(--lg-seal-line);
+}
+.ds-cell.is-stroke-v {
+  background-color: var(--lg-seal-tint);
+  border-left: var(--lg-b-hair) dashed var(--lg-seal-line);
+  border-right: var(--lg-b-hair) dashed var(--lg-seal-line);
+}
+/* 断笔：被断笔者压住，整条转灰，不能用朱砂（朱砂只表示"还活着"） */
+.ds-cell.is-stroke-dead {
+  background-color: var(--lg-ink-veil);
+  border-color: var(--lg-rule-2);
+}
+
+/* Boss 血条：与棋盘同宽的题签，不是浮层。40px 内一行讲完 名 / 血 / 段 */
+.ds-boss {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--lg-s4);
+  height: 36px;
+  padding: 0 var(--lg-s4);
+  border: var(--lg-b-rule) solid var(--lg-seal-deep);
+  border-radius: var(--lg-r-1);
+  background: var(--lg-seal);
+  color: var(--lg-paper-1);
+}
+.ds-boss__name {
+  font-family: var(--lg-font-display);
+  font-size: var(--lg-fs-h2);
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+/* 血条：4px 够细，读数由"第 2 段 · 崩甲"承担，不写百分比 */
+.ds-boss__track {
+  height: 4px;
+  background: var(--lg-paper-track);
+}
+.ds-boss__track u {
+  display: block;
+  height: 100%;
+  background: var(--lg-paper-1);
+  transform-origin: left center;
+}
+.ds-boss__phase {
+  font-size: var(--lg-fs-caption);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+/* ============ 15. 间距与排版工具（只保留真正复用的） ============ */
+.ds-stack { display: grid; gap: var(--lg-s4); }
+.ds-stack--sm { gap: var(--lg-s3); }
+.ds-stack--lg { gap: var(--lg-s6); }
+.ds-rowflex { display: flex; align-items: center; gap: var(--lg-s3); }
+.ds-rule { height: 1px; background: var(--lg-rule-1); }
+.ds-num {
+  font-variant-numeric: tabular-nums;
+}
+.ds-note {
+  margin: 0;
+  font-size: var(--lg-fs-caption);
+  line-height: 1.6;
+  color: var(--lg-ink-2);
+}
+.ds-bar {
+  height: 4px;
+  background: var(--lg-paper-2);
+  overflow: hidden;
+}
+.ds-bar i {
+  display: block;
+  height: 100%;
+  background: var(--lg-ink-0);
+  transform-origin: left center;
+}
+.ds-bar.is-low i { background: var(--lg-seal); }
+/* 两栏 + 中缝：结算、详情用 */
+.ds-split {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: var(--lg-s6);
+  align-items: start;
+}
+.ds-split > :first-child {
+  padding-right: var(--lg-s6);
+  border-right: var(--lg-b-hair) solid var(--lg-rule-1);
+}
+.ds-num {
+  font-variant-numeric: tabular-nums;
+}
+.ds-display {
+  font-family: var(--lg-font-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* ============ 16. 页面骨架 ============ */
+/* 战斗屏：顶栏横跨，下面三列（战术栏 / 棋盘 / 行动栏）。
+   ≥1440 才出现左栏——因为只有这时棋盘两侧才有余宽，左栏装的是"当前缺失的敌情"，
+   不是为了填满空白的装饰。 */
+.ds-battle {
+  display: grid;
+  grid-template-columns: var(--lg-rail-w) minmax(0, 1fr) var(--lg-dock-w);
+  grid-template-rows: var(--lg-hud-h) minmax(0, 1fr);
+  height: 100vh;
+  overflow: hidden;
+}
+.ds-battle > .ds-hud { grid-column: 1 / -1; }
+
+.ds-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg-s5);
+  padding: var(--lg-s5) var(--lg-s4);
+  border-right: var(--lg-b-hair) solid var(--lg-rule-1);
+  overflow-y: auto;
+}
+.ds-rail__block { display: grid; gap: var(--lg-s3); }
+.ds-rail__k {
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-2);
+  letter-spacing: 0.1em;
+}
+.ds-rail__v {
+  font-family: var(--lg-font-display);
+  font-size: var(--lg-fs-h2);
+  line-height: 1.2;
+}
+
+/* 棋盘列：只负责把棋盘居中；余宽留给就地浮卡 */
+.ds-board-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: var(--lg-s5) var(--lg-s6);
+}
+
+/* 行动栏：没有外框，只有一条左侧发丝线与分节线 */
+.ds-dock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg-s5);
+  padding: var(--lg-s5) var(--lg-s5) var(--lg-s6);
+  border-left: var(--lg-b-hair) solid var(--lg-rule-1);
+  overflow-y: auto;
+}
+.ds-dock__sec { display: grid; gap: var(--lg-s3); }
+/* 最后一段（道具 = 一次性库存）钉在 dock 底部：
+   上方是"本波要做的决策"，下方是"随时可能要用的一次性资源"，
+   两者按使用频率分开，中间的空档就不再是废空。 */
+.ds-dock > .ds-dock__sec:last-child { margin-top: auto; }
+
+.ds-cards {
+  display: flex;
+  gap: var(--lg-s3);
+}
+.ds-cards > * {
+  flex: 1 1 0;
+}
+.ds-slots {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--lg-s3);
+}
+.ds-items {
+  display: flex;
+  gap: var(--lg-s3);
+}
+.ds-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: var(--lg-s3);
+}
+
+/* 1100–1439：撤掉战术栏（余宽不够），棋盘居中，右栏 320 */
+@media (max-width: 1439px) {
+  .ds-battle { grid-template-columns: minmax(0, 1fr) var(--lg-dock-w-md); }
+  .ds-rail { display: none; }
+  .ds-dock { padding-left: var(--lg-s4); }
+}
+
+/* 900–1099：卡片改两列，字号不动（缩字号是反设计） */
+@media (max-width: 1099px) {
+  .ds-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ds-card { width: auto; }
+}
+
+/* <900（竖屏）：上棋盘、下抽屉。
+   竖屏的物理约束是"棋盘要够大、抽屉要能滚"，两者不共享 100vh：
+   顶栏压到两行 96 内、Boss 条压到 28、读数条 60，剩下的全给抽屉滚动。
+   棋盘按宽度定尺（330 = 6×55px 格），不再用视口高度反推。 */
+@media (max-width: 899px) {
+  .ds-battle {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+  .ds-hud {
+    height: auto;
+    flex-wrap: wrap;
+    row-gap: var(--lg-s2);
+    padding: var(--lg-s3) var(--lg-s4);
+  }
+  /* 竖屏顶栏三行：波次+阶段+资源 / 营寨 / 笔势+工具。
+     用 order 而不是改 DOM——桌面仍是一条单行 */
+  .ds-hud__res { order: 0; margin-left: auto; }
+  .ds-hud__base { order: 2; }
+  .ds-hud__stroke { order: 3; padding-left: var(--lg-s3); }
+  .ds-hud__tools { order: 4; }
+  .ds-hud__wave em { font-size: var(--lg-fs-num); }
+  .ds-hud__base { flex: 1 1 100%; max-width: none; border-right: 0; padding-right: 0; }
+  .ds-board-wrap { padding: var(--lg-s3) var(--lg-s4); align-content: start; }
+  /* 300 = 6×50px 格：格高 50 仍在 44 触控下限之上，同时给抽屉留出"卡+按钮"一整段 */
+  .ds-board-col { width: min(100%, 300px); flex: none; }
+  .ds-boss { height: 26px; margin-bottom: 10px; padding: 0 var(--lg-s3); }
+  .ds-boss__name { font-size: var(--lg-fs-body-lg); }
+  .ds-readout { height: 60px; margin-top: 8px; padding: var(--lg-s2) var(--lg-s3); gap: var(--lg-s3); }
+  /* 读数条在 390 上必须两行：上行身份 + 笔势，下行四个读数。硬挤一行会把"攻击"折成两行 */
+  .ds-readout {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    align-content: center;
+    row-gap: 2px;
+    height: auto;
+    min-height: 60px;
+  }
+  .ds-readout__stats { grid-column: 1 / -1; grid-row: 2; justify-content: space-between; }
+  .ds-readout > .ds-chip { grid-column: 3; grid-row: 1; margin-left: 0 !important; }
+  .ds-dock {
+    max-height: none;
+    min-height: 0;
+    overflow-y: auto;
+    border-left: 0;
+    border-top: var(--lg-b-rule) solid var(--lg-rule-3);
+    background: var(--lg-paper-1);
+    padding: var(--lg-s3);
+  }
+  .ds-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--lg-s2); }
+  .ds-card { height: 118px; grid-template-rows: 18px minmax(0, 1fr) 30px 26px; }
+}
+
+/* 横屏触屏：右栏固定，顶栏单行 */
+@media (pointer: coarse) and (max-height: 560px) and (min-width: 700px) {
+  .ds-battle {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-rows: var(--lg-hud-h) minmax(0, 1fr);
+  }
+  .ds-hud { flex-wrap: nowrap; height: var(--lg-hud-h); padding: 0 var(--lg-s4); }
+  .ds-hud__base { flex: 1 1 140px; max-width: 180px; border-right: 0; }
+  .ds-dock { max-height: none; border-top: 0; border-left: var(--lg-b-hair) solid var(--lg-rule-1); }
+}
+
+/* ============ 16b. 主界面 / 择将屏骨架 ============ */
+/* 主界面：三栏（题 / 山道图 / 行动），底部一条最近一局的账。
+   没有装饰区，山道小图是唯一的大图，且它承载"本局地图与格数"。 */
+.ds-main {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--lg-s6);
+  height: 100vh;
+  padding: var(--lg-s8) var(--lg-s8) var(--lg-s6);
+}
+/* 两列：左"身份与战绩"，右"这一局长什么样 + 从哪儿开始"。
+   右列是一条竖带：地图在上、行动在下、同宽 340——不是三个各自居中的浮岛。 */
+.ds-main__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--lg-s9);
+  align-items: start;
+  /* 内容块定宽居中：标题页不铺满 1600，避免规线拉到 1100 宽却只有 30ch 的字 */
+  width: 100%;
+  max-width: 1040px;
+  margin-inline: auto;
+  min-height: 0;
+}
+.ds-main__title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg-s5);
+  align-items: stretch;
+  height: 100%;
+  min-height: 0;
+}
+.ds-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--lg-s5);
+}
+.ds-title {
+  font-family: var(--lg-font-display);
+  font-size: var(--lg-fs-display);
+  line-height: 1;
+  letter-spacing: 0.06em;
+}
+.ds-kicker {
+  font-size: var(--lg-fs-caption);
+  letter-spacing: 0.2em;
+  color: var(--lg-ink-2);
+}
+/* 四拍：纵向步骤表，不是四个胶囊。
+   顺序本身是信息（先招募才合兵，布阵才可守），所以用序号 + 名称 + 一句解释，
+   而不是四个等价的标签。分隔仅靠 1px 规线，不用底色块。 */
+.ds-loop {
+  display: grid;
+  border-top: var(--lg-b-hair) solid var(--lg-rule-1);
+}
+.ds-loop__step {
+  display: grid;
+  grid-template-columns: 20px 52px minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--lg-s3);
+  padding: var(--lg-s3) 0;
+  border-bottom: var(--lg-b-hair) solid var(--lg-rule-1);
+  font-size: var(--lg-fs-body);
+  line-height: 1.5;
+}
+.ds-loop__step i {
+  font-family: var(--lg-font-display);
+  font-style: normal;
+  font-size: var(--lg-fs-label);
+  color: var(--lg-seal);
+}
+.ds-loop__step b {
+  font-family: var(--lg-font-display);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+.ds-loop__step span {
+  color: var(--lg-ink-2);
+}
+.ds-records {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--lg-s5) var(--lg-s7);
+  /* 战绩钉在这一栏的底部，与页脚的「上一局」同一条基线 */
+  margin-top: auto;
+}
+.ds-record {
+  display: grid;
+  gap: 2px;
+}
+.ds-record span {
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-2);
+}
+.ds-record b {
+  font-family: var(--lg-font-display);
+  font-size: var(--lg-fs-num);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 山道小图：6×7 的缩略棋盘，只为说明"这一局长什么样" */
+.ds-minimap {
+  display: grid;
+  gap: var(--lg-s4);
+  justify-items: start;
+}
+.ds-minimap__board {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(7, 1fr);
+  width: min(100%, 300px);
+  aspect-ratio: 6 / 7;
+  border: var(--lg-b-rule) solid var(--lg-ink-0);
+  background: var(--lg-paper-3);
+}
+.ds-minimap__board i {
+  display: grid;
+  place-items: center;
+  border: var(--lg-b-hair) solid transparent;
+}
+/* 小图上的兵也写字：这张图要证明"文字就是兵"，不是一张抽象色块图 */
+.ds-minimap__board i b {
+  font-family: var(--lg-font-display);
+  font-size: var(--lg-fs-body-lg);
+  font-weight: 400;
+  line-height: 1;
+  color: var(--lg-paper-1);
+}
+.ds-minimap__board i.is-path {
+  background: var(--lg-paper-4);
+}
+.ds-minimap__board i.is-unit {
+  background: var(--lg-ink-0);
+  margin: 2px;
+  border-radius: var(--lg-r-1);
+}
+.ds-minimap__board i.is-entry,
+.ds-minimap__board i.is-camp {
+  background: var(--lg-seal);
+  color: var(--lg-paper-1);
+}
+.ds-minimap__board i.is-entry b,
+.ds-minimap__board i.is-camp b {
+  font-size: var(--lg-fs-body-lg);
+}
+
+.ds-main__side {
+  display: grid;
+  gap: var(--lg-s5);
+  align-content: start;
+  justify-items: stretch;
+  width: 100%;
+}
+.ds-main__actions {
+  display: grid;
+  gap: var(--lg-s3);
+  width: 100%;
+}
+.ds-main__side .ds-note {
+  font-size: var(--lg-fs-caption);
+  line-height: 1.55;
+  color: var(--lg-ink-2);
+}
+.ds-lastrun {
+  display: flex;
+  align-items: baseline;
+  gap: var(--lg-s5);
+  padding-top: var(--lg-s4);
+  border-top: var(--lg-b-hair) solid var(--lg-rule-1);
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-2);
+}
+
+/* 择将屏：左列表 / 中将牌 / 右确认。中栏是唯一的大字区 */
+.ds-hero {
+  display: grid;
+  grid-template-rows: 64px minmax(0, 1fr);
+  height: 100vh;
+}
+.ds-hero__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--lg-s4);
+  padding: 0 var(--lg-s5);
+  border-bottom: var(--lg-b-hair) solid var(--lg-rule-2);
+}
+.ds-hero__bar h2 {
+  font-family: var(--lg-font-display);
+  font-size: var(--lg-fs-h2);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+.ds-hero__body {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 300px;
+  min-height: 0;
+}
+.ds-hero__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg-s1);
+  padding: var(--lg-s4) var(--lg-s3);
+  border-right: var(--lg-b-hair) solid var(--lg-rule-1);
+  overflow-y: auto;
+}
+.ds-hero-item {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--lg-s4);
+  padding: var(--lg-s3);
+  border: 0;
+  border-left: 3px solid transparent;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+.ds-hero-item.is-on {
+  border-left-color: var(--lg-seal);
+  background: var(--lg-paper-1);
+}
+.ds-hero-item__text {
+  display: grid;
+  gap: 1px;
+}
+.ds-hero-item__text b {
+  font-family: var(--lg-font-display);
+  font-size: var(--lg-fs-h2);
+  font-weight: 400;
+}
+.ds-hero-item__text span {
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-2);
+}
+.ds-hero-item__state {
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.ds-hero-item__state.is-on {
+  color: var(--lg-seal);
+  font-weight: 700;
+}
+
+.ds-hero__detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg-s5);
+  padding: var(--lg-s7) var(--lg-s7) var(--lg-s6);
+  overflow-y: auto;
+}
+.ds-hero__head {
+  display: flex;
+  align-items: center;
+  gap: var(--lg-s5);
+}
+.ds-hero__head h1 {
+  font-family: var(--lg-font-display);
+  font-size: var(--lg-fs-display);
+  line-height: 1;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+.ds-hero__head p {
+  margin: 0;
+  font-size: var(--lg-fs-label);
+  color: var(--lg-ink-2);
+}
+.ds-ability {
+  display: grid;
+  gap: var(--lg-s2);
+  padding: var(--lg-s4) 0;
+  border-top: var(--lg-b-hair) solid var(--lg-rule-1);
+}
+.ds-ability__k {
+  display: flex;
+  align-items: center;
+  gap: var(--lg-s3);
+  font-size: var(--lg-fs-caption);
+  letter-spacing: 0.1em;
+  color: var(--lg-ink-2);
+}
+.ds-ability__k b {
+  font-size: var(--lg-fs-body);
+  color: var(--lg-ink-0);
+  letter-spacing: 0.04em;
+}
+.ds-ability p {
+  margin: 0;
+  max-width: 64ch; /* 正文行宽上限：超过 64 字宽的 13px 长句会丢行 */
+  font-size: var(--lg-fs-body-lg);
+  line-height: 1.65;
+}
+
+.ds-hero__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg-s4);
+  padding: var(--lg-s6) var(--lg-s5);
+  border-left: var(--lg-b-hair) solid var(--lg-rule-1);
+}
+.ds-hero__side .ds-note {
+  font-size: var(--lg-fs-caption);
+  line-height: 1.6;
+  color: var(--lg-ink-2);
+}
+
+/* ============ 17. 账本行（结算 / 记录） ============ */
+.ds-ledger { display: grid; }
+.ds-ledger__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 64px;
+  align-items: baseline;
+  gap: var(--lg-s5);
+  padding: var(--lg-s3) 0;
+  border-bottom: var(--lg-b-hair) solid var(--lg-rule-1);
+}
+.ds-ledger__row span {
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-1);
+}
+.ds-ledger__row b {
+  font-size: var(--lg-fs-body-lg);
+  font-variant-numeric: tabular-nums;
+}
+.ds-ledger__row i {
+  font-style: normal;
+  font-size: var(--lg-fs-caption);
+  color: var(--lg-ink-2);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ds-ledger__row i.is-best { color: var(--lg-gold); }
+
+/* ============ 17. 起始页竖屏 ============ */
+/* 单列纵向流：标题 → 行动 → 地图。地图是"本局长什么样"的预览，可以让位给主行动。
+   放在文件末尾，确保覆盖 16b 的基础规则（同权重后写者胜）。 */
+@media (max-width: 899px) {
+  /* 竖屏允许整页滚动：屏幕容器不再把内容压进 100vh，否则每行都会被截断 */
+  .ds-screen { overflow-y: auto; align-items: start; grid-auto-rows: min-content; }
+  .ds-main {
+    height: auto;
+    min-height: 100vh;
+    grid-template-rows: auto auto;
+    padding: var(--lg-s5) var(--lg-s4) var(--lg-s4);
+    gap: var(--lg-s5);
+  }
+  .ds-main__grid {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: none;
+    gap: var(--lg-s5);
+  }
+  /* 用 display:contents 把"地图 / 行动"提到同一层，才能让行动排在标题正下方 */
+  .ds-main__side { display: contents; }
+  .ds-main__title { order: 1; gap: var(--lg-s4); }
+  .ds-main__actions { order: 2; }
+  .ds-minimap { order: 3; }
+  .ds-title-row { gap: var(--lg-s4); }
+  .ds-title { font-size: var(--lg-fs-display); }
+  .ds-seal--xl { --ds-seal-size: 64px; }
+  .ds-minimap__board { width: min(100%, 200px); }
+  /* 地图说明在竖屏收起：这一屏要留"标题 + 主行动 + 地图 + 上一局"四段全在视野内 */
+  .ds-minimap .ds-note { display: none; }
+  /* 战绩在竖屏压成一行四格：一屏内必须同时看到标题、主行动、地图和上一局 */
+  .ds-records { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--lg-s3); }
+  .ds-record b { font-size: var(--lg-fs-h2); }
+  .ds-lastrun { flex-wrap: wrap; row-gap: var(--lg-s2); }
+}
+
+
