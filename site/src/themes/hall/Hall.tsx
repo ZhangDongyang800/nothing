@@ -9,7 +9,7 @@ const ANDROID_DOWNLOAD = '/downloads/TxxT-Android-1.1.apk';
 const TOOLBOX_DOWNLOAD = '/downloads/Toolbox-Setup-0.1.2.exe';
 
 /**
- * 官网首页：游戏厅在前，应用下载在后。
+ * 官网首页：应用在前（主产品），游戏厅在后。
  *
  * 视觉沿用单文件原型 web/paper.html 的机台语汇：一屏装得下、点开就能玩、
  * 每个效果都能重来。结构写在这里，样式在 hall.css，纯 DOM 的交互（打字、
@@ -27,11 +27,11 @@ export default function Hall() {
           <span className="brand-box">目录</span>
         </a>
         <nav className="bar-nav" aria-label="页面分区">
-          <a href="#games">
-            小游戏 <b>10</b>
-          </a>
           <a href="#download">
             应用 <b>2</b>
+          </a>
+          <a href="#games">
+            小游戏 <b>10</b>
           </a>
         </nav>
         <button className="sfx" id="sfxBtn" type="button" aria-pressed="true" title="音效已开 · 点关">
@@ -41,10 +41,60 @@ export default function Hall() {
       </header>
 
       <main className="hall" id="top">
+        <section className="apps" id="download">
+          <div className="zone-head">
+            <span className="kicker">01 / 应用</span>
+            <h1 className="zone-title">应用</h1>
+            <p className="zone-note">Windows / Android · 双击安装 · 免注册</p>
+          </div>
+
+          <div className="apps-grid">
+            <article className="app-card app-txxt">
+              <div className="app-top">
+                <span className="app-kicker">写作 · WINDOWS / ANDROID</span>
+                <h3 className="app-name">TxxT</h3>
+              </div>
+              <p className="app-line">中文长篇写作，稿子存在本地文件夹。</p>
+              <div className="app-facts">
+                <span>本地</span>
+                <span>免注册</span>
+              </div>
+              <div className="app-actions">
+                <a className="app-dl" href={DESKTOP_DOWNLOAD} download>
+                  <span>Windows · EXE</span>
+                  <b>79 MB ↓</b>
+                </a>
+                <a className="app-dl app-dl-alt" href={ANDROID_DOWNLOAD} download>
+                  <span>Android · APK</span>
+                  <b>4.4 MB ↓</b>
+                </a>
+              </div>
+            </article>
+
+            <article className="app-card app-toolbox">
+              <div className="app-top">
+                <span className="app-kicker">独立工具 · WINDOWS</span>
+                <h3 className="app-name">工具箱</h3>
+              </div>
+              <p className="app-line">音频录音棚 · 像素工厂 · 文稿工坊</p>
+              <div className="app-facts">
+                <span>3 个工具</span>
+                <span>双击安装</span>
+              </div>
+              <div className="app-actions">
+                <a className="app-dl app-dl-blue" href={TOOLBOX_DOWNLOAD} download>
+                  <span>Windows · EXE</span>
+                  <b>243 MB ↓</b>
+                </a>
+              </div>
+            </article>
+          </div>
+        </section>
+
         <section className="games" id="games">
           <div className="zone-head">
-            <span className="kicker">01 / 小游戏</span>
-            <h1 className="zone-title">小游戏</h1>
+            <span className="kicker">02 / 小游戏</span>
+            <h2>小游戏</h2>
             <p className="zone-note">10 个 · 点开就玩 · 横屏：墨潮</p>
           </div>
 
@@ -293,55 +343,6 @@ export default function Hall() {
 
 
         </div>
-        </section>
-
-        <section className="apps" id="download">
-          <div className="apps-head">
-            <span className="kicker">02 / 应用</span>
-            <h2>应用</h2>
-          </div>
-
-          <div className="apps-grid">
-            <article className="app-card app-txxt">
-              <div className="app-top">
-                <span className="app-kicker">写作 · WINDOWS / ANDROID</span>
-                <h3 className="app-name">TxxT</h3>
-              </div>
-              <p className="app-line">中文长篇写作，稿子存在本地文件夹。</p>
-              <div className="app-facts">
-                <span>本地</span>
-                <span>免注册</span>
-              </div>
-              <div className="app-actions">
-                <a className="app-dl" href={DESKTOP_DOWNLOAD} download>
-                  <span>Windows · EXE</span>
-                  <b>79 MB ↓</b>
-                </a>
-                <a className="app-dl app-dl-alt" href={ANDROID_DOWNLOAD} download>
-                  <span>Android · APK</span>
-                  <b>4.4 MB ↓</b>
-                </a>
-              </div>
-            </article>
-
-            <article className="app-card app-toolbox">
-              <div className="app-top">
-                <span className="app-kicker">独立工具 · WINDOWS</span>
-                <h3 className="app-name">工具箱</h3>
-              </div>
-              <p className="app-line">音频录音棚 · 像素工厂 · 文稿工坊</p>
-              <div className="app-facts">
-                <span>3 个工具</span>
-                <span>双击安装</span>
-              </div>
-              <div className="app-actions">
-                <a className="app-dl app-dl-blue" href={TOOLBOX_DOWNLOAD} download>
-                  <span>Windows · EXE</span>
-                  <b>243 MB ↓</b>
-                </a>
-              </div>
-            </article>
-          </div>
         </section>
       </main>
 

@@ -227,10 +227,10 @@ p,h1,h2,h3{margin:0}
 }
 
 /* 01 / 小游戏：只写数量与横屏信息，不做叙事。 */
+/* 02 / 小游戏：末区，没有底部分隔线，收尾留白给足 */
 .games{
   display:flex;flex-direction:column;gap:clamp(18px,2.4vw,30px);
-  padding:clamp(38px,6vh,76px) clamp(18px,6vw,88px) clamp(34px,5vh,64px);
-  border-bottom:3px solid var(--nb-ink);
+  padding:clamp(34px,5.5vh,68px) clamp(18px,6vw,88px) clamp(44px,7vh,88px);
   scroll-margin-top:calc(var(--barh) + 10px);
 }
 .zone-head{max-width:900px}
@@ -979,7 +979,7 @@ p,h1,h2,h3{margin:0}
   .toolbox-side{border-left:0;border-top:3px solid var(--nb-ink);padding:10px 11px;gap:7px}
   .toolbox-dl{padding:9px 10px;font-size:11px;box-shadow:3px 3px 0 var(--nb-coral)}
   .toolbox-note{font-size:8px}
-  .games{padding:30px 14px 36px;gap:16px}
+  .games{padding:26px 14px 48px;gap:16px}
   .zone-head h2{font-size:clamp(24px,7vw,34px);margin-top:10px}
   .zone-head p{font-size:11px;line-height:1.7;margin-top:7px}
   .zone-note{font-size:8px!important;margin-top:9px!important}
@@ -1920,9 +1920,11 @@ body.is-playing .cabs *{animation-play-state:paused!important}
   margin-top:14px;font-family:var(--font-heavy);
   font-size:clamp(40px,5.6vw,76px);line-height:.98;letter-spacing:-.04em;
 }
+/* 01 / 应用：首区，用一条 3px 硬线把它和下面的游戏厅分开 */
 .apps{
   display:flex;flex-direction:column;gap:clamp(20px,3vw,34px);
-  padding:clamp(34px,5.5vh,68px) clamp(18px,6vw,88px) clamp(44px,7vh,88px);
+  padding:clamp(38px,6vh,76px) clamp(18px,6vw,88px) clamp(34px,5vh,64px);
+  border-bottom:3px solid var(--nb-ink);
   scroll-margin-top:calc(var(--barh) + 10px);
 }
 .apps-head h2{
@@ -1971,7 +1973,7 @@ body.is-playing .cabs *{animation-play-state:paused!important}
 
 @media (max-width:900px){
   .zone-title{font-size:clamp(30px,10vw,44px);margin-top:8px}
-  .apps{padding:26px 14px 48px;gap:16px}
+  .apps{padding:30px 14px 36px;gap:16px}
   .apps-head h2{font-size:32px;margin-top:7px}
   .apps-grid{grid-template-columns:1fr;gap:12px}
   .app-card{min-height:0;padding:14px 13px;gap:10px;box-shadow:6px 6px 0 var(--nb-ink)}

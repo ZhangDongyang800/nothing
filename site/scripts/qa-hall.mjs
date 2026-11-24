@@ -23,6 +23,23 @@ async function openPage(width, height, userAgent, isMobile = false) {
   return { context, page, errors };
 }
 
+async function exitMachine(page) {
+  // legion 的 Esc 是分层的：先关子层（英雄详情 / 战绩），再关机台。
+  // 一次 Escape 之后 modal 还在，下一张卡就点不动 —— 所以循环到真的关掉。
+  for (let i = 0; i < 4; i++) {
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(140);
+    const on = await page.evaluate(() => !!document.querySelector('#modal')?.classList.contains('is-on'));
+    if (!on) return true;
+  }
+  await page.evaluate(() => {
+    const veil = document.querySelector('[data-close]');
+    veil?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  });
+  await page.waitForTimeout(160);
+  return page.evaluate(() => !document.querySelector('#modal')?.classList.contains('is-on'));
+}
+
 async function probeDownload(page, href) {
   const url = new URL(href, BASE).href;
   try {
@@ -51,11 +68,11 @@ async function probeDownload(page, href) {
     zones: {
       download: !!document.querySelector('#download'),
       games: !!document.querySelector('#games'),
-      gamesFirst: document.querySelector('#games')?.getBoundingClientRect().top < document.querySelector('#download')?.getBoundingClientRect().top,
+      appsFirst: document.querySelector('#download')?.getBoundingClientRect().top < document.querySelector('#games')?.getBoundingClientRect().top,
       nav: Array.from(document.querySelectorAll('.bar-nav a')).map((a) => a.textContent.replace(/\s+/g, ' ').trim()),
     },
-    cards: document.querySelectorAll('[data-game]').length,
-    cardOrder: Array.from(document.querySelectorAll('[data-game]')).map((c) => c.querySelector('.cab-name')?.textContent.trim()),
+    cards: document.querySelectorAll('.cab[data-game]').length,
+    cardOrder: Array.from(document.querySelectorAll('.cab[data-game]')).map((c) => c.querySelector('.cab-name')?.textContent.trim()),
     apps: document.querySelectorAll('.app-card').length,
     downloads: Array.from(document.querySelectorAll('.app-dl')).map((a) => ({
       href: a.getAttribute('href'),
@@ -84,7 +101,7 @@ async function probeDownload(page, href) {
   await page.screenshot({ path: path.join(OUT, 'hall-app.png') });
 
   const opened = [];
-  const cards = page.locator('[data-game]');
+  const cards = page.locator('.cab[data-game]');
   for (let i = 0; i < await cards.count(); i++) {
     await cards.nth(i).click();
     await page.waitForTimeout(160);
@@ -96,14 +113,13 @@ async function probeDownload(page, href) {
       rot: (() => { const b = document.querySelector('#mRot')?.getBoundingClientRect(); return !!b && b.width > 0 && b.height > 0; })(),
     }));
     opened.push(state);
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(120);
+    await exitMachine(page);
   }
 
-  await page.locator('[data-game]').nth(0).click();
+  await page.locator('.cab[data-game]').nth(0).click();
   await page.waitForTimeout(160);
   await page.screenshot({ path: path.join(OUT, 'hall-machine.png') });
-  await page.keyboard.press('Escape');
+  await exitMachine(page);
 
   report.cases.push({ viewport: 'desktop', base, downloads: downloadChecks, opened, errors });
   await context.close();
@@ -115,7 +131,7 @@ async function probeDownload(page, href) {
   const mobile = await page.evaluate(() => ({
     inner: window.innerWidth,
     doc: document.documentElement.scrollWidth,
-    cards: document.querySelectorAll('[data-game]').length,
+    cards: document.querySelectorAll('.cab[data-game]').length,
     note: document.querySelector('.hero-copy')?.textContent.replace(/\s+/g, ' ').trim(),
     zoneNote: document.querySelector('.zone-note')?.textContent.replace(/\s+/g, ' ').trim(),
     foot: document.querySelector('.foot-actions')?.getBoundingClientRect().width,
@@ -139,7 +155,7 @@ async function probeDownload(page, href) {
   await page.waitForTimeout(180);
   await page.screenshot({ path: path.join(OUT, 'hall-mobile-bottom.png') });
   await page.evaluate(() => { document.body.scrollTop = 0; });
-  await page.locator('[data-game="run"]').click();
+  await page.locator('.cab[data-game="run"]').click();
   await page.waitForTimeout(180);
   const runRot = await page.evaluate(() => {
     const b = document.querySelector('#mRot');
@@ -149,7 +165,7 @@ async function probeDownload(page, href) {
   await page.screenshot({ path: path.join(OUT, 'hall-run-mobile.png') });
   await page.keyboard.press('Escape');
   await page.waitForTimeout(120);
-  await page.locator('[data-game="paper"]').click();
+  await page.locator('.cab[data-game="paper"]').click();
   await page.waitForTimeout(160);
   const paperRot = await page.evaluate(() => {
     const r = document.querySelector('#mRot')?.getBoundingClientRect();
@@ -169,7 +185,7 @@ const desktop = report.cases.find((c) => c.viewport === 'desktop');
 const mobile = report.cases.find((c) => c.viewport === 'mobile');
 const bothKinds = (list) => list.some((d) => d.href.endsWith('.exe')) && list.some((d) => d.href.endsWith('.apk'));
 const toolboxLinks = (list) => list.filter((d) => /Toolbox-Setup-0\.\d+\.\d+\.exe/i.test(d.href));
-const expectedOrder = ['墨潮', '走墨', '破砖', '砖块', '垒塔', '叠山', '稿纸', '抽词', '敲印'];
+const expectedOrder = ['纸上军团', '墨潮', '走墨', '破砖', '砖块', '垒塔', '叠山', '稿纸', '抽词', '敲印'];
 const bad = report.cases.flatMap((c) => c.errors).length
   || (isRemote && [...desktop.downloads, ...mobile.downloads].some((d) => d.status !== 200))
   || !bothKinds(desktop.downloads)
@@ -189,11 +205,11 @@ const bad = report.cases.flatMap((c) => c.errors).length
   || desktop.opened.some((o) => o.rot)
   || !desktop.base.zones.download
   || !desktop.base.zones.games
-  || !desktop.base.zones.gamesFirst
+  || !desktop.base.zones.appsFirst
   || desktop.base.cardOrder.join('|') !== expectedOrder.join('|')
   || desktop.base.toolbox.name !== '工具箱'
   || !desktop.base.toolbox.note?.includes('双击')
   || mobile.mobile.doc > mobile.mobile.inner
-  || desktop.opened.filter((o) => o.modal).length !== 9;
+  || desktop.opened.filter((o) => o.modal).length !== 10;
 if (bad) process.exit(1);
 

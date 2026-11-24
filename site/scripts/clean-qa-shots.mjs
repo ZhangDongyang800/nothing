@@ -21,6 +21,7 @@ const KEEP_EXT = new Set(['.md', '.txt', '.json']);
 
 let removed = 0;
 let bytes = 0;
+const locked = [];
 
 function walk(dir) {
   if (!fs.existsSync(dir)) return;
@@ -38,7 +39,13 @@ function walk(dir) {
     if (DRY) {
       console.log(`would remove  ${rel}  (${ageDays.toFixed(1)}d, ${(stat.size / 1024).toFixed(0)}KB)`);
     } else {
-      fs.unlinkSync(full);
+      try {
+        fs.unlinkSync(full);
+      } catch (err) {
+        // 被进程占用的（运行中的日志、未释放的抓帧）跳过，下次再清
+        locked.push(`${rel} (${err.code || err.message})`);
+        continue;
+      }
     }
     removed += 1;
     bytes += stat.size;
@@ -56,3 +63,4 @@ for (const d of DIRS) {
 }
 
 console.log(`${DRY ? '[dry] ' : ''}${removed} 个文件 / ${(bytes / 1048576).toFixed(1)} MB${ALL ? '（全部）' : `（早于 ${KEEP_DAYS} 天）`}`);
+if (locked.length) console.log(`跳过被占用 ${locked.length} 个：\n  ${locked.join('\n  ')}`);
