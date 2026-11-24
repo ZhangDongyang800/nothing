@@ -28,7 +28,7 @@ export default function Hall() {
         </a>
         <nav className="bar-nav" aria-label="页面分区">
           <a href="#games">
-            小游戏 <b>13</b>
+            小游戏 <b>10</b>
           </a>
           <a href="#download">
             应用 <b>2</b>
@@ -45,7 +45,7 @@ export default function Hall() {
           <div className="zone-head">
             <span className="kicker">01 / 小游戏</span>
             <h1 className="zone-title">小游戏</h1>
-            <p className="zone-note">13 个 · 点开就玩 · 横屏：墨潮</p>
+            <p className="zone-note">10 个 · 点开就玩 · 横屏：墨潮</p>
           </div>
 
           <div className="cabs">
@@ -120,59 +120,9 @@ export default function Hall() {
               <span>▶</span>
             </span>
           </button>
-          <button className="cab" type="button" data-game="pile">
-            <span className="cab-top">
-              <span className="cab-no">04</span>
-              <span className="cab-name">写了个写</span>
-            </span>
-            <span className="cab-screen scr-paper" aria-hidden="true">
-              <span className="mpile">
-                <i>月</i>
-                <i>舟</i>
-                <i>月</i>
-                <i>窗</i>
-                <i>月</i>
-                <i>舟</i>
-                <i>窗</i>
-              </span>
-              <span className="mslot">
-                <b>月</b>
-                <b>月</b>
-                <b />
-                <b />
-                <b />
-                <b />
-                <b />
-              </span>
-            </span>
-            <span className="cab-meta">
-              <span>五关 · 三张一消</span>
-              <span>▶</span>
-            </span>
-          </button>
-          <button className="cab" type="button" data-game="onet">
-            <span className="cab-top">
-              <span className="cab-no">05</span>
-              <span className="cab-name">连字</span>
-            </span>
-            <span className="cab-screen scr-paper" aria-hidden="true">
-              <span className="mone">
-                <i>月</i>
-                <i>窗</i>
-                <i>舟</i>
-                <i>雪</i>
-                <i>月</i>
-                <b className="mone-line" />
-              </span>
-            </span>
-            <span className="cab-meta">
-              <span>三关 · 两拐之内连走</span>
-              <span>▶</span>
-            </span>
-          </button>
           <button className="cab" type="button" data-game="break">
             <span className="cab-top">
-              <span className="cab-no">06</span>
+              <span className="cab-no">04</span>
               <span className="cab-name">破砖</span>
             </span>
             <span className="cab-screen scr-ink" aria-hidden="true">
@@ -206,7 +156,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="brick">
             <span className="cab-top">
-              <span className="cab-no">07</span>
+              <span className="cab-no">05</span>
               <span className="cab-name">砖块</span>
             </span>
             <span className="cab-screen scr-paper" aria-hidden="true">
@@ -236,7 +186,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="stack">
             <span className="cab-top">
-              <span className="cab-no">08</span>
+              <span className="cab-no">06</span>
               <span className="cab-name">垒塔</span>
             </span>
             <span className="cab-screen scr-stack" aria-hidden="true">
@@ -256,7 +206,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="merge">
             <span className="cab-top">
-              <span className="cab-no">09</span>
+              <span className="cab-no">07</span>
               <span className="cab-name">叠山</span>
             </span>
             <span className="cab-screen scr-paper" aria-hidden="true">
@@ -274,7 +224,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="paper">
             <span className="cab-top">
-              <span className="cab-no">10</span>
+              <span className="cab-no">08</span>
               <span className="cab-name">稿纸</span>
             </span>
             <span className="cab-screen scr-paper" aria-hidden="true">
@@ -290,27 +240,9 @@ export default function Hall() {
               <span>▶</span>
             </span>
           </button>
-          <button className="cab" type="button" data-game="focus">
-            <span className="cab-top">
-              <span className="cab-no">11</span>
-              <span className="cab-name">专注</span>
-            </span>
-            <span className="cab-screen scr-ink" aria-hidden="true">
-              <span className="mf">
-                <span />
-                <span />
-                <span />
-                <span />
-              </span>
-            </span>
-            <span className="cab-meta">
-              <span>逐行 · 一次一句</span>
-              <span>▶</span>
-            </span>
-          </button>
           <button className="cab" type="button" data-game="word">
             <span className="cab-top">
-              <span className="cab-no">12</span>
+              <span className="cab-no">09</span>
               <span className="cab-name">抽词</span>
             </span>
             <span className="cab-screen scr-paper" aria-hidden="true">
@@ -328,7 +260,7 @@ export default function Hall() {
           </button>
           <button className="cab" type="button" data-game="tap">
             <span className="cab-top">
-              <span className="cab-no">13</span>
+              <span className="cab-no">10</span>
               <span className="cab-name">敲印</span>
             </span>
             <span className="cab-screen scr-tap" aria-hidden="true">
@@ -464,61 +396,6 @@ export default function Hall() {
               />
             </section>
 
-            <section className="pane pane-focus grid-ink" id="pane-focus">
-              <div className="focus-block" id="focusBlock" />
-              <input
-                id="focusIn"
-                type="text"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                aria-label="在专注页写字"
-              />
-            </section>
-
-            <section className="pane pane-pile grid-paper" id="pane-pile">
-              <div className="pile-hud">
-                <span>
-                  第 <b id="pileLv">1</b>/<span id="pileLvn">5</span> 关
-                </span>
-                <span className="hud-theme" id="pileTheme">
-                  三国
-                </span>
-                <span>
-                  还剩 <b id="pileLeft">18</b> 组
-                </span>
-                <span>
-                  槽里 <b id="pileHold">0</b>/<span id="pileMax">7</span>
-                </span>
-                <span className="hud-score">
-                  分 <b id="pileScore">0</b>
-                </span>
-                <span className="hud-combo">
-                  <span className="combo-lab">连击</span>
-                  <b id="pileCombo">×1</b>
-                </span>
-              </div>
-              <div className="stage-host" id="pileHost">
-                <div className="pile-stage" id="pileStage">
-                  <div className="pile" id="pile" />
-                </div>
-              </div>
-              <div className="pile-slot" id="pileSlot">
-                <div className="slot" />
-                <div className="slot" />
-                <div className="slot" />
-                <div className="slot" />
-                <div className="slot" />
-                <div className="slot" />
-                <div className="slot" />
-              </div>
-              <div className="verdict" id="pileVerdict">
-                <span className="verdict-text" id="pileVText" />
-                <span className="verdict-seal" id="pileVSeal" />
-              </div>
-            </section>
-
             <section className="pane pane-brick grid-paper" id="pane-brick">
               <div className="brk-hud">
                 <span>
@@ -635,56 +512,6 @@ export default function Hall() {
                   </button>
                   <p className="pair-start-note">步数用完就散了</p>
                 </div>
-              </div>
-            </section>
-
-            <section className="pane pane-onet grid-paper" id="pane-onet">
-              <div className="onet-hud">
-                <span>
-                  第 <b id="onetLv">1</b>/<span id="onetLvn">3</span> 关
-                </span>
-                <span className="hud-theme" id="onetTheme">
-                  山水
-                </span>
-                <span id="onetWordsWrap">
-                  拼成 <b id="onetWords">0/12</b>
-                </span>
-                <span>
-                  剩 <b id="onetLeft">24</b> 对
-                </span>
-                <span>
-                  洗牌 <b id="onetShuffle">2</b>
-                </span>
-                <span>
-                  提示 <b id="onetHints">2</b>
-                </span>
-                <span className="hud-score">
-                  分 <b id="onetScore">0</b>
-                </span>
-                <span className="hud-combo">
-                  <span className="combo-lab">连击</span>
-                  <b id="onetCombo">×1</b>
-                </span>
-              </div>
-              <div className="stage-host" id="onetHost">
-                <div className="onet-stage" id="onetStage">
-                  <div className="onet-grid" id="onetGrid" />
-                  <svg className="onet-path" id="onetPath" aria-hidden="true">
-                    <polyline id="onetLine" points="" />
-                  </svg>
-                </div>
-              </div>
-              <div className="verdict" id="onetVerdict">
-                <span className="verdict-text" id="onetVText" />
-                <span className="verdict-seal" id="onetVSeal" />
-              </div>
-              <div className="onet-tools">
-                <button className="onet-hint" type="button" id="onetHintBtn">
-                  提示一对 ✧
-                </button>
-                <button className="onet-shuffle" type="button" id="onetShuffleBtn">
-                  洗一次牌 ↻
-                </button>
               </div>
             </section>
 
@@ -876,7 +703,7 @@ export default function Hall() {
               点纸就写，回车换列
             </span>
             <span className="m-count" id="mCount">
-              01 / 12
+              01 / 10
             </span>
           </div>
         </div>

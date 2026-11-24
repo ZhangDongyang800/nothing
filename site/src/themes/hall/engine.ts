@@ -10,12 +10,9 @@
 // @ts-nocheck
 import { createCtx } from './core/ctx';
 import { mountPaper } from './games/paper';
-import { mountFocus } from './games/focus';
-import { mountPile } from './games/pile';
 import { mountWord } from './games/word';
 import { mountBrick } from './games/brick';
 import { mountBreak } from './games/break';
-import { mountOnet } from './games/onet';
 import { mountMerge } from './games/merge';
 import { mountTap } from './games/tap';
 import { mountRun } from './games/run';
@@ -26,24 +23,22 @@ import { mountLegion } from './legion';
 
 export function attachHall() {
   const ctx = createCtx();
-  const { ac, timeouts, on, FX, SFX, FINEPOINTER, PANES, MNO, MNAME, MTAG, MHINT, MCOUNT, MREPLAY, MSEAL, MCLEAR, INPUT, FOCUS_IN, MODAL } = ctx;
+  const { ac, timeouts, on, FX, SFX, FINEPOINTER, PANES, MNO, MNAME, MTAG, MHINT, MCOUNT, MREPLAY, MSEAL, MCLEAR, INPUT, MODAL } = ctx;
 
   /* 挂载前清场：动态生成的格子 / 牌 / 行 / 卡都不进 JSX，重挂时先抹掉 */
   (function resetDynamic() {
-    ['cols', 'ticks', 'focusBlock', 'pile', 'pairGrid', 'brkBoard', 'brkTray', 'onetGrid', 'mergeTiles'].forEach(function (id) {
+    ['cols', 'ticks', 'pairGrid', 'brkBoard', 'brkTray', 'mergeTiles'].forEach(function (id) {
       const el = document.getElementById(id);
       if (el) el.textContent = '';
     });
-    ['pileVerdict', 'pairVerdict', 'brkVerdict', 'bkVerdict'].forEach(function (id) {
+    ['pairVerdict', 'brkVerdict', 'bkVerdict'].forEach(function (id) {
       const el = document.getElementById(id);
       if (el) el.classList.remove('is-on');
     });
-    ['pairCount', 'pairVText', 'pairVSeal', 'pileVText', 'pileVSeal', 'brkVText', 'brkVSeal', 'bkVText', 'bkVSeal'].forEach(function (id) {
+    ['pairCount', 'pairVText', 'pairVSeal', 'brkVText', 'brkVSeal', 'bkVText', 'bkVSeal'].forEach(function (id) {
       const el = document.getElementById(id);
       if (el) el.textContent = '';
     });
-    const slot0 = document.getElementById('pileSlot');
-    if (slot0) slot0.querySelectorAll('.slot').forEach(function (s) { s.innerHTML = ''; });
     const pairGrid0 = document.getElementById('pairGrid');
     if (pairGrid0) pairGrid0.classList.remove('is-live');
     const paneWord0 = document.getElementById('pane-word');
@@ -54,15 +49,12 @@ export function attachHall() {
     if (paper) paper.querySelectorAll('.seal').forEach(function (n) { n.remove(); });
   })();
 
-  /* ================= 挂载十台机器 ================= */
+  /* 挂载八台机器（纸上军团 / 墨潮自建 DOM，不在这张表里） */
   const machines = {
     paper: mountPaper(ctx),
-    focus: mountFocus(ctx),
-    pile: mountPile(ctx),
     word: mountWord(ctx),
     brick: mountBrick(ctx),
     break: mountBreak(ctx),
-    onet: mountOnet(ctx),
     merge: mountMerge(ctx),
     tap: mountTap(ctx),
     run: mountRun(ctx),
@@ -95,19 +87,16 @@ export function attachHall() {
 
   /* ================= 机台信息与页脚提示渲染 ================= */
   var INFO = {
-    legion: { no:'01', name:'纸上军团', tag:'无尽守卫 · 招募 · 合成 · 自动战斗', hint:'拖卡下阵 · 同名合 · 异兵融 · Q 英雄技 · 空格暂停', idx:'01 / 13' },
-    paper: { no:'10', name:'稿纸', tag:'A4 · 竖排', hint:'点纸就写，回车换列', idx:'10 / 13' },
-    focus: { no:'11', name:'专注', tag:'逐行 · 一次一句', hint:'点一行就写，回车换行', idx:'11 / 13' },
-    pile: { no:'04', name:'写了个写', tag:'五关 · 三张一消 · 连击', hint:'点没被压住的牌 · 同字三张不一定同层', idx:'04 / 13' },
-    word: { no:'12', name:'抽词', tag:'翻卡 · 三档成双 · 星级', hint:'选个难度 · 按开始', idx:'12 / 13' },
-    brick: { no:'07', name:'砖块', tag:'八格 · 填满一行就消 · 连击', hint:'点一块砖，再点盘上落下去', idx:'07 / 13' },
-    break: { no:'06', name:'破砖', tag:'七关 · 板子接球 · 宽板', hint:'拖动板子接球 · 点一下发球（接球的位置决定角度）', idx:'06 / 13' },
-    onet: { no:'05', name:'连字', tag:'三关 · 两拐之内 · 提示', hint:'点两张相同的字 · 两拐之内能连通才收走 · 每关两次洗牌两次提示', idx:'05 / 13' },
-    merge: { no:'09', name:'叠山', tag:'一粒尘，垒到天 · 回退', hint:'方向键 / WASD 或滑动 · 同字相撞长一级', idx:'09 / 13' },
-    tap: { no:'13', name:'敲印', tag:'反应 · 三段加速 · 墨印陷阱', hint:'点掉冒出来的印 · 墨印别点', idx:'13 / 13' },
-    run: { no:'03', name:'走墨', tag:'无尽跑 · 二段跳', hint:'空格 / 点画面跳 · 二段跳补一次', idx:'03 / 13' },
-    stack: { no:'08', name:'垒塔', tag:'时序堆叠 · 对准算「准」', hint:'空格 / 点画面落砖 · 对准了算「准」', idx:'08 / 13' },
-    rogue: { no:'02', name:'墨潮', tag:'无尽 · 肉鸽 · 自动出手', hint:'WASD / 拖动走位 · 空格 / 冲键冲刺 · P 暂停 · 武器自动出手', idx:'02 / 13' }
+    legion: { no:'01', name:'纸上军团', tag:'无尽守卫 · 招募 · 合成 · 自动战斗', hint:'拖卡下阵 · 同名合 · 异兵融 · Q 英雄技 · 空格暂停', idx:'01 / 10' },
+    paper: { no:'08', name:'稿纸', tag:'A4 · 竖排', hint:'点纸就写，回车换列', idx:'08 / 10' },
+    word: { no:'09', name:'抽词', tag:'翻卡 · 三档成双 · 星级', hint:'选个难度 · 按开始', idx:'09 / 10' },
+    brick: { no:'05', name:'砖块', tag:'八格 · 填满一行就消 · 连击', hint:'点一块砖，再点盘上落下去', idx:'05 / 10' },
+    break: { no:'04', name:'破砖', tag:'七关 · 板子接球 · 宽板', hint:'拖动板子接球 · 点一下发球（接球的位置决定角度）', idx:'04 / 10' },
+    merge: { no:'07', name:'叠山', tag:'一粒尘，垒到天 · 回退', hint:'方向键 / WASD 或滑动 · 同字相撞长一级', idx:'07 / 10' },
+    tap: { no:'10', name:'敲印', tag:'反应 · 三段加速 · 墨印陷阱', hint:'点掉冒出来的印 · 墨印别点', idx:'10 / 10' },
+    run: { no:'03', name:'走墨', tag:'无尽跑 · 二段跳', hint:'空格 / 点画面跳 · 二段跳补一次', idx:'03 / 10' },
+    stack: { no:'06', name:'垒塔', tag:'时序堆叠 · 对准算「准」', hint:'空格 / 点画面落砖 · 对准了算「准」', idx:'06 / 10' },
+    rogue: { no:'02', name:'墨潮', tag:'无尽 · 肉鸽 · 自动出手', hint:'WASD / 拖动走位 · 空格 / 冲键冲刺 · P 暂停 · 武器自动出手', idx:'02 / 10' }
   };
 
   /* 页脚提示不只是开局那一句：各台会边玩边改写（"还剩 18 组 · 槽里 0 张"）。
@@ -132,7 +121,6 @@ export function attachHall() {
 
   function startGame(name){
     machines.paper.stop();
-    machines.focus.stop();
     machines.break.stop();
     machines.run.stop();
     machines.stack.stop();
@@ -166,7 +154,7 @@ export function attachHall() {
     MODAL.setAttribute('data-game', name);
     ctx.mReplayLabel('再来一次');
     MSEAL.style.display = name === 'paper' ? '' : 'none';
-    MCLEAR.style.display = (name === 'paper' || name === 'focus') ? '' : 'none';
+    MCLEAR.style.display = name === 'paper' ? '' : 'none';
     /* 横屏不再按机器分"给不给按钮"：方向一变，四台台面型机器自己变成左右两侧排布（见 hall.css），
        其余几台是分栏排版，横过来只是更宽 —— 没有按钮要显隐。 */
     Object.keys(PANES).forEach(function(k){
@@ -192,7 +180,6 @@ export function attachHall() {
     MODAL.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('is-playing');
     machines.paper.stop();
-    machines.focus.stop();
     machines.break.stop();
     machines.run.stop();
     machines.stack.stop();
@@ -206,7 +193,6 @@ export function attachHall() {
     ctx.current = null;
     document.body.classList.remove('is-leaving');
     try { INPUT.blur(); } catch(e){}
-    try { FOCUS_IN.blur(); } catch(e){}
   }
 
   function laterRefit(ms){
@@ -259,9 +245,7 @@ export function attachHall() {
   });
   on(MREPLAY, 'click', function(){
     if (!ctx.current) return;
-    if (ctx.current === 'pile'){ machines.pile.replay(); return; }
     if (ctx.current === 'break'){ machines.break.replay(); return; }
-    if (ctx.current === 'onet'){ machines.onet.replay(); refitAll(); return; }
     if (ctx.current === 'merge'){ machines.merge.replay(); refitAll(); return; }
     if (ctx.current === 'tap'){ machines.tap.replay(); refitAll(); return; }
     if (ctx.current === 'run'){ machines.run.replay(); refitAll(); return; }
@@ -281,9 +265,6 @@ export function attachHall() {
     if (ctx.current === 'paper'){
       machines.paper.clear();
       try { INPUT.focus({ preventScroll: true }); } catch(e){}
-    } else if (ctx.current === 'focus'){
-      machines.focus.clear();
-      try { FOCUS_IN.focus({ preventScroll: true }); } catch(e){}
     }
   });
 

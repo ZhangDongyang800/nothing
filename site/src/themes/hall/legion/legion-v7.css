@@ -756,3 +756,305 @@
 @media (min-width: 941px) {
   .lg .lg-dock .lg-bench { align-content: stretch; grid-auto-rows: minmax(24px, 1fr); }
 }
+/* ============================================================
+   v8 · 对局版面（2026-11-24）
+
+   一屏只讲三件事：棋盘（一级）、招贤与点将（二级）、读数（三级）。
+   桌面口径：
+     · 顶栏铺满整屏 —— 读数和操作键不再被右栏切成两截；
+     · 右栏贴住顶栏下沿、固定宽度，面板从"堆到哪算哪"改成"按剩余高度分配"；
+     · 棋盘吃满顶栏与右栏之外的整块区域，格子随高度长，不再留一条空白纸带；
+     · 开局屏取消"半透明叠在对局界面上"，改成实心整屏，左图 / 中军 / 右令三段。
+   玩法、DOM 结构、Canvas 坐标不动。
+   ============================================================ */
+
+@media (min-width: 941px) {
+  .lg { --lg-top: 64px; --lg-dock: clamp(344px, 23.5vw, 424px); }
+
+  /* ---------- 顶栏：一条横贯全屏的军令条 ---------- */
+  .lg .lg-top {
+    left: 0;
+    right: 0;
+    height: 64px;
+    min-height: 64px;
+    display: flex;
+    align-items: stretch;
+    padding: 0;
+    overflow: visible;
+  }
+  .lg .lg-hud {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 0;
+    padding: 0 12px 0 14px;
+  }
+  .lg .lg-hud-wave {
+    flex: 0 0 auto;
+    height: 100%;
+    justify-content: center;
+    padding: 0 14px 0 2px;
+    border-right: 2px solid #252525;
+  }
+  .lg .lg-wave b { font-size: 30px; line-height: 0.95; }
+  .lg .lg-hud-sub { margin-top: 2px; gap: 6px; }
+  .lg .lg-next { height: 20px; padding: 0 6px; }
+
+  .lg .lg-city {
+    flex: 0 1 250px;
+    min-width: 168px;
+    max-width: 280px;
+    margin: 0;
+    height: 48px;
+    padding: 4px 12px 6px;
+  }
+  .lg .lg-city-top b { font-size: 20px; line-height: 1.1; }
+  .lg .lg-city-bar { height: 6px; }
+
+  .lg .lg-res {
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: 6px;
+    padding: 0;
+    overflow: visible;
+  }
+  .lg .lg-res-chip { height: 34px; padding: 0 9px 0 5px; }
+  .lg .lg-res-chip b { font-size: 17px; }
+
+  .lg .lg-tools {
+    flex: 0 0 auto;
+    margin-left: auto;
+    gap: 6px;
+    padding: 0;
+    border-left: 0;
+  }
+  .lg .lg-start-wave { height: 40px; padding: 0 16px; font-size: 14px; letter-spacing: 2px; }
+  .lg .lg-skill { height: 40px; min-width: 104px; }
+  .lg .lg-round { width: 34px; height: 34px; font-size: 13px; }
+
+  /* ---------- 右栏：贴住顶栏下沿，按剩余高度分配 ---------- */
+  .lg .lg-dock {
+    top: var(--lg-dock-top, var(--lg-top));
+    width: var(--lg-dock);
+    padding: 9px 11px 10px;
+    gap: 8px;
+    overflow: hidden;
+  }
+  .lg .lg-dock > * { flex: 0 0 auto; }
+  .lg .lg-recruit { padding: 7px 9px 8px; }
+  .lg .lg-cards { gap: 7px; }
+  .lg .lg-card { min-height: 96px; }
+  .lg .lg-card-ribbon { padding: 2px 7px; }
+  .lg .lg-sec-head { margin-bottom: 5px; padding-bottom: 3px; }
+
+  /* 没有选中时，"选中单位"收成一行提示，把高度还给点将台 */
+  .lg .lg-inspect { padding: 6px 9px 7px; }
+  .lg .lg-inspect:has(.lg-inspect-empty) { padding-bottom: 6px; }
+  .lg .lg-inspect:has(.lg-inspect-empty) .lg-inspect-body { display: none; }
+  .lg .lg-inspect:has(.lg-inspect-empty) .lg-sec-head { margin: 0; padding: 0; border: 0; }
+  .lg .lg-inspect:has(.lg-inspect-empty) .lg-sec-head i { opacity: .55; }
+
+  /* 战术构筑：没有构筑之前也占一行，不空出半张纸 */
+  .lg .lg-run { padding: 6px 9px 7px; }
+  .lg .lg-run .lg-sec-head { margin-bottom: 4px; }
+  .lg .lg-run-chips { display: flex; flex-wrap: wrap; gap: 4px; min-height: 22px; align-content: flex-start; }
+
+  .lg .lg-items { padding: 6px 9px 7px; }
+  .lg .lg-items .lg-item-row { display: flex; }
+
+  /* 点将台：吃掉右栏剩余高度；牌位固定高度，在托盘里纵向居中，不再拉成一排长条 */
+  .lg .lg-bench-wrap {
+    flex: 1 1 auto;
+    min-height: 96px;
+    display: flex;
+    flex-direction: column;
+    padding: 7px 9px 8px;
+  }
+  .lg .lg-bench {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: minmax(48px, 78px);
+    align-content: center;
+    gap: 7px;
+  }
+  .lg .lg-slot { min-height: 0; height: auto; }
+  .lg .lg-trash { flex: 0 0 auto; height: 24px; margin-top: 7px; }
+
+  /* ---------- 开局屏：实心整屏，左图 / 中军 / 右令三段 ---------- */
+  .lg .lg-overlay.is-start {
+    background: #fff8e8;
+    backdrop-filter: none;
+  }
+  .lg .lg-overlay.is-start::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(37, 37, 37, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 37, 37, 0.05) 1px, transparent 1px);
+    background-size: 30px 30px, 30px 30px;
+    pointer-events: none;
+  }
+  .lg .lg-start {
+    position: relative;
+    width: min(1440px, 100%);
+    height: 100%;
+    max-width: none;
+    max-height: 780px;
+    margin: auto;
+    padding: 20px 28px 22px;
+    display: grid;
+    grid-template-columns: 318px minmax(0, 1fr) 292px;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "head main side"
+      "art  main side";
+    gap: 16px 24px;
+    align-items: stretch;
+    align-content: stretch;
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
+  .lg .lg-start-art {
+    grid-area: art;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 12px 10px;
+  }
+  .lg .lg-art-grid { width: 100%; flex: 1 1 auto; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 6px; margin-top: 8px; }
+  .lg .lg-art-grid i { min-width: 0; aspect-ratio: auto; height: 100%; font-size: clamp(20px, 1.9vw, 28px); }
+  .lg .lg-art-caption { position: static; margin-top: auto; padding-top: 10px; left: auto; right: auto; bottom: auto; font-size: 10px; letter-spacing: 1.5px; line-height: 1.7; }
+  .lg .lg-start-head {
+    grid-area: head;
+    min-width: 0;
+    padding-bottom: 10px;
+  }
+  .lg .lg-start-head .lg-title { font-size: clamp(46px, 4vw, 64px); letter-spacing: 5px; }
+  .lg .lg-start-head .lg-sub { font-size: 13px; }
+  .lg .lg-start-main { grid-area: main; display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; }
+  .lg .lg-start-main .lg-records { margin: 0; }
+  .lg .lg-start-main .lg-rules { margin: 0; font-size: 12px; line-height: 1.75; }
+  .lg .lg-hero-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; flex: 1 1 auto; min-height: 0; }
+  .lg .lg-hero { min-height: 0; align-content: center; padding: 9px 10px; grid-template-columns: 38px minmax(0, 1fr); }
+  .lg .lg-hero-glyph { width: 38px; height: 38px; font-size: 19px; }
+  .lg .lg-hero-name { font-size: 14px; }
+  .lg .lg-hero-passive { font-size: 10px; }
+  .lg .lg-hero-skill { font-size: 10.5px; margin-top: 8px; }
+  .lg .lg-hero-detail { margin-top: 0; padding: 8px 11px; }
+  .lg .lg-start-side { grid-area: side; display: flex; flex-direction: column; gap: 8px; padding-top: 0; justify-content: center; }
+  .lg .lg-start-side .lg-go { height: 64px; }
+  .lg .lg-side-note { margin-top: 0; padding-top: 10px; }
+  .lg .lg-side-links { justify-content: flex-start; }
+}
+
+/* 1200 以下：右栏收窄，顶栏先收起"笔势"一格与最次要的读数 */
+@media (min-width: 941px) and (max-width: 1220px) {
+  .lg { --lg-dock: 336px; }
+  .lg .lg-city { flex-basis: 200px; min-width: 152px; }
+  .lg .lg-res .lg-stroke { display: none; }
+  .lg .lg-tools { gap: 5px; }
+  .lg .lg-start-wave { padding: 0 12px; }
+  .lg .lg-skill { min-width: 94px; }
+}
+@media (min-width: 941px) and (max-width: 1080px) {
+  .lg { --lg-dock: 320px; }
+  .lg .lg-res .lg-kill,
+  .lg .lg-res .lg-enemy { display: none; }
+  .lg .lg-city { flex-basis: 176px; min-width: 140px; }
+  .lg .lg-round { width: 32px; }
+}
+
+  /* 英雄牌：把"为什么选他"写进牌面（被动全文 + 三围），空出来的下半张纸就有内容了 */
+  .lg .lg-hero-text { grid-column: 2; font-size: 10px; line-height: 1.55; color: #4a4640; }
+  .lg .lg-hero-stat { grid-column: 2; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .5px; color: #6f6a61; }
+@media (max-width: 940px) {
+  .lg .lg-dock .lg-tabs { gap: 6px; width: 100%; margin-bottom: 2px; border-bottom: 0; }
+  .lg .lg-dock .lg-tabs button { flex: 0 0 auto; width: auto; padding: 0 12px; height: 26px; font-size: 11px; }
+}
+
+/* 顶栏收敛：老规则在 1024 附近给读数设过 order，会把"粮/银"排到操作键左边。
+   v8 统一成 左：波次+营寨 ｜ 右：资源+操作，中间留白给进度条 ———— 不再靠 order 抢位置。 */
+@media (min-width: 941px) {
+  .lg .lg-hud > .lg-hud-wave,
+  .lg .lg-hud > .lg-city,
+  .lg .lg-hud > .lg-res,
+  .lg .lg-hud > .lg-tools { order: 0; }
+  .lg .lg-res { margin-left: auto; }
+  .lg .lg-tools { margin-left: 12px; }
+  .lg .lg-hud-wave { max-height: 64px; overflow: hidden; }
+  .lg .lg-wave { line-height: .9; }
+  .lg .lg-hud-sub { line-height: 1; }
+}
+@media (min-width: 941px) {
+  .lg .lg-hud-wave { max-height: none; overflow: visible; padding-bottom: 0; }
+  .lg .lg-wave b { font-size: 27px; }
+  .lg .lg-hud-sub { margin-top: 3px; }
+  .lg .lg-next { height: 19px; font-size: 10px; }
+  /* 营寨条吃掉左栏剩余宽度：一级信息（还能守多久）该占多大就占多大，不在顶栏留空带 */
+  .lg .lg-city { flex: 1 1 240px; max-width: none; }
+}
+@media (min-width: 941px) {
+  /* 波次与整备并成一行读数；地形名是风味信息，让位给"还剩几秒开战" */
+  .lg .lg-hud-wave { flex-direction: row; align-items: baseline; gap: 10px; padding: 0 16px 0 2px; }
+  .lg .lg-hud-sub { margin-top: 0; display: flex; align-items: center; }
+  .lg .lg-stage { display: none; }
+}
+@media (min-width: 941px) {
+  /* 左（波次/营寨）— 中（资源）— 右（操作）三段，空间均分；营寨条不再拉成一条跑道 */
+  .lg .lg-hud { justify-content: space-between; }
+  .lg .lg-res { margin-left: 0; }
+  .lg .lg-city { flex: 0 1 420px; max-width: 480px; }
+}
+/* 手机开局屏：图上那套"左图 / 中军 / 右令"在 390 宽放不下，改成 标题 → 战绩 → 统帅 → 开始，
+   图阵收成标题旁的小印（不再单独占半屏），开始键必须落在机台里。 */
+@media (max-width: 940px) {
+  .lg .lg-overlay.is-start { padding: 10px 12px; align-items: stretch; }
+  .lg .lg-start {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    margin: 0 auto;
+    padding: 4px 2px 10px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "head" "main" "side";
+    grid-template-rows: auto auto auto;
+    gap: 10px;
+  }
+  .lg .lg-start-art { display: none; }
+  .lg .lg-start-head { grid-area: head; }
+  .lg .lg-start-head .lg-title { font-size: 40px; letter-spacing: 4px; }
+  .lg .lg-start-main { grid-area: main; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  .lg .lg-start-main .lg-hero-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .lg .lg-hero { padding: 8px; }
+  .lg .lg-hero-detail { margin-top: 0; }
+  .lg .lg-start-side { grid-area: side; display: flex; flex-direction: column; gap: 8px; }
+  .lg .lg-go { width: 100%; height: 52px; font-size: 17px; }
+}
+@media (max-width: 940px) {
+  .lg .lg-start-main .lg-hero-list { grid-auto-rows: auto; align-items: start; }
+  .lg .lg-hero { height: auto; overflow: visible; }
+}
+/* 平板竖屏（≤940 且够高）：底部抽屉按内容给足高度，别把点将台与遣散条切在机台外 */
+@media (max-width: 940px) and (min-height: 900px) {
+  .lg .lg-dock { height: 344px; }
+}
+@media (max-width: 940px) {
+  .lg .lg-dock .lg-tabs > button {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 0 11px;
+    height: 25px;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+}
+/* 平板竖屏抽屉：给到"刚好装下"的高度，多出来的都还给棋盘 */
+@media (max-width: 940px) and (min-height: 900px) {
+  .lg .lg-dock { height: 288px; }
+}

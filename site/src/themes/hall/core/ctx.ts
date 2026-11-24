@@ -315,12 +315,9 @@ export function createCtx() {
   var MODAL = document.getElementById('modal');
   var PANES = {
     paper: document.getElementById('pane-paper'),
-    focus: document.getElementById('pane-focus'),
-    pile: document.getElementById('pane-pile'),
     word: document.getElementById('pane-word'),
     brick: document.getElementById('pane-brick'),
     break: document.getElementById('pane-break'),
-    onet: document.getElementById('pane-onet'),
     merge: document.getElementById('pane-merge'),
     tap: document.getElementById('pane-tap'),
     run: document.getElementById('pane-run'),
@@ -337,7 +334,6 @@ export function createCtx() {
   var MSEAL = document.getElementById('mSeal');
   var MCLEAR = document.getElementById('mClear');
   var INPUT = document.getElementById('typeIn');
-  var FOCUS_IN = document.getElementById('focusIn');
 
   /* 页脚"再来一次"按钮文案：各台边玩边改写 */
   function mReplayLabel(text){
@@ -361,7 +357,7 @@ export function createCtx() {
     FINEPOINTER,
     /* 外壳 DOM */
     MODAL, PANES, MNO, MNAME, MTAG, MHINT, MCOUNT, MREPLAY, MSEAL, MCLEAR,
-    INPUT, FOCUS_IN, mReplayLabel,
+    INPUT, mReplayLabel,
     /* 当前开机台（引擎写、各台读，做按键闸门） */
     current: null,
     /* 动画循环计数：引擎实现后回填，各台开/停循环时调用 */

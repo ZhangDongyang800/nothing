@@ -578,6 +578,8 @@ export class LegionUI {
         <span class="lg-hero-glyph">${def.glyph}</span>
         <span class="lg-hero-name">${def.name}<i>${def.title}</i></span>
         <span class="lg-hero-passive">${def.passiveName}</span>
+        <span class="lg-hero-text">${esc(def.passiveText)}</span>
+        <span class="lg-hero-stat">血 ${def.hp} · 攻 ${def.atk} · 护甲 ${def.armor}</span>
         <span class="lg-hero-skill"><i>Q</i>${def.activeName}</span>
         <span class="lg-hero-tag">${label}</span>
       </button>`

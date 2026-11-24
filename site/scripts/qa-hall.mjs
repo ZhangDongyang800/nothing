@@ -169,7 +169,7 @@ const desktop = report.cases.find((c) => c.viewport === 'desktop');
 const mobile = report.cases.find((c) => c.viewport === 'mobile');
 const bothKinds = (list) => list.some((d) => d.href.endsWith('.exe')) && list.some((d) => d.href.endsWith('.apk'));
 const toolboxLinks = (list) => list.filter((d) => /Toolbox-Setup-0\.\d+\.\d+\.exe/i.test(d.href));
-const expectedOrder = ['墨潮', '走墨', '写了个写', '连字', '破砖', '砖块', '垒塔', '叠山', '稿纸', '专注', '抽词', '敲印'];
+const expectedOrder = ['墨潮', '走墨', '破砖', '砖块', '垒塔', '叠山', '稿纸', '抽词', '敲印'];
 const bad = report.cases.flatMap((c) => c.errors).length
   || (isRemote && [...desktop.downloads, ...mobile.downloads].some((d) => d.status !== 200))
   || !bothKinds(desktop.downloads)
@@ -194,6 +194,6 @@ const bad = report.cases.flatMap((c) => c.errors).length
   || desktop.base.toolbox.name !== '工具箱'
   || !desktop.base.toolbox.note?.includes('双击')
   || mobile.mobile.doc > mobile.mobile.inner
-  || desktop.opened.filter((o) => o.modal).length !== 12;
+  || desktop.opened.filter((o) => o.modal).length !== 9;
 if (bad) process.exit(1);
 
