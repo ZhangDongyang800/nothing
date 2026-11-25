@@ -52,6 +52,9 @@ const RARITY_TINT: Record<string, string> = {
   legend: '#f6ead0',
 }
 
+export interface DragPreviewLine { t: string; tone: 'good' | 'bad' | 'info' }
+export interface DragPreview { title: string; lines: DragPreviewLine[] }
+
 export interface DragView {
   from: number
   x: number
@@ -66,6 +69,12 @@ export interface DragView {
   /** 这次叠合会拆掉的笔势数量 */
   lost: number
   hero: HeroId | ''
+  /** 部署预览：这个位置能攻击到的道路采样点 */
+  cover: { x: number; y: number }[]
+  /** 部署/合成预览卡：通俗说明收益与代价 */
+  preview: DragPreview | null
+  /** 放下后会新形成的合击所涉及的格子 */
+  formCells: number[]
 }
 
 export interface MergeGhost {
@@ -622,6 +631,8 @@ export class Scene {
     /* 拖拽收在最上层：虚影、落点、合/融、拆阵提示都必须压住棋子，才看得见 */
     if (s.drag) {
       this.drawGhost(ctx, s)
+      this.drawDragCover(ctx, s)
+      this.drawDragCard(ctx, s)
       if (s.drag.from !== s.drag.target && s.drag.target >= 0) {
         const r = b.rectOf(s.drag.target)
         const col = s.drag.illegal ? '#a8352a' : s.drag.merge ? GOLD : s.drag.fuse ? '#a04a2c' : '#3f6b3a'
@@ -1522,6 +1533,81 @@ export class Scene {
   }
 
   /* ---------------- 拖拽虚影 ---------------- */
+
+  /** 部署预览：把"这个位置能打到的道路"点出来，把将形成的合击格子描出来 */
+  private drawDragCover(ctx: CanvasRenderingContext2D, s: DrawState): void {
+    const d = s.drag
+    if (!d) return
+    const cell = s.board.cell
+    if (d.cover.length) {
+      ctx.save()
+      ctx.fillStyle = withAlpha('#3f6b3a', 0.5)
+      for (const p of d.cover) {
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, Math.max(2.5, cell * 0.05), 0, Math.PI * 2)
+        ctx.fill()
+      }
+      ctx.restore()
+    }
+    if (d.formCells.length) {
+      ctx.save()
+      ctx.strokeStyle = withAlpha('#3f6b3a', 0.85)
+      ctx.lineWidth = 2
+      ctx.setLineDash([4, 3])
+      for (const c of d.formCells) {
+        const r = s.board.rectOf(c)
+        roundRect(ctx, r.x + 3, r.y + 3, cell - 6, cell - 6, cell * 0.08)
+        ctx.stroke()
+      }
+      ctx.setLineDash([])
+      ctx.restore()
+    }
+  }
+
+  /** 部署 / 合成预览卡：把收益与代价直接写在落点旁，不用玩家去猜 */
+  private drawDragCard(ctx: CanvasRenderingContext2D, s: DrawState): void {
+    const d = s.drag
+    if (!d || !d.preview || !d.preview.lines.length) return
+    const cell = s.board.cell
+    const fs = Math.max(11, Math.round(cell * 0.135))
+    const lh = fs * 1.5
+    const pad = fs * 0.7
+    const titleFs = fs * 1.08
+    ctx.save()
+    ctx.font = `700 ${titleFs}px ${SERIF}`
+    let wMax = ctx.measureText(d.preview.title).width
+    ctx.font = `500 ${fs}px ${SERIF}`
+    for (const ln of d.preview.lines) wMax = Math.max(wMax, ctx.measureText(ln.t).width)
+    const w = wMax + pad * 2
+    const h = titleFs + lh * d.preview.lines.length + pad * 1.6
+    /* 优先放在落点上方；没有合法落点时跟着指针 */
+    const anchor = d.target >= 0 ? s.board.rectOf(d.target) : { x: d.x - cell / 2, y: d.y - cell / 2 }
+    let x = anchor.x + cell / 2 - w / 2
+    let y = anchor.y - h - cell * 0.12
+    if (y < 6) y = anchor.y + cell + cell * 0.12
+    x = Math.max(6, Math.min(s.w - w - 6, x))
+    y = Math.max(6, Math.min(s.h - h - 6, y))
+    ctx.fillStyle = 'rgba(247,237,216,0.96)'
+    roundRect(ctx, x, y, w, h, fs * 0.5)
+    ctx.fill()
+    ctx.strokeStyle = withAlpha('#6b6255', 0.5)
+    ctx.lineWidth = 1
+    roundRect(ctx, x, y, w, h, fs * 0.5)
+    ctx.stroke()
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+    ctx.fillStyle = '#3a332a'
+    ctx.font = `700 ${titleFs}px ${SERIF}`
+    ctx.fillText(d.preview.title, x + pad, y + pad * 0.6)
+    ctx.font = `500 ${fs}px ${SERIF}`
+    let ty = y + pad * 0.6 + titleFs + lh * 0.35
+    for (const ln of d.preview.lines) {
+      ctx.fillStyle = ln.tone === 'good' ? '#3f6b3a' : ln.tone === 'bad' ? '#a8352a' : '#5c5446'
+      ctx.fillText(ln.t, x + pad, ty)
+      ty += lh
+    }
+    ctx.restore()
+  }
 
   private drawGhost(ctx: CanvasRenderingContext2D, s: DrawState): void {
     const d = s.drag

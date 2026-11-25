@@ -3,6 +3,8 @@ import './legion.css'
 import './legion-v6.css'
 import './legion-v7.css'
 import './design/glyph.css'
+import './design/tokens.css'
+import './design/ux.css'
 import { LegionGame } from './game'
 
 export interface LegionHandle {

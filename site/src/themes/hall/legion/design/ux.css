@@ -1,0 +1,136 @@
+/* 玩家体验层：双层命名副标题、动态建议条、新手引导教练卡。
+   只负责"看得懂"，不改任何数值与机制。颜色 / 字号 / 圆角 / 阴影全部读 design/tokens.css。 */
+
+/* section 标题里的小字副标题（招贤榜 / 点将台 / 三选一）：
+   主名已是通俗词，原名退居小字，保留世界观但不挡理解。 */
+.lg .lg-sec-head small {
+  display: inline-block;
+  margin-left: var(--lg-s2);
+  font-size: var(--lg-fs-caption);
+  font-weight: 500;
+  opacity: 0.62;
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: var(--lg-font-display);
+}
+.lg .lg-sec-head small::before { content: "· "; opacity: 0.7; }
+
+/* 双层命名：强化项主名旁的原名小字 */
+.lg .lg-sub {
+  display: inline-block;
+  margin-left: var(--lg-s2);
+  font-size: var(--lg-fs-caption);
+  opacity: 0.58;
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: var(--lg-font-display);
+}
+.lg .lg-sub::before { content: "「"; }
+.lg .lg-sub::after { content: "」"; }
+
+/* 动态建议条：基于真实局面，限频出现，可一键关闭 */
+.lg .lg-suggest {
+  position: absolute;
+  left: var(--lg-s4);
+  top: calc(var(--lg-dock-top, 60px) + var(--lg-s3));
+  z-index: var(--lg-z-toast);
+  display: flex;
+  align-items: center;
+  gap: var(--lg-s3);
+  max-width: min(380px, 62%);
+  padding: var(--lg-s3) var(--lg-s4);
+  background: var(--lg-paper-1);
+  border: var(--lg-b-hair) solid var(--lg-rule-2);
+  border-left: var(--lg-b-frame) solid var(--lg-jade);
+  border-radius: var(--lg-r-2);
+  box-shadow: var(--lg-shadow-2);
+  font-size: var(--lg-fs-body);
+  line-height: var(--lg-lh-snug);
+  color: var(--lg-ink-0);
+}
+.lg .lg-suggest[hidden] { display: none; }
+.lg .lg-suggest > i {
+  flex: 0 0 auto;
+  font-style: normal;
+  font-size: var(--lg-fs-caption);
+  font-weight: 700;
+  color: var(--lg-jade);
+  border: var(--lg-b-hair) solid var(--lg-jade);
+  border-radius: var(--lg-r-1);
+  padding: 1px var(--lg-s2);
+}
+.lg .lg-suggest > span { flex: 1 1 auto; }
+.lg .lg-suggest > button {
+  flex: 0 0 auto;
+  width: var(--lg-icon-sm);
+  height: var(--lg-icon-sm);
+  border: 0;
+  background: transparent;
+  color: var(--lg-ink-2);
+  cursor: pointer;
+  font-size: var(--lg-fs-body);
+  line-height: 1;
+}
+.lg .lg-suggest > button:hover { color: var(--lg-seal); }
+
+/* 新手引导教练卡：不暂停游戏、不挡操作，可跳过 / 重看 */
+.lg .lg-coach {
+  position: absolute;
+  left: var(--lg-s4);
+  top: calc(var(--lg-dock-top, 60px) + var(--lg-s3));
+  z-index: var(--lg-z-toast);
+  width: min(340px, 82%);
+  padding: var(--lg-s4);
+  background: var(--lg-paper-1);
+  border: var(--lg-b-rule) solid var(--lg-ink-0);
+  border-radius: var(--lg-r-2);
+  box-shadow: var(--lg-shadow-2);
+  color: var(--lg-ink-0);
+}
+.lg .lg-coach[hidden] { display: none; }
+.lg .lg-coach-step {
+  font-size: var(--lg-fs-caption);
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--lg-seal);
+  margin-bottom: var(--lg-s2);
+}
+.lg .lg-coach > b {
+  display: block;
+  font-size: var(--lg-fs-body-lg);
+  font-weight: 800;
+  margin-bottom: var(--lg-s3);
+}
+.lg .lg-coach > p {
+  margin: 0 0 var(--lg-s4);
+  font-size: var(--lg-fs-body);
+  line-height: var(--lg-lh-base);
+  color: var(--lg-ink-1);
+}
+.lg .lg-coach-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--lg-s3);
+}
+.lg .lg-coach-btns button {
+  border: var(--lg-b-hair) solid var(--lg-rule-2);
+  background: transparent;
+  color: var(--lg-ink-1);
+  border-radius: var(--lg-r-1);
+  padding: var(--lg-s2) var(--lg-s4);
+  font-size: var(--lg-fs-label);
+  cursor: pointer;
+}
+.lg .lg-coach-btns button:hover { border-color: var(--lg-ink-0); color: var(--lg-ink-0); }
+.lg .lg-coach-btns button.is-primary {
+  background: var(--lg-jade);
+  border-color: var(--lg-jade);
+  color: var(--lg-paper-1);
+  font-weight: 700;
+}
+.lg .lg-coach-btns button.is-primary:hover { background: var(--lg-ink-hi); color: var(--lg-paper-1); }
+
+@media (max-width: 940px) {
+  .lg .lg-suggest { max-width: min(300px, 70%); padding: var(--lg-s2) var(--lg-s3); }
+  .lg .lg-coach { width: min(300px, 86%); padding: var(--lg-s3) var(--lg-s4); }
+}

@@ -124,7 +124,7 @@ export interface EventView {
 
 export interface ShopView {
   silver: number
-  ups: { id: string; name: string; glyph: string; desc: string; lv: number; max: number; price: number; afford: boolean }[]
+  ups: { id: string; name: string; sub?: string; glyph: string; desc: string; lv: number; max: number; price: number; afford: boolean }[]
   items: { id: ItemId; name: string; glyph: string; desc: string; price: number; afford: boolean; rarity: string }[]
 }
 
@@ -137,13 +137,22 @@ export interface MetaView {
   runs: number
   units: { id: UnitKind; name: string; glyph: string; rarity: string; rar: string; color: string; unlocked: boolean; cost: number }[]
   heroes: { id: HeroId; name: string; title: string; glyph: string; color: string; desc: string; unlocked: boolean; cost: number }[]
-  ups: { id: string; name: string; glyph: string; desc: string; lv: number; max: number; gold: number; mat: number; afford: boolean; maxed: boolean }[]
+  ups: { id: string; name: string; sub?: string; glyph: string; desc: string; lv: number; max: number; gold: number; mat: number; afford: boolean; maxed: boolean }[]
   achievements: { id: string; name: string; desc: string; got: boolean; gold: number }[]
   bossKilled: string[]
   tab: string
 }
 
 const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string))
+
+/** 联动 / 合击的通俗解释（悬浮可见），特色名保留、含义说清。 */
+const SYN_HINT: Record<string, string> = {
+  齐射: '同列齐射：这一列有 3 名以上弓兵，一起放箭',
+  刀枪: '刀枪合击：刀兵与枪兵相邻，双方出手更快',
+  军械: '军械强化：工程师在相邻格，提升其攻击',
+  横锋: '横排合击：3 名以上士兵连成横排，周期横扫这一行道路',
+  直锋: '竖列集火：3 名以上士兵连成竖列，集中攻击最前面的敌人',
+}
 
 export class LegionUI {
   root: HTMLElement
@@ -182,11 +191,11 @@ export class LegionUI {
               <div class="lg-city-bar"><i id="lgBaseFill"></i></div>
             </div>
             <div class="lg-res">
-              <span class="lg-res-chip lg-grain"><i>粮</i><b id="lgGrain">0</b></span>
-              <span class="lg-res-chip lg-silver"><i>银</i><b id="lgSilver">0</b></span>
-              <span class="lg-res-chip lg-enemy"><i>敌</i><b id="lgAlive">0</b></span>
-              <span class="lg-res-chip lg-kill"><i>斩</i><b id="lgKills">0</b></span>
-              <span class="lg-res-chip lg-stroke" id="lgStroke" title="三名以上同排连成横锋、同列连成直锋"><i>笔</i><b id="lgStrokeNum">—</b></span>
+              <span class="lg-res-chip lg-grain" title="军粮：招募士兵、遣散返还"><i>粮</i><b id="lgGrain">0</b></span>
+              <span class="lg-res-chip lg-silver" title="银币：解锁阵地、商店强化、高级招募"><i>银</i><b id="lgSilver">0</b></span>
+              <span class="lg-res-chip lg-enemy" title="场上存活敌人"><i>敌</i><b id="lgAlive">0</b></span>
+              <span class="lg-res-chip lg-kill" title="本局击杀数"><i>斩</i><b id="lgKills">0</b></span>
+              <span class="lg-res-chip lg-stroke" id="lgStroke" title="合击（笔势）：3 名以上士兵连成横排或竖列，发动额外集体攻击"><i>阵</i><b id="lgStrokeNum">—</b></span>
             </div>
             <div class="lg-tools">
               <button class="lg-start-wave" type="button" data-act="start-wave" id="lgStartWave" aria-label="提前开战">开战</button>
@@ -195,7 +204,7 @@ export class LegionUI {
                 <b id="lgSkillName">铁壁</b>
                 <em>Q</em>
               </button>
-              <button class="lg-round" type="button" data-act="shop" aria-label="局内强化">强</button>
+              <button class="lg-round" type="button" data-act="shop" aria-label="商店：本局强化与道具" title="商店：花银币买本局强化与道具">强化</button>
               <button class="lg-round" type="button" data-act="speed" id="lgSpeed" aria-label="倍速">×1</button>
               <button class="lg-round" type="button" data-act="pause" aria-label="暂停">⏸</button>
               <button class="lg-round" type="button" data-act="settings" aria-label="设置">⚙</button>
@@ -207,19 +216,32 @@ export class LegionUI {
           <div class="lg-boss-top"><b id="lgBossName"></b><i id="lgBossPhase"></i></div>
           <div class="lg-boss-bar"><i id="lgBossFill"></i><u id="lgBossShield"></u></div>
         </div>
+        <div class="lg-suggest" id="lgSuggest" hidden>
+          <i>提示</i><span id="lgSuggestTxt"></span>
+          <button type="button" data-act="suggest-dismiss" aria-label="关闭提示">✕</button>
+        </div>
+        <div class="lg-coach" id="lgCoach" hidden>
+          <div class="lg-coach-step" id="lgCoachStep">1 / 5</div>
+          <b id="lgCoachTitle"></b>
+          <p id="lgCoachBody"></p>
+          <div class="lg-coach-btns">
+            <button type="button" data-act="tutorial-skip">跳过引导</button>
+            <button type="button" class="is-primary" data-act="tutorial-next" id="lgCoachNext">下一步</button>
+          </div>
+        </div>
         <div class="lg-dock" data-tab="rec">
           <div class="lg-tabs" role="tablist" aria-label="操作区切换">
-            <button type="button" data-tab="rec" class="is-on" aria-selected="true">招贤 · 点将</button>
+            <button type="button" data-tab="rec" class="is-on" aria-selected="true">招募 · 兵营</button>
             <button type="button" data-tab="items" aria-selected="false">道具</button>
           </div>
           <div class="lg-rail-brand lg-dock-brand"><b>纸上军团</b><span>文字布阵 · 无尽守卫</span></div>
           <div class="lg-recruit">
-            <div class="lg-sec-head"><span>招贤榜</span><i>一次 <b id="lgCost">9</b> 粮</i></div>
+            <div class="lg-sec-head"><span>招募<small>招贤榜</small></span><i>一次 <b id="lgCost">9</b> 粮</i></div>
             <div class="lg-cards" id="lgCards"></div>
             <div class="lg-rec-btns">
-              <button type="button" id="lgRerollBtn" data-act="reroll">刷新 <b id="lgRerollCost">4</b>银</button>
-              <button type="button" class="is-premium" data-act="premium">重金纳贤 <b id="lgPremiumCost">12</b>银</button>
-              <button type="button" class="lg-bulk" data-act="bulk" title="能招多少招多少，一次招满">连招</button>
+              <button type="button" id="lgRerollBtn" data-act="reroll" title="换一批招募卡">刷新 <b id="lgRerollCost">4</b>银</button>
+              <button type="button" class="is-premium" data-act="premium" title="花银币招募，更容易出稀有 / 史诗 / 传说士兵">高级招募 <b id="lgPremiumCost">12</b>银</button>
+              <button type="button" class="lg-bulk" data-act="bulk" title="按现有军粮能招多少招多少">一键招募</button>
             </div>
           </div>
           <div class="lg-inspect" id="lgInspect">
@@ -227,7 +249,7 @@ export class LegionUI {
             <div class="lg-inspect-body" id="lgInspectBody"><p class="lg-inspect-empty">—</p></div>
           </div>
           <div class="lg-run" id="lgRun">
-            <div class="lg-sec-head"><span>战术构筑</span><i>随机强化 · 三选一</i></div>
+            <div class="lg-sec-head"><span>战术牌<small>三选一</small></span><i>每 2 波选 1 张</i></div>
             <div class="lg-run-chips" id="lgRunChips"></div>
           </div>
           <div class="lg-items">
@@ -235,10 +257,10 @@ export class LegionUI {
             <div class="lg-item-row" id="lgItems"></div>
           </div>
           <div class="lg-bench-wrap">
-            <div class="lg-sec-head lg-bench-head"><span>点将台</span><em class="lg-bench-tip">拖到另一张上合兵</em></div>
+            <div class="lg-sec-head lg-bench-head"><span>预备兵营<small>点将台</small></span><em class="lg-bench-tip">拖到阵地部署 · 同名同级可合成</em></div>
             <div class="lg-bench" id="lgBench"></div>
           </div>
-          <div class="lg-trash" id="lgTrash"><i>遣</i><span>拖到这里遣散</span></div>
+          <div class="lg-trash" id="lgTrash"><i>遣</i><span>拖到这里遣散 · 返还军粮</span></div>
         </div>
         <div class="lg-banner" id="lgBanner"><b></b><i></i></div>
         <div class="lg-toasts" id="lgToasts"></div>
@@ -254,7 +276,8 @@ export class LegionUI {
       'lgAlive', 'lgKills', 'lgSkill', 'lgSkillRing', 'lgSkillName', 'lgSpeed', 'lgBoss', 'lgBossName',
       'lgBossPhase', 'lgBossFill', 'lgBossShield', 'lgCost', 'lgCards', 'lgRerollBtn', 'lgRerollCost', 'lgPremiumCost',
       'lgItems', 'lgItemHint', 'lgTrash', 'lgBanner', 'lgToasts', 'lgOverlay',
-      'lgProgress', 'lgInspectBody', 'lgRunChips', 'lgStrokeNum', 'lgStartWave']
+      'lgProgress', 'lgInspectBody', 'lgRunChips', 'lgStrokeNum', 'lgStartWave',
+      'lgSuggest', 'lgSuggestTxt', 'lgCoach', 'lgCoachStep', 'lgCoachTitle', 'lgCoachBody', 'lgCoachNext']
     for (const id of ids) {
       const e = this.root.querySelector('#' + id)
       if (e) this.el[id] = e as HTMLElement
@@ -354,7 +377,7 @@ export class LegionUI {
       box.innerHTML = '<p class="lg-inspect-empty">—</p>'
       return
     }
-    const chips = v.syn.length ? v.syn.map((s) => `<span>${esc(s)}</span>`).join('') : '<span class="is-off">暂无联动</span>'
+    const chips = v.syn.length ? v.syn.map((s) => `<span title="${esc(SYN_HINT[s] || s)}">${esc(s)}</span>`).join('') : '<span class="is-off">暂无联动</span>'
     box.innerHTML = `
       <div class="lg-inspect-card" style="--rar:${v.color}">
         <div class="lg-inspect-top">
@@ -555,6 +578,36 @@ export class LegionUI {
     this.bannerTimer = window.setTimeout(() => box.classList.remove('is-on'), 1600)
   }
 
+  /* ---------------- 动态建议 / 新手引导 ---------------- */
+
+  showSuggest(text: string): void {
+    const box = this.el.lgSuggest
+    const txt = this.el.lgSuggestTxt
+    if (!box || !txt) return
+    txt.textContent = text
+    box.hidden = false
+  }
+
+  hideSuggest(): void {
+    const box = this.el.lgSuggest
+    if (box) box.hidden = true
+  }
+
+  showCoach(v: { step: number; total: number; title: string; body: string; last: boolean }): void {
+    const box = this.el.lgCoach
+    if (!box) return
+    this.el.lgCoachStep.textContent = `${v.step} / ${v.total}`
+    this.el.lgCoachTitle.textContent = v.title
+    this.el.lgCoachBody.textContent = v.body
+    this.el.lgCoachNext.textContent = v.last ? '开始游戏' : '下一步'
+    box.hidden = false
+  }
+
+  hideCoach(): void {
+    const box = this.el.lgCoach
+    if (box) box.hidden = true
+  }
+
   /* ---------------- 覆盖层 ---------------- */
 
   hideOverlay(): void {
@@ -600,19 +653,19 @@ export class LegionUI {
           <span class="lg-kicker">单人无尽守卫 · 一局一种构筑</span>
           <h1 class="lg-title">纸上军团</h1>
           <p class="lg-sub">招募、合兵、布阵，守住山道。</p>
-          <div class="lg-loop"><span>招募</span><i>→</i><span>合兵</span><i>→</i><span>布阵</span><i>→</i><span>守</span></div>
+          <div class="lg-loop"><span>招募</span><i>→</i><span>合成</span><i>→</i><span>布阵</span><i>→</i><span>守卫</span></div>
         </div>
         <div class="lg-start-main">
           <div class="lg-records">
             <span><i>最高波次</i><b>${v.bestWave}</b></span>
             <span><i>最长生存</i><b>${fmtTime(v.bestTime)}</b></span>
             <span><i>已战</i><b>${v.runs}</b></span>
-            <span><i>金铢</i><b>${fmtNum(v.gold)}</b></span>
+            <span title="局外货币：用于永久成长与解锁"><i>金币</i><b>${fmtNum(v.gold)}</b></span>
           </div>
           <p class="lg-rules">
-            敌军只沿土路推进。兵就是塔，不会被敌人咬住；同名可合，异兵可融。
+            敌人只沿土路推进。士兵就是塔，固定攻击、不会被咬住；同名同级可合成升级，特定两种兵可融合成新兵。
           </p>
-          <div class="lg-hero-head">统帅 <i>占一格上场 · Q 技手动放</i></div>
+          <div class="lg-hero-head">英雄 <i>占一格上场 · Q 键手动放技能</i></div>
           <div class="lg-hero-list">${heroes}</div>
           <div class="lg-hero-detail" style="--hc:${picked.color}">
             <b>${picked.name} · ${picked.passiveName}</b>
@@ -622,9 +675,9 @@ export class LegionUI {
         <div class="lg-start-side">
           <button type="button" class="lg-go" data-act="start">开始守卫</button>
           ${v.checkpointWave > 0 ? `<button type="button" class="lg-side-btn is-continue" data-act="resume">继续上局 · 第 ${v.checkpointWave} 波</button>` : ''}
-          <button type="button" class="lg-side-btn" data-act="meta">局外成长 <i>金铢 · 材料 · 兵种解锁</i></button>
+          <button type="button" class="lg-side-btn" data-act="meta">局外成长 <i>金币 · 材料 · 兵种解锁</i></button>
           <div class="lg-side-links">
-            <button type="button" class="lg-text-btn" data-act="help">玩法</button>
+            <button type="button" class="lg-text-btn" data-act="help">玩法说明</button>
             <button type="button" class="lg-text-btn" data-act="settings">设置</button>
           </div>
           <p class="lg-side-note">进度自动存在本机 · 单人无尽</p>
@@ -639,12 +692,12 @@ export class LegionUI {
         <b>${esc(p.name)}</b>
         <em>${esc(p.desc)}</em>
         <p>${esc(p.effect)}</p>
-        <u>选此专精</u>
+        <u>选择此路线</u>
       </button>`).join('')
     this.openOverlay(`
       <div class="lg-branch">
-        <div class="lg-modal-head"><span class="lg-kicker">三级 · 择一而精</span><h2>${esc(name)} 的岔路</h2></div>
-        <p class="lg-branch-lead">专精一旦选定，本局不能重选。它改变的是出手判定，不只是数字。</p>
+        <div class="lg-modal-head"><span class="lg-kicker">3 级 · 二选一</span><h2>${esc(name)}：选择强化路线</h2></div>
+        <p class="lg-branch-lead">选择一种强化方向，改变这名士兵的攻击方式。选定后本局不能更改。</p>
         <div class="lg-branch-row">${cards}</div>
       </div>`, 'is-branch')
   }
@@ -656,12 +709,12 @@ export class LegionUI {
         <span class="lg-draft-glyph">${esc(p.glyph)}</span>
         <b>${esc(p.name)}</b>
         <p>${esc(p.desc)}</p>
-        <u>收入阵中</u>
+        <u>获得此牌</u>
       </button>`).join('')
     this.openOverlay(`
       <div class="lg-draft">
-        <div class="lg-modal-head"><span class="lg-kicker">战后 · 战术构筑</span><h2>从三张军令里选一张</h2></div>
-        <p class="lg-draft-lead">构筑决定这一局怎么打，不是单纯加攻击。选完继续下一波。</p>
+        <div class="lg-modal-head"><span class="lg-kicker">战术牌 · 三选一</span><h2>选一张战术牌</h2></div>
+        <p class="lg-draft-lead">每张牌改变本局打法（范围 / 连锁 / 控制等），不只是加攻击。选完继续下一波。</p>
         <div class="lg-draft-row">${cards}</div>
       </div>`, 'is-draft')
   }
@@ -669,30 +722,34 @@ export class LegionUI {
   showHelp(): void {
     this.openOverlay(`
       <div class="lg-modal lg-help">
-        <div class="lg-modal-head"><h2>怎么守</h2><button type="button" class="lg-x" data-close>✕</button></div>
+        <div class="lg-modal-head"><h2>玩法速览</h2><button type="button" class="lg-x" data-close>✕</button></div>
         <div class="lg-help-body">
-          <p><b>一、成阵。</b>三名以上友军连成<b>一整横排</b>会成「横锋」，周期横扫所在那一行；连成<b>一整竖列</b>会成「直锋」，整列合击最前一敌。墨线画在格子上，断了就失效。</p>
-          <p><b>二、招兵。</b>点招贤榜花军粮招人进点将台；卡片右下角会提示「可合 / 可融 / 差一成阵」，照阵容缺口挑，别只认品质。</p>
-          <p><b>三、合兵。</b>点将台拖到棋盘空格；点两张卡也能合。同名同级升一级，「合兵」键一次合掉所有同名。</p>
-          <p><b>四、取舍。</b>合成会把两个棋子并成一个，可能把一条笔势拆断 —— 拖拽时会提前标出「拆阵 -n」，升级和保阵自己选。</p>
-          <p><b>五、融合。</b>不同兵种按配方出新的文字兵：枪+骑=骁骑，刀+枪=戟兵，弓+法=焰弓。</p>
-          <p><b>六、对位。</b>刀贴路近战，枪打直线，弓法远程，骑冲锋。棋子是塔不是兵，不会被敌人攻击；「断笔者」会贴住笔势把它压掉，必须点名处理。</p>
-          <p><b>七、经营。</b>军粮招兵，银币开格买强化；营寨生命归零就结束，金铢与材料拿去局外成长。</p>
+          <p><b>目标。</b>敌人只沿中间的土路走向你的营寨。营寨生命归零，本局结束。守住越多波，结算奖励越多。</p>
+          <p><b>招募与部署。</b>点「招募」花军粮招士兵，先进预备兵营；再把士兵拖到阵地空格上。士兵就是塔，固定在格子里攻击，不会被敌人咬住。</p>
+          <p><b>合击（笔势）。</b>3 名以上士兵在同一横排<b>相邻连成一线</b>＝横锋，周期横扫那一行道路；在同一竖列相邻连线＝直锋，集火最前面的敌人。格子上的墨线就是合击范围，被敌人压住会暂时失效。</p>
+          <p><b>合成。</b>两个<b>同名同级</b>士兵拖到一起＝升 1 级（最高 5 级）。合成会少 1 名士兵，可能拆断一条合击——拖拽时会提前标出「会断 n 条合击」。</p>
+          <p><b>融合。</b>特定两种兵合成出新兵种：枪＋骑＝骁骑，刀＋枪＝戟兵，弓＋法＝焰弓。</p>
+          <p><b>强化路线（专精）。</b>士兵到 3 级时二选一，改变它的攻击方式（如枪兵选穿透或控制），本局不能改。</p>
+          <p><b>两种货币。</b>军粮＝招兵；银币＝解锁阵地、商店强化、高级招募。局外另有金币 / 材料 / 碎片，用于永久成长。</p>
+          <p><b>危险敌人。</b>断笔者贴近阵线后会暂停该线合击，击败它立刻恢复，优先击杀；火雷兵靠近营寨自爆；裂虫死亡分裂。每 10 波一个 Boss，技能首次出现会有说明。</p>
         </div>
-        <div class="lg-modal-foot"><button type="button" class="lg-side-btn" data-close>知道了</button></div>
+        <div class="lg-modal-foot">
+          <button type="button" class="lg-side-btn" data-act="tutorial">重看新手引导</button>
+          <button type="button" class="lg-side-btn" data-close>知道了</button>
+        </div>
       </div>`, 'is-modal')
   }
 
   showPause(v: { wave: number; time: string; kills: number }): void {
     this.openOverlay(`
       <div class="lg-modal lg-pause">
-        <div class="lg-modal-head"><h2>暂歇</h2></div>
+        <div class="lg-modal-head"><h2>暂停</h2></div>
         <p class="lg-pause-line">第 <b>${v.wave}</b> 波 · 已守 ${v.time} · 斩 ${v.kills}</p>
         <div class="lg-pause-btns">
-          <button type="button" class="lg-go" data-act="resume-run">接着守</button>
+          <button type="button" class="lg-go" data-act="resume-run">继续守卫</button>
           <button type="button" class="lg-side-btn" data-act="meta">局外成长</button>
           <button type="button" class="lg-side-btn" data-act="settings">设置</button>
-          <button type="button" class="lg-side-btn" data-act="quit">收兵回目录</button>
+          <button type="button" class="lg-side-btn" data-act="quit">返回游戏厅</button>
         </div>
         <p class="lg-side-note">关闭机台会自动存档到本波整备期</p>
       </div>`, 'is-modal')
@@ -705,7 +762,7 @@ export class LegionUI {
         <label class="lg-range"><span>音效 <b>${Math.round(s.settings.sfx * 100)}</b></span>
           <input type="range" min="0" max="100" value="${Math.round(s.settings.sfx * 100)}" data-vol="sfx">
         </label>
-        <label class="lg-range"><span>战鼓 <b>${Math.round(s.settings.bgm * 100)}</b></span>
+        <label class="lg-range"><span>音乐 <b>${Math.round(s.settings.bgm * 100)}</b></span>
           <input type="range" min="0" max="100" value="${Math.round(s.settings.bgm * 100)}" data-vol="bgm">
         </label>
         <div class="lg-toggles">
@@ -716,7 +773,7 @@ export class LegionUI {
         </div>
         <div class="lg-modal-foot">
           <button type="button" class="lg-side-btn lg-danger" data-act="wipe">清空全部进度</button>
-          <button type="button" class="lg-side-btn" data-close>关掉</button>
+          <button type="button" class="lg-side-btn" data-close>关闭</button>
         </div>
         <p class="lg-side-note">存档在本机 localStorage：刷新页面、重开浏览器都不会丢。</p>
       </div>`, 'is-modal')
@@ -736,7 +793,7 @@ export class LegionUI {
     const ups = v.ups.map((u) => `
       <div class="lg-shop-row${u.lv >= u.max ? ' is-maxed' : ''}">
         <span class="lg-shop-glyph">${u.glyph}</span>
-        <div class="lg-shop-txt"><b>${u.name} <i>${u.lv}/${u.max}</i></b><span>${u.desc}</span></div>
+        <div class="lg-shop-txt"><b>${u.name} <i>${u.lv}/${u.max}</i></b>${u.sub ? `<span class="lg-sub">${u.sub}</span>` : ''}<span>${u.desc}</span></div>
         <button type="button" data-act="buyup" data-id="${u.id}" ${u.lv >= u.max || !u.afford ? 'disabled' : ''}>
           ${u.lv >= u.max ? '满' : u.price + ' 银'}
         </button>
@@ -750,14 +807,14 @@ export class LegionUI {
     this.openOverlay(`
       <div class="lg-modal lg-shop">
         <div class="lg-modal-head">
-          <h2>军需官</h2>
+          <h2>商店</h2>
           <span class="lg-shop-silver">银 <b>${fmtNum(v.silver)}</b></span>
           <button type="button" class="lg-x" data-close>✕</button>
         </div>
-        <p class="lg-shop-note">本局强化只在这一局有效；每项都有上限，不能无限叠加。</p>
+        <p class="lg-shop-note">花银币购买，只在本局有效；每项有上限，不能无限叠加。</p>
         <div class="lg-shop-cols">
-          <div class="lg-shop-col"><h3>阵法强化</h3>${ups}</div>
-          <div class="lg-shop-col"><h3>临阵道具</h3>${items}</div>
+          <div class="lg-shop-col"><h3>全军强化</h3>${ups}</div>
+          <div class="lg-shop-col"><h3>道具</h3>${items}</div>
         </div>
       </div>`, 'is-modal')
   }
@@ -797,7 +854,7 @@ export class LegionUI {
           <div><span>累计伤害</span><b>${fmtNum(v.damage)}</b></div>
           <div><span>资源收益</span><b>${fmtNum(v.income)}</b></div>
           <div><span>最强单位</span><b>${v.bestLv ? ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ', 'Ⅴ'][Math.max(0, Math.min(4, v.bestLv - 1))] + ' 级' : '—'}</b></div>
-          <div><span>带走</span><b>${fmtNum(v.gold)} 金 · ${fmtNum(v.mat)} 材 · ${fmtNum(v.frag)} 碎</b></div>
+          <div><span>带走</span><b>${fmtNum(v.gold)} 金币 · ${fmtNum(v.mat)} 材料 · ${fmtNum(v.frag)} 碎片</b></div>
         </div>
         <div class="lg-res-form"><h3>最终军团</h3><div>${form}</div></div>
         <div class="lg-res-cols">
@@ -807,7 +864,7 @@ export class LegionUI {
         <div class="lg-res-btns">
           <button type="button" class="lg-go" data-act="again">再来一局</button>
           <button type="button" class="lg-side-btn" data-act="meta">局外成长</button>
-          <button type="button" class="lg-side-btn" data-act="quit">回目录</button>
+          <button type="button" class="lg-side-btn" data-act="quit">返回游戏厅</button>
         </div>
       </div>`, 'is-modal')
   }
@@ -828,31 +885,31 @@ export class LegionUI {
     const ups = v.ups.map((u) => `
       <div class="lg-meta-row${u.maxed ? ' is-maxed' : ''}">
         <span class="lg-meta-glyph">${u.glyph}</span>
-        <div><b>${u.name} <i>${u.lv}/${u.max}</i></b><span>${u.desc}</span></div>
+        <div><b>${u.name} <i>${u.lv}/${u.max}</i></b>${u.sub ? `<span class="lg-sub">${u.sub}</span>` : ''}<span>${u.desc}</span></div>
         <button type="button" data-act="metaup" data-id="${u.id}" ${u.maxed || !u.afford ? 'disabled' : ''}>
-          ${u.maxed ? '满级' : `${u.gold} 金 · ${u.mat} 材`}
+          ${u.maxed ? '满级' : `${u.gold} 金币 · ${u.mat} 材料`}
         </button>
       </div>`).join('')
     const achs = v.achievements.map((a) => `
-      <div class="lg-ach${a.got ? ' is-on' : ''}"><b>${a.name}</b><span>${a.desc}</span><i>${a.got ? '已成' : '+' + a.gold + ' 金'}</i></div>`).join('')
+      <div class="lg-ach${a.got ? ' is-on' : ''}"><b>${a.name}</b><span>${a.desc}</span><i>${a.got ? '已成' : '+' + a.gold + ' 金币'}</i></div>`).join('')
     const tab = v.tab || 'up'
     const tabBtn = (id: string, label: string): string => `<button type="button" class="lg-tab${tab === id ? ' is-on' : ''}" data-act="tab" data-id="${id}">${label}</button>`
     this.openOverlay(`
       <div class="lg-modal lg-meta">
         <div class="lg-modal-head">
           <h2>局外成长</h2>
-          <div class="lg-meta-res"><span>金铢 <b>${fmtNum(v.gold)}</b></span><span>材料 <b>${fmtNum(v.mat)}</b></span><span>碎片 <b>${fmtNum(v.frag)}</b></span></div>
+          <div class="lg-meta-res"><span>金币 <b>${fmtNum(v.gold)}</b></span><span>材料 <b>${fmtNum(v.mat)}</b></span><span>碎片 <b>${fmtNum(v.frag)}</b></span></div>
           <button type="button" class="lg-x" data-close>✕</button>
         </div>
         <div class="lg-meta-top"><span>最高波次 <b>${v.bestWave}</b></span><span>最长生存 <b>${fmtTime(v.bestTime)}</b></span><span>已战 <b>${v.runs}</b> 局</span></div>
-        <div class="lg-tabs">${tabBtn('up', '兵锋成长')}${tabBtn('unit', '兵种')}${tabBtn('hero', '英雄')}${tabBtn('ach', '成就')}</div>
+        <div class="lg-tabs">${tabBtn('up', '永久强化')}${tabBtn('unit', '兵种')}${tabBtn('hero', '英雄')}${tabBtn('ach', '成就')}</div>
         <div class="lg-meta-body">
           ${tab === 'up' ? `<div class="lg-meta-list">${ups}</div>` : ''}
           ${tab === 'unit' ? `<p class="lg-tab-note">解锁后就会出现在招贤榜里。材料来自每一局的结算。</p><div class="lg-meta-list">${units}</div>` : ''}
           ${tab === 'hero' ? `<p class="lg-tab-note">英雄碎片只从结算与成就里来。英雄占棋盘一格，主动技手动释放。</p><div class="lg-meta-list">${heroes}</div>` : ''}
           ${tab === 'ach' ? `<div class="lg-ach-grid">${achs}</div>` : ''}
         </div>
-        <div class="lg-modal-foot"><button type="button" class="lg-side-btn" data-close>回战场</button></div>
+        <div class="lg-modal-foot"><button type="button" class="lg-side-btn" data-close>返回</button></div>
       </div>`, 'is-modal')
   }
 

@@ -2,8 +2,8 @@
 import type { AchievementDef, InGameUpDef, ItemDef, MetaDef, MilestoneDef } from '../types'
 
 export const ITEM_DEFS: ItemDef[] = [
-  { id: 'draft', name: '征兵令', glyph: '征', desc: '立刻免费招募一名随机兵种到点将台', rarity: 'fine', price: 18, target: null, color: '#3f6b3a' },
-  { id: 'reroll', name: '重置令', glyph: '易', desc: '免费刷新三张招贤榜', rarity: 'common', price: 12, target: null, color: '#6b6255' },
+  { id: 'draft', name: '征兵令', glyph: '征', desc: '立刻免费招募一名随机兵种到预备兵营', rarity: 'fine', price: 18, target: null, color: '#3f6b3a' },
+  { id: 'reroll', name: '重置令', glyph: '易', desc: '免费刷新三张招募栏', rarity: 'common', price: 12, target: null, color: '#6b6255' },
   { id: 'salve', name: '治疗药', glyph: '药', desc: '基地恢复 25% 最大生命', rarity: 'common', price: 24, target: null, color: '#3f6b3a' },
   { id: 'fury', name: '狂战令', glyph: '狂', desc: '12 秒内全军攻速 +80%', rarity: 'rare', price: 30, target: null, color: '#a0432c' },
   { id: 'freeze', name: '定身符', glyph: '定', desc: '全场敌人定住 3 秒', rarity: 'rare', price: 34, target: null, color: '#33628f' },
@@ -23,9 +23,9 @@ export const INGAME_UPS: InGameUpDef[] = [
   { id: 'crit', name: '锐气', glyph: '锐', desc: '暴击率 +4%，暴伤 +5%', max: 8, price: (lv) => 22 + lv * 20 },
   { id: 'baseHp', name: '城防', glyph: '城', desc: '基地最大生命 +6%', max: 10, price: (lv) => 24 + lv * 22 },
   { id: 'baseArmor', name: '甲胄', glyph: '甲', desc: '基地减伤 +5%', max: 8, price: (lv) => 20 + lv * 20 },
-  { id: 'luck', name: '招贤', glyph: '贤', desc: '招募幸运 +4', max: 8, price: (lv) => 20 + lv * 16 },
+  { id: 'luck', name: '招募幸运', sub: '招贤', glyph: '贤', desc: '招募幸运 +4', max: 8, price: (lv) => 20 + lv * 16 },
   { id: 'grain', name: '屯田', glyph: '田', desc: '军粮收益 +8%', max: 8, price: (lv) => 18 + lv * 16 },
-  { id: 'merge', name: '炼兵', glyph: '炼', desc: '合成返还军粮 +30%', max: 6, price: (lv) => 26 + lv * 24 },
+  { id: 'merge', name: '合成返还', sub: '炼兵', glyph: '炼', desc: '合成返还军粮 +30%', max: 6, price: (lv) => 26 + lv * 24 },
   { id: 'regen', name: '休整', glyph: '息', desc: '单位每秒回血 +0.6%', max: 6, price: (lv) => 24 + lv * 22 },
 ]
 
@@ -38,13 +38,13 @@ export const META_UPS: MetaDef[] = [
   { id: 'atk', name: '兵锋', glyph: '锋', desc: (lv) => `全军攻击 +${lv * 4}%`, max: 10, gold: (lv) => Math.round(40 * Math.pow(1.42, lv)), mat: (lv) => Math.round(10 * Math.pow(1.4, lv)) },
   { id: 'spd', name: '疾攻', glyph: '疾', desc: (lv) => `全军攻速 +${lv * 3}%`, max: 10, gold: (lv) => Math.round(40 * Math.pow(1.42, lv)), mat: (lv) => Math.round(10 * Math.pow(1.4, lv)) },
   { id: 'baseHp', name: '城防', glyph: '城', desc: (lv) => `基地生命 +${lv * 6}%`, max: 10, gold: (lv) => Math.round(34 * Math.pow(1.4, lv)), mat: (lv) => Math.round(8 * Math.pow(1.38, lv)) },
-  { id: 'luck', name: '天佑', glyph: '佑', desc: (lv) => `招募幸运 +${lv * 3}`, max: 8, gold: (lv) => Math.round(46 * Math.pow(1.5, lv)), mat: (lv) => Math.round(12 * Math.pow(1.45, lv)) },
+  { id: 'luck', name: '招募幸运', sub: '天佑', glyph: '佑', desc: (lv) => `招募幸运 +${lv * 3}`, max: 8, gold: (lv) => Math.round(46 * Math.pow(1.5, lv)), mat: (lv) => Math.round(12 * Math.pow(1.45, lv)) },
   { id: 'grain', name: '屯田', glyph: '田', desc: (lv) => `军粮收益 +${lv * 5}%`, max: 10, gold: (lv) => Math.round(32 * Math.pow(1.4, lv)), mat: (lv) => Math.round(8 * Math.pow(1.38, lv)) },
-  { id: 'silver', name: '商路', glyph: '商', desc: (lv) => `银币收益 +${lv * 5}%`, max: 10, gold: (lv) => Math.round(32 * Math.pow(1.4, lv)), mat: (lv) => Math.round(8 * Math.pow(1.38, lv)) },
-  { id: 'cells', name: '开疆', glyph: '疆', desc: (lv) => `开局棋盘格 +${lv}`, max: 6, gold: (lv) => Math.round(60 * Math.pow(1.5, lv)), mat: (lv) => Math.round(16 * Math.pow(1.45, lv)) },
-  { id: 'grainStart', name: '仓廪', glyph: '仓', desc: (lv) => `开局军粮 +${lv * 10}`, max: 8, gold: (lv) => Math.round(36 * Math.pow(1.4, lv)), mat: (lv) => Math.round(9 * Math.pow(1.38, lv)) },
-  { id: 'bench', name: '将台', glyph: '台', desc: (lv) => `点将台 +${lv} 格`, max: 4, gold: (lv) => Math.round(80 * Math.pow(1.55, lv)), mat: (lv) => Math.round(20 * Math.pow(1.5, lv)) },
-  { id: 'mergeGain', name: '炼兵', glyph: '炼', desc: (lv) => `合成返还 +${lv * 6}%`, max: 6, gold: (lv) => Math.round(48 * Math.pow(1.45, lv)), mat: (lv) => Math.round(12 * Math.pow(1.4, lv)) },
+  { id: 'silver', name: '银币收益', sub: '商路', glyph: '商', desc: (lv) => `银币收益 +${lv * 5}%`, max: 10, gold: (lv) => Math.round(32 * Math.pow(1.4, lv)), mat: (lv) => Math.round(8 * Math.pow(1.38, lv)) },
+  { id: 'cells', name: '扩大阵地', sub: '开疆', glyph: '疆', desc: (lv) => `开局部署格 +${lv}`, max: 6, gold: (lv) => Math.round(60 * Math.pow(1.5, lv)), mat: (lv) => Math.round(16 * Math.pow(1.45, lv)) },
+  { id: 'grainStart', name: '初始军粮', sub: '仓廪', glyph: '仓', desc: (lv) => `开局军粮 +${lv * 10}`, max: 8, gold: (lv) => Math.round(36 * Math.pow(1.4, lv)), mat: (lv) => Math.round(9 * Math.pow(1.38, lv)) },
+  { id: 'bench', name: '兵营扩容', sub: '将台', glyph: '台', desc: (lv) => `预备兵营 +${lv} 格`, max: 4, gold: (lv) => Math.round(80 * Math.pow(1.55, lv)), mat: (lv) => Math.round(20 * Math.pow(1.5, lv)) },
+  { id: 'mergeGain', name: '合成返还', sub: '炼兵', glyph: '炼', desc: (lv) => `合成返还 +${lv * 6}%`, max: 6, gold: (lv) => Math.round(48 * Math.pow(1.45, lv)), mat: (lv) => Math.round(12 * Math.pow(1.4, lv)) },
 ]
 
 export const META_BY_ID: Record<string, MetaDef> = META_UPS.reduce((m, u) => {

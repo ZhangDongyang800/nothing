@@ -44,6 +44,8 @@ export interface SaveData {
   bossKilled: string[]
   settings: SaveSettings
   checkpoint: Checkpoint | null
+  /** 新手引导是否已完成（旧存档缺省视为未完成，向后兼容） */
+  tutorialDone?: boolean
 }
 
 export function defaultSave(): SaveData {
@@ -61,6 +63,7 @@ export function defaultSave(): SaveData {
     bossKilled: [],
     settings: { sfx: 0.75, bgm: 0.4, quality: 'high', dmgNumbers: true, shake: true },
     checkpoint: null,
+    tutorialDone: false,
   }
 }
 
@@ -143,6 +146,7 @@ function sanitize(raw: unknown): SaveData {
     }
   }
   d.v = SAVE_VERSION
+  d.tutorialDone = o.tutorialDone === true
   return d
 }
 

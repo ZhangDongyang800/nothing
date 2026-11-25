@@ -33,7 +33,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
   },
   {
     id: 'hexer', name: '咒师', glyph: '咒', color: '#5b3f6b', hp: 92, speed: 0.56, dmg: 12, armor: 2,
-    range: 3.2, cd: 1.8, r: 16, grain: 4, silver: 1.2, cost: 3, role: '特殊技能', unlockWave: 14, behavior: 'hexer',
+    range: 3.2, cd: 1.8, r: 16, grain: 4, silver: 1.2, cost: 3, role: '辅助加速', unlockWave: 14, behavior: 'hexer',
   },
   {
     id: 'champion', name: '禁卫', glyph: '卫', color: '#7d2f2f', hp: 280, speed: 0.56, dmg: 42, armor: 22,
@@ -41,7 +41,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
   },
   {
     id: 'breaker', name: '断笔者', glyph: '断', color: '#8a2f2a', hp: 78, speed: 1.12, dmg: 10, armor: 6,
-    range: 0, cd: 1.6, r: 15, grain: 4, silver: 1.1, cost: 2.8, role: '压制笔势', unlockWave: 12, behavior: 'breaker',
+    range: 0, cd: 1.6, r: 15, grain: 4, silver: 1.1, cost: 2.8, role: '暂停阵线合击', unlockWave: 12, behavior: 'breaker',
   },
 ]
 

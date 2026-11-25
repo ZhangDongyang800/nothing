@@ -14,17 +14,17 @@ import { Board, COLS, ROWS, initialCells, laneAtCell, isPathCell, cellX, cellY, 
 import { makeRoute, routeFromCells } from './route'
 import { Battle, type BattleHost, type UnitMods } from './battle'
 import { Effects } from './fx'
-import { Scene, type DragView, type MergeGhost } from './draw'
+import { Scene, type DragView, type DragPreview, type DragPreviewLine, type MergeGhost } from './draw'
 import { LegionAudio } from './audio'
 import { loadSave, writeSave, fmtTime, fmtNum, type SaveData } from './save'
 import { UNIT_BY_ID, START_UNLOCKED, UNIT_UNLOCK_COST, fusionOf, fusionLevel, isFusion } from './data/units'
 import { HERO_BY_ID, HERO_UNLOCK } from './data/heroes'
 import { pickRarity, pickKind, veteranChance, RARITY_LABEL, RARITY_COLOR } from './data/rarity'
-import { isBossWave, bossForWave, wavePlan, spawnPool, type SpawnRow } from './data/enemies'
+import { isBossWave, bossForWave, wavePlan, spawnPool, ENEMY_BY_ID, type SpawnRow } from './data/enemies'
 import { BOSS_BY_ID } from './data/bosses'
 import { ITEM_DEFS, ITEM_BY_ID, INGAME_UPS, INGAME_UP_BY_ID, META_UPS, META_BY_ID, MILESTONES, ACHIEVEMENTS, ACH_BY_ID, stageName } from './data/items'
 import { BRANCHES, branchOf as branchDefOf, RUN_CARDS, RUN_BY_ID, type RunCardDef } from './data/strategy'
-import { findStrokes, strokeTags, strokeSummary, strokeName, strokeBrief, type Stroke } from './formation'
+import { findStrokes, strokeTags, strokeSummary, strokeName, type Stroke } from './formation'
 
 const BENCH_BASE = 4
 const PREP_TIME = 14
@@ -137,6 +137,15 @@ export class LegionGame implements BattleHost, UiHostLike {
   strokes: Stroke[] = []
   private strokeSeen: Record<string, boolean> = {}
   private strokeNoteT = 0
+  /** 本局已首次说明过的敌人 / Boss（避免重复打扰） */
+  private seenEnemies = new Set<string>()
+  private seenBosses = new Set<string>()
+  /** 新手引导当前步（-1 = 未在进行） */
+  private tutorialStep = -1
+  /** 动态建议：限频，避免刷屏 */
+  private suggestT = 0
+  private suggestCd = 0
+  private lastSuggest = ''
   private branchReturnPhase: 'prep' | 'wave' = 'prep'
 
   kills = 0
@@ -177,6 +186,8 @@ export class LegionGame implements BattleHost, UiHostLike {
   private muted = false
   private rng: () => number = Math.random
   private eventKind = ''
+  /* 残阵遗址：展示时抽好的三选项，结算时复用，保证「看到的」就是「生效的」 */
+  private eventBuffPicks: typeof INGAME_UPS = []
 
   constructor(hostEl: HTMLElement) {
     this.hostEl = hostEl
@@ -274,6 +285,11 @@ export class LegionGame implements BattleHost, UiHostLike {
       this.layT = 0.6
       this.checkLayoutDrift()
     }
+    this.suggestT -= dt
+    if (this.suggestT <= 0) {
+      this.suggestT = 2.5
+      this.updateSuggestion()
+    }
   }
 
   /** 顶栏 / 底部手牌高度会因为文案变长而变，量到的 top 一改，棋盘要跟着让位，
@@ -352,11 +368,67 @@ export class LegionGame implements BattleHost, UiHostLike {
 
   private dragView(): DragView {
     const d = this.drag as DragState
+    const extra = this.dragPreview(d)
     return {
       from: d.fromBench ? -1 : d.fromCell,
       x: d.x, y: d.y, target: d.target, kind: d.kind, lv: d.lv, veteran: d.veteran,
       merge: d.merge, fuse: d.fuse, illegal: d.illegal, lost: d.lost, hero: d.hero,
+      cover: extra.cover, preview: extra.preview, formCells: extra.formCells,
     }
+  }
+
+  /** 拖拽预览：攻击覆盖 / 将形成的合击 / 合成收益与代价，全部按真实局面算 */
+  private dragPreview(d: DragState): { cover: { x: number; y: number }[]; preview: DragPreview | null; formCells: number[] } {
+    const empty = { cover: [] as { x: number; y: number }[], preview: null as DragPreview | null, formCells: [] as number[] }
+    if (d.hero || d.target < 0) return empty
+    const def = UNIT_BY_ID[d.kind]
+    if (d.illegal) {
+      const u = this.battle.unitAt(d.target)
+      const reason = !this.cells.has(d.target)
+        ? '未解锁格：先花银币扩大阵地'
+        : u ? this.combineFailReason(d.kind, d.lv, u.kind, u.lv) : '这个位置不能放置'
+      return { ...empty, preview: { title: '无法放置', lines: [{ t: reason, tone: 'bad' }] } }
+    }
+    /* 模拟放下后的占位，算出新增 / 拆掉的合击 */
+    const occupied = new Set<number>()
+    for (const u of this.battle.units) {
+      if (!u.active || u.hero) continue
+      if (!d.fromBench && u.cell === d.fromCell) continue
+      occupied.add(u.cell)
+    }
+    occupied.add(d.target)
+    const beforeKeys = new Set(this.strokes.map((s) => s.key))
+    const after = findStrokes(occupied)
+    const fresh = after.filter((s) => !beforeKeys.has(s.key))
+    const formCells = Array.from(new Set(fresh.flatMap((s) => s.cells)))
+    const target = this.battle.unitAt(d.target)
+    if (d.merge || d.fuse) {
+      const outKind = d.fuse ? (fusionOf(d.kind, target?.kind || d.kind) || d.kind) : d.kind
+      const outLv = d.fuse ? fusionLevel(d.lv, target?.lv || d.lv) : Math.min(5, d.lv + 1)
+      const od = UNIT_BY_ID[outKind]
+      const lines: DragPreviewLine[] = []
+      const step = od.levels[outLv - 1]
+      if (step && step.text) lines.push({ t: `新能力：${step.text}`, tone: 'good' })
+      if (d.veteran || target?.veteran) lines.push({ t: '保留精锐强化（属性 +25%）', tone: 'good' })
+      lines.push({ t: '士兵数量 -1', tone: 'info' })
+      if (d.lost > 0) lines.push({ t: `会拆掉 ${d.lost} 条现有合击`, tone: 'bad' })
+      if (fresh.length) lines.push({ t: `新形成 ${fresh.length} 条合击`, tone: 'good' })
+      return { cover: [], formCells, preview: { title: `${d.fuse ? '融合' : '合成'} → Lv${outLv} ${od.name}`, lines } }
+    }
+    /* 空位部署 / 移动：点出攻击覆盖的道路 */
+    const cover: { x: number; y: number }[] = []
+    const c = this.board.center(d.target)
+    const reach = def.range * this.board.cell
+    const total = this.board.len()
+    const stepLen = Math.max(0.2, total / 48)
+    for (let p = 0; p <= total; p += stepLen) {
+      const w = this.board.laneWorld('center', p)
+      if (Math.hypot(w.x - c.x, w.y - c.y) <= reach) cover.push(w)
+    }
+    const lines: DragPreviewLine[] = [{ t: `攻击覆盖：约 ${def.range} 格内的道路`, tone: 'info' }]
+    if (fresh.length) lines.push({ t: `将形成 ${fresh.length} 条合击（绿框）`, tone: 'good' })
+    if (d.lost > 0) lines.push({ t: `会拆掉 ${d.lost} 条现有合击`, tone: 'bad' })
+    return { cover, formCells, preview: { title: `${def.name} · 部署预览`, lines } }
   }
 
   /* ================= 对局开始 ================= */
@@ -414,6 +486,8 @@ export class LegionGame implements BattleHost, UiHostLike {
     this.bossKills = 0
     this.runTime = 0
     this.recruits.clear()
+    this.seenEnemies.clear()
+    this.seenBosses.clear()
     this.newAchs = []
     this.queue = []
     this.pending = null
@@ -478,6 +552,7 @@ export class LegionGame implements BattleHost, UiHostLike {
     this.persistCheckpoint()
     this.ui.banner(`第 ${this.wave} 波`, '布阵 · 招兵 · 守住营寨', 'wave')
     this.audio.sfx('wave')
+    if (!resume && !this.save.tutorialDone) this.startTutorial()
     writeSave(this.save)
   }
 
@@ -613,9 +688,10 @@ export class LegionGame implements BattleHost, UiHostLike {
     if (this.wave >= 12 && liveStrokes >= 2 && !plan.boss && plan.rows.length < 64) {
       const n = Math.min(3, 1 + Math.floor(liveStrokes / 2))
       for (let i = 0; i < n; i++) plan.rows.push({ kind: 'breaker', elite: false, gap: 0 })
-      this.ui.toast(`${n} 名断笔者循阵而来`, 'warn')
+      this.ui.toast(`${n} 名断笔者来了 · 贴近阵线会暂停合击，优先击败`, 'warn')
     }
     this.queue = plan.rows
+    this.explainNewEnemies(plan.rows, plan.boss)
     this.waveTotal = plan.rows.length + (plan.boss ? 1 : 0)
     this.audio.setIntensity(this.wave >= 60 ? 4 : this.wave >= 30 ? 3 : this.wave >= 15 ? 2 : this.wave >= 5 ? 1 : 0)
     if (plan.boss) {
@@ -631,6 +707,132 @@ export class LegionGame implements BattleHost, UiHostLike {
       this.audio.sfx('wave')
     }
     this.ui.toast(`第 ${this.wave} 波 · ${this.queue.length} 股敌军来犯`, 'warn')
+  }
+
+  /* ================= 新手引导 ================= */
+
+  private static readonly TUTORIAL: { title: string; body: string }[] = [
+    { title: '第一步 · 招募与部署', body: '点下方招募卡花军粮招兵，士兵会先进预备兵营。再把兵营里的兵拖到阵地的空格上，就能开始攻击。' },
+    { title: '第二步 · 排成阵型', body: '3 名以上士兵连成横排或竖列，会发动「合击」造成额外集体攻击。拖动时绿框会预览将形成的合击，绿点标出能打到的道路。' },
+    { title: '第三步 · 合成升级', body: '把同名同级的兵叠在一起可升一级，解锁更强能力。注意：合成会少一名兵，可能拆掉合击——拖动时会预览收益与代价。' },
+    { title: '第四步 · 两种资源', body: '军粮用来招募（遣散会返还）；银币用来扩大阵地、商店强化和高级招募。靠营寨左上角的粮 / 银随时查看。' },
+    { title: '第五步 · 成长与技能', body: '士兵 3 级可选强化路线；特定两种兵可融合成新兵；每 2 波选一张战术牌；按 Q 放英雄技能。首次出现的敌人和 Boss 都会有说明。' },
+  ]
+
+  private startTutorial(): void {
+    this.tutorialStep = 0
+    this.showTutorialStep()
+  }
+
+  private showTutorialStep(): void {
+    const steps = LegionGame.TUTORIAL
+    const i = this.tutorialStep
+    if (i < 0 || i >= steps.length) { this.ui.hideCoach(); return }
+    this.ui.showCoach({ step: i + 1, total: steps.length, title: steps[i].title, body: steps[i].body, last: i === steps.length - 1 })
+  }
+
+  private tutorialNext(): void {
+    if (this.tutorialStep < 0) return
+    this.tutorialStep++
+    if (this.tutorialStep >= LegionGame.TUTORIAL.length) { this.finishTutorial(); return }
+    this.showTutorialStep()
+  }
+
+  private finishTutorial(): void {
+    this.tutorialStep = -1
+    this.ui.hideCoach()
+    if (!this.save.tutorialDone) {
+      this.save.tutorialDone = true
+      writeSave(this.save)
+    }
+  }
+
+  /* ================= 动态策略建议 ================= */
+
+  private updateSuggestion(): void {
+    if (this.phase !== 'prep' && this.phase !== 'wave') { this.ui.hideSuggest(); this.lastSuggest = ''; return }
+    if (this.ui.overlayOn || this.tutorialStep >= 0) return
+    if (this.suggestCd > 0) { this.suggestCd -= 2.5; return }
+    const s = this.computeSuggestion()
+    if (!s) { this.ui.hideSuggest(); this.lastSuggest = ''; return }
+    if (s === this.lastSuggest) return
+    this.lastSuggest = s
+    this.ui.showSuggest(s)
+    this.suggestCd = 12
+  }
+
+  /** 全部基于真实局面计算，不用固定文案冒充智能 */
+  private computeSuggestion(): string | null {
+    if (this.strokes.some((s) => s.suppress)) return '合击正被断笔者压制：优先击杀靠近阵型的断笔者即可恢复'
+    if (this.phase === 'prep') {
+      if (this.coverageGap()) return '靠近营寨的道路缺少攻击覆盖，敌人可能直接穿过防线'
+      if (this.synergyTip()) return '工程师与相邻士兵形成「军械」联动：把它放到刀兵 / 枪兵旁可加攻击与攻速'
+      if (this.grain >= this.recruitCost() * 2 && this.bench.length < this.benchSlots) return '军粮充足：可招募补兵，或留作合成升阶'
+    }
+    return null
+  }
+
+  /** 末段（靠近营寨）道路是否存在无人覆盖的缺口 */
+  private coverageGap(): boolean {
+    const total = this.board.len()
+    if (total <= 0) return false
+    const covers: { x: number; y: number; reach: number }[] = []
+    for (const u of this.battle.units) {
+      if (!u.active || u.hero) continue
+      const c = this.board.center(u.cell)
+      covers.push({ x: c.x, y: c.y, reach: (UNIT_BY_ID[u.kind].range + this.unitRangeBonus(u)) * this.board.cell })
+    }
+    if (!covers.length) return true
+    let uncovered = 0
+    const step = Math.max(0.2, total / 40)
+    for (let p = total * 0.68; p <= total; p += step) {
+      const w = this.board.laneWorld('center', p)
+      const hit = covers.some((c) => Math.hypot(w.x - c.x, w.y - c.y) <= c.reach)
+      uncovered = hit ? 0 : uncovered + 1
+      if (uncovered >= 3) return true
+    }
+    return false
+  }
+
+  /** 有工程师、有近战兵，但工程师还没形成军械联动 → 提示相邻部署 */
+  private synergyTip(): boolean {
+    const eng = this.battle.units.filter((u) => u.active && !u.hero && u.kind === 'engineer')
+    if (!eng.length) return false
+    const hasMelee = this.battle.units.some((u) => u.active && !u.hero && (u.kind === 'blade' || u.kind === 'spear'))
+    if (!hasMelee) return false
+    return eng.every((u) => !u.syn.includes('军械'))
+  }
+
+  /** 首次出现的敌人 / Boss 给一句通俗说明（每局每种只说一次，不打断操作） */
+  private explainNewEnemies(rows: SpawnRow[], boss: BossId | ''): void {
+    const tips: Record<string, string> = {
+      raider: '普通近战，沿路推进',
+      runner: '移动很快，小心漏过防线',
+      brute: '血厚甲高，需要集中火力',
+      gunner: '远程攻击，射程约 2.8 格',
+      bomber: '靠近营寨会自爆，优先拦截',
+      splitter: '死亡时分裂成 2 只小虫',
+      hexer: '辅助单位，给附近敌人加速',
+      champion: '精英重装，血量和护甲极高',
+      breaker: '靠近阵型会压制合击，优先击杀',
+    }
+    for (const r of rows) {
+      if (this.seenEnemies.has(r.kind)) continue
+      this.seenEnemies.add(r.kind)
+      const d = ENEMY_BY_ID[r.kind]
+      this.ui.toast(`新敌人 · ${d.name}：${tips[r.kind] || d.role}`, 'warn')
+    }
+    if (boss && !this.seenBosses.has(boss)) {
+      this.seenBosses.add(boss)
+      const bt: Record<string, string> = {
+        shanxiao: '砸地造成范围伤害，注意分散站位',
+        iron: '先打破铁盾，才能造成有效伤害',
+        spider: '铺网降低我军攻速，并不断产卵',
+        drum: '鼓声让敌人加速，并给自己回血',
+        qilin: '起雾收缩射程；抹笔会暂停所有合击 6 秒',
+      }
+      this.ui.toast(`${BOSS_BY_ID[boss].name}：${bt[boss] || ''}`, 'warn')
+    }
   }
 
   private finishWave(): void {
@@ -746,7 +948,7 @@ export class LegionGame implements BattleHost, UiHostLike {
       this.ui.toast(`战利品：${it.name}`, 'good')
     }
     const tier = Math.floor(this.wave / 50)
-    if (tier > 0) this.ui.toast(`Boss 轮次 ${tier}：属性额外加成`, 'warn')
+    if (tier > 0) this.ui.toast(`Boss 第 ${tier} 轮 · 生命与护甲更强`, 'warn')
     this.checkLiveAchievements()
     this.syncAll()
     this.persistCheckpoint()
@@ -925,7 +1127,7 @@ export class LegionGame implements BattleHost, UiHostLike {
       /* 贴顶的直锋会把字顶进顶栏，夹回棋盘内 */
       const my = Math.max(this.board.oy + this.board.cell * 0.8, (a.y + b.y) / 2 - this.board.cell * 0.3)
       this.fx.shock(mx, (a.y + b.y) / 2, this.board.cell * 0.3, this.board.cell * Math.max(1.2, s.len * 0.5), '#3a332a', 0.45, 2)
-      this.fx.text(mx, my, `${strokeName(s.kind)} · 成阵`, '#3a332a', 13)
+      this.fx.text(mx, my, `${s.kind === 'row' ? '横排合击' : '竖列集火'}成形`, '#3a332a', 13)
       this.audio.sfx('stroke', 0.55)
     }
     this.strokeSeen = nextSeen
@@ -958,7 +1160,7 @@ export class LegionGame implements BattleHost, UiHostLike {
       rarity: u.hero ? '统帅' : RARITY_LABEL[def.rarity],
       color: u.hero ? HERO_BY_ID[u.hero].color : RARITY_COLOR[def.rarity],
       lv: u.lv,
-      branch: br ? `${br.name} · ${br.desc}` : u.lv >= 3 ? '待选专精' : '三级时可选专精',
+      branch: br ? `${br.name} · ${br.desc}` : u.lv >= 3 ? '强化路线：待选择' : '3 级时选强化路线',
       hp: `${Math.ceil(u.hp)}/${Math.round(u.maxHp)}`,
       atk: String(Math.round(u.atk * (1 + this.unitAtkBonus(u)))),
       atkSpeed: `${(1 / Math.max(0.1, u.cd / Math.max(0.2, 1 + this.unitRateBonus(u)))).toFixed(1)} /秒`,
@@ -968,7 +1170,7 @@ export class LegionGame implements BattleHost, UiHostLike {
       note: br ? br.effect : def.role,
       strokeNote: (() => {
         for (const s of this.strokes) if (s.cells.includes(u.cell)) {
-          return `${strokeName(s.kind)} · ${s.len} 连 · ${s.suppress ? '被压制，暂不生效' : strokeBrief(s.kind)}`
+          return `${s.kind === 'row' ? '横排合击' : '竖列集火'} · ${s.len} 人 · ${s.suppress ? '被敌人压制，暂不生效' : (s.kind === 'row' ? '横扫这一行道路' : '集火最前面的敌人')}`
         }
         return ''
       })(),
@@ -1035,7 +1237,7 @@ export class LegionGame implements BattleHost, UiHostLike {
       return false
     }
     if (this.grain < card.cost) {
-      this.ui.toast('军粮不足 · 先扛过这一波', 'bad')
+      this.ui.toast(`军粮不足：需要 ${card.cost}，现有 ${Math.floor(this.grain)}`, 'bad')
       this.audio.sfx('error')
       return false
     }
@@ -1053,8 +1255,20 @@ export class LegionGame implements BattleHost, UiHostLike {
   }
 
   private toastBenchFull(): void {
-    this.ui.toast('点将台满了 · 把兵拖上场或遣散', 'bad')
+    this.ui.toast(`预备兵营已满（${this.bench.length}/${this.benchSlots}）：先部署或遣散`, 'bad')
     this.audio.sfx('error')
+  }
+
+  /** 银币不足：说清需要多少、现有多少 */
+  private poorSilver(cost: number): void {
+    this.ui.toast(`银币不足：需要 ${cost}，现有 ${Math.floor(this.silver)}`, 'bad')
+    this.audio.sfx('error')
+  }
+
+  /** 不能合成/融合时说明原因 */
+  private combineFailReason(ak: string, al: number, bk: string, bl: number): string {
+    if (ak === bk && al !== bl) return '同名但等级不同：需同级才能合成'
+    return '这两种兵既不同名、也不可融合'
   }
 
   private rerollCards(itemFree = false): void {
@@ -1062,7 +1276,7 @@ export class LegionGame implements BattleHost, UiHostLike {
     if (!itemFree) {
       if (this.freeRerolls > 0) this.freeRerolls--
       else if (this.silver >= cost) this.silver -= cost
-      else { this.ui.toast('银币不足', 'bad'); this.audio.sfx('error'); return }
+      else { this.poorSilver(cost); return }
     }
     this.cards = this.rollCards(false)
     this.audio.sfx('ui')
@@ -1071,11 +1285,11 @@ export class LegionGame implements BattleHost, UiHostLike {
 
   private premiumRoll(): void {
     const cost = this.premiumCost()
-    if (this.silver < cost) { this.ui.toast('银币不足', 'bad'); this.audio.sfx('error'); return }
+    if (this.silver < cost) { this.poorSilver(cost); return }
     this.silver -= cost
     this.cards = this.rollCards(true)
     this.audio.sfx('rare')
-    this.ui.toast('重金纳贤 · 榜上有名', 'good')
+    this.ui.toast('高级招募：更易出稀有 / 史诗 / 传说', 'good')
     this.syncAll()
   }
 
@@ -1088,8 +1302,8 @@ export class LegionGame implements BattleHost, UiHostLike {
       if (!this.recruitCard(idx2)) break
       n++
     }
-    if (n) this.ui.toast(`连招 ${n} 人`, 'good')
-    else this.ui.toast('招不动了', 'bad')
+    if (n) this.ui.toast(`一键招募 ${n} 人`, 'good')
+    else this.ui.toast('军粮不足或兵营已满，无法招募', 'bad')
   }
 
   /* ================= 拖拽 ================= */
@@ -1237,7 +1451,7 @@ export class LegionGame implements BattleHost, UiHostLike {
       const b = this.bench[d.benchTarget]
       const mode = b ? this.combineMode(d.kind, d.lv, b.kind, b.lv) : ''
       if (!mode) {
-        this.ui.toast('这两张不能合', 'bad')
+        this.ui.toast('这两张无法合成或融合', 'bad')
         this.audio.sfx('error')
       } else {
         this.combineBench(d.index, d.benchTarget, mode)
@@ -1290,7 +1504,7 @@ export class LegionGame implements BattleHost, UiHostLike {
     if (!a) { this.benchPicked = -1; this.syncBench(); return }
     const mode = this.combineMode(a.kind, a.lv, b.kind, b.lv)
     if (!mode) {
-      this.ui.toast('这两张不能合', 'bad')
+      this.ui.toast('这两张无法合成或融合', 'bad')
       this.audio.sfx('error')
       this.benchPicked = index
       this.syncBench()
@@ -1346,7 +1560,7 @@ export class LegionGame implements BattleHost, UiHostLike {
       this.audio.sfx('merge')
       this.ui.toast(`合兵 ×${made}`, 'good')
     } else {
-      this.ui.toast('没有同名可合', 'bad')
+      this.ui.toast('没有可合成的同名兵', 'bad')
       this.audio.sfx('error')
     }
     this.syncAll()
@@ -1373,7 +1587,7 @@ export class LegionGame implements BattleHost, UiHostLike {
     }
     const mode = occupant.hero ? '' : this.combineMode(b.kind, b.lv, occupant.kind, occupant.lv)
     if (!mode) {
-      this.ui.toast('这一格不能叠', 'bad')
+      this.ui.toast(this.combineFailReason(b.kind, b.lv, occupant.kind, occupant.lv), 'bad')
       this.audio.sfx('error')
       return
     }
@@ -1401,7 +1615,7 @@ export class LegionGame implements BattleHost, UiHostLike {
     }
     const mode = src.hero || dst.hero ? '' : this.combineMode(src.kind, src.lv, dst.kind, dst.lv)
     if (!mode) {
-      this.ui.toast('这一格不能叠', 'bad')
+      this.ui.toast(this.combineFailReason(src.kind, src.lv, dst.kind, dst.lv), 'bad')
       this.audio.sfx('error')
       return
     }
@@ -1419,7 +1633,7 @@ export class LegionGame implements BattleHost, UiHostLike {
     let lost = 0
     for (const k of before) if (!after.has(k)) lost++
     if (!lost) return
-    this.ui.toast(`拆阵 · 断了 ${lost} 条笔势`, 'warn')
+    this.ui.toast(`合击被拆：少了 ${lost} 条合击`, 'warn')
     this.audio.sfx('cut', 0.9)
   }
 
@@ -1478,7 +1692,7 @@ export class LegionGame implements BattleHost, UiHostLike {
     this.fx.text(c.x, c.y - R * 0.36, label, fused ? '#2f5548' : newLv >= 5 ? '#b8860b' : '#3f6b3a', fused ? 22 : newLv >= 5 ? 22 : 16)
     this.audio.sfx(fused ? 'merge5' : newLv >= 5 ? 'merge5' : 'merge')
     this.shake(fused || newLv >= 5 ? 6 : 2)
-    if (fused) this.ui.banner('异兵融 · 两笔成一兵', `${resultDef.name}`, 'gold')
+    if (fused) this.ui.banner('融合成功', `${resultDef.name}`, 'gold')
     if (newLv >= 5) this.ui.banner('五级 · 不动如山', `${resultDef.levels[4].name}`, 'gold')
     if (newLv >= 4) this.grantAch('lv4')
     if (newLv >= 5) this.grantAch('lv5')
@@ -1600,8 +1814,7 @@ export class LegionGame implements BattleHost, UiHostLike {
   private tryUnlock(cell: number): void {
     const cost = unlockCost(this.cells.size)
     if (this.silver < cost) {
-      this.ui.toast(`开格要 ${cost} 银`, 'bad')
-      this.audio.sfx('error')
+      this.poorSilver(cost)
       return
     }
     this.silver -= cost
@@ -1629,7 +1842,7 @@ export class LegionGame implements BattleHost, UiHostLike {
     this.consumeItem(slot)
     switch (id) {
       case 'draft': {
-        if (this.bench.length >= this.benchSlots) { this.ui.toast('点将台满了', 'bad'); return }
+        if (this.bench.length >= this.benchSlots) { this.ui.toast(`预备兵营已满（${this.bench.length}/${this.benchSlots}）`, 'bad'); return }
         const n = this.pickAvailableKind(this.luck() + 10, false)
         this.bench.push({ kind: n.kind, lv: 1, veteran: false })
         this.audio.sfx('recruit')
@@ -1695,7 +1908,7 @@ export class LegionGame implements BattleHost, UiHostLike {
     if (id === 'levelup') {
       const u = this.battle.unitAt(cell)
       if (!u || u.hero) { this.ui.toast('这里没有可升级的单位', 'bad'); return true }
-      if (u.lv >= 5) { this.ui.toast('已经五级了', 'bad'); this.armed = null; return true }
+      if (u.lv >= 5) { this.ui.toast('已是最高等级（5 级）', 'bad'); this.armed = null; return true }
       const oldRatio = u.hp / Math.max(1, u.maxHp)
       this.battle.removeUnit(u, true)
       const nu = this.battle.addUnit(u.kind, u.lv + 1, u.veteran, cell)
@@ -1741,9 +1954,13 @@ export class LegionGame implements BattleHost, UiHostLike {
       case 'hero-unlock': this.unlockHero(arg as HeroId); break
       case 'meta': this.openMeta(); break
       case 'help': this.openHelp(); break
+      case 'tutorial': this.hideOverlay(); this.startTutorial(); break
+      case 'tutorial-next': this.tutorialNext(); break
+      case 'tutorial-skip': this.finishTutorial(); break
+      case 'suggest-dismiss': this.ui.hideSuggest(); this.lastSuggest = ''; this.suggestCd = 20; break
       case 'settings': this.openSettings(); break
       case 'again': this.startRun(this.hero, false); break
-      case 'quit': this.close(); this.ui.toast('已收兵回目录', ''); return
+      case 'quit': this.close(); this.ui.toast('已返回游戏厅', ''); return
       case 'resume-run': this.resumeFromOverlay(); break
       case 'pause': this.togglePause(); break
       case 'start-wave':
@@ -1895,7 +2112,7 @@ export class LegionGame implements BattleHost, UiHostLike {
 
   private castHeroSkill(): void {
     if (this.heroSkillT > 0) { this.ui.toast(`技能冷却 ${Math.ceil(this.heroSkillT)} 秒`, 'bad'); return }
-    if (this.heroDead) { this.ui.toast('英雄已阵亡', 'bad'); return }
+    if (this.heroDead) { this.ui.toast('英雄已阵亡 · 下一波归队', 'bad'); return }
     this.battle.heroSkill(this.hero)
     this.heroSkillT = HERO_CD[this.hero]
     this.skillCasts++
@@ -1909,7 +2126,7 @@ export class LegionGame implements BattleHost, UiHostLike {
     const lv = this.ups[id] || 0
     if (lv >= def.max) return
     const price = Math.round(def.price(lv, this.wave))
-    if (this.silver < price) { this.ui.toast('银币不足', 'bad'); return }
+    if (this.silver < price) { this.poorSilver(price); return }
     this.silver -= price
     this.ups[id] = lv + 1
     if (id === 'baseHp') {
@@ -1928,8 +2145,8 @@ export class LegionGame implements BattleHost, UiHostLike {
     const def = ITEM_BY_ID[id]
     if (!def) return
     const price = Math.round(def.price * (1 + this.wave * 0.03))
-    if (this.silver < price) { this.ui.toast('银币不足', 'bad'); return }
-    if (this.items.length >= 6) { this.ui.toast('道具栏满了', 'bad'); return }
+    if (this.silver < price) { this.poorSilver(price); return }
+    if (this.items.length >= 6) { this.ui.toast('道具栏已满（6/6）', 'bad'); return }
     this.silver -= price
     const slot = this.items.find((i) => i.id === id)
     if (slot) slot.charges++
@@ -1951,7 +2168,7 @@ export class LegionGame implements BattleHost, UiHostLike {
     const ups = INGAME_UPS.map((u) => {
       const lv = this.ups[u.id] || 0
       const price = Math.round(u.price(lv, this.wave))
-      return { id: u.id, name: u.name, glyph: u.glyph, desc: u.desc, lv, max: u.max, price, afford: this.silver >= price }
+      return { id: u.id, name: u.name, sub: u.sub, glyph: u.glyph, desc: u.desc, lv, max: u.max, price, afford: this.silver >= price }
     })
     const items = ITEM_DEFS.map((i) => {
       const price = Math.round(i.price * (1 + this.wave * 0.03))
@@ -1990,8 +2207,8 @@ export class LegionGame implements BattleHost, UiHostLike {
         desc: '他不问战事，只问你要不要。',
         choices: [
           { id: 'a', label: '买一件道具', desc: '随机道具，价钱好说', cost: `${Math.round(30 * scale)} 银`, tone: '' },
-          { id: 'b', label: '买一个兵', desc: '稀有兵种直接进点将台', cost: `${Math.round(40 * scale)} 银`, tone: 'good' },
-          { id: 'c', label: '让他滚', desc: '军粮 +20', cost: '免费', tone: '' },
+          { id: 'b', label: '买一个兵', desc: '随机强力兵种进预备兵营', cost: `${Math.round(40 * scale)} 银`, tone: 'good' },
+          { id: 'c', label: '请他离开', desc: '军粮 +20', cost: '免费', tone: '' },
         ],
       }
     }
@@ -2000,8 +2217,8 @@ export class LegionGame implements BattleHost, UiHostLike {
         title: '榜下有异人',
         desc: '一个披着旧袍的人站在营外，说他能打。',
         choices: [
-          { id: 'a', label: '请他入帐', desc: '随机稀有兵种（免费）', cost: '免费', tone: 'good' },
-          { id: 'b', label: '重礼聘骑', desc: '骑兵直接进点将台', cost: `${Math.round(45 * scale)} 银`, tone: 'gold' },
+          { id: 'a', label: '请他入帐', desc: '随机强力兵种（免费）', cost: '免费', tone: 'good' },
+          { id: 'b', label: '重礼聘将', desc: '强力兵种进预备兵营（骑兵或法师）', cost: `${Math.round(45 * scale)} 银`, tone: 'gold' },
           { id: 'c', label: '婉拒', desc: '军粮 +25', cost: '免费', tone: '' },
         ],
       }
@@ -2018,6 +2235,7 @@ export class LegionGame implements BattleHost, UiHostLike {
     }
     if (kind === 'buff') {
       const picks = INGAME_UPS.slice().sort(() => this.rng() - 0.5).slice(0, 3)
+      this.eventBuffPicks = picks
       return {
         title: '残阵遗址',
         desc: '前人留下的阵图，照着摆能省不少事。选一项，直接 +2 级。',
@@ -2071,8 +2289,8 @@ export class LegionGame implements BattleHost, UiHostLike {
         this.ui.toast('鼓声已起 · 下一波更凶', 'warn')
       } else this.addGrain(20)
     } else if (kind === 'buff') {
-      const picks = INGAME_UPS.slice().sort(() => this.rng() - 0.5).slice(0, 3)
-      const pick = picks[Number(id)] || picks[0]
+      /* 复用展示时抽好的选项，避免「选的是 A，生效的是 B」 */
+      const pick = this.eventBuffPicks[Number(id)] || this.eventBuffPicks[0]
       if (pick) {
         const cur = this.ups[pick.id] || 0
         const add = Math.min(pick.max - cur, 2)
@@ -2088,7 +2306,7 @@ export class LegionGame implements BattleHost, UiHostLike {
     } else {
       if (id === 'a') {
         this.pending = { budget: 0.25, elite: 0.25, silver: 150, label: '迎击' }
-        this.ui.toast('林中的东西接受了你', 'warn')
+        this.ui.toast('迎击生效 · 下波精英更多，清空奖励银币', 'warn')
       } else if (id === 'b') {
         const cost = Math.round(25 * scale)
         if (this.silver < cost) { this.ui.toast('银币不够', 'bad'); return }
@@ -2111,14 +2329,14 @@ export class LegionGame implements BattleHost, UiHostLike {
   }
 
   private giveUnitToBench(kind: UnitKind): void {
-    if (this.bench.length >= this.benchSlots) { this.ui.toast('点将台满了', 'bad'); return }
+    if (this.bench.length >= this.benchSlots) { this.ui.toast(`预备兵营已满（${this.bench.length}/${this.benchSlots}）`, 'bad'); return }
     this.bench.push({ kind, lv: 1, veteran: false })
     this.recruits.add(kind)
     this.ui.toast(`入帐：${UNIT_BY_ID[kind].name}`, 'good')
   }
 
   private giveRandomItem(): void {
-    if (this.items.length >= 6) { this.ui.toast('道具栏满了', 'bad'); return }
+    if (this.items.length >= 6) { this.ui.toast('道具栏已满（6/6）', 'bad'); return }
     const it = ITEM_DEFS[Math.floor(this.rng() * ITEM_DEFS.length)]
     const slot = this.items.find((i) => i.id === it.id)
     if (slot) slot.charges++
@@ -2154,7 +2372,7 @@ export class LegionGame implements BattleHost, UiHostLike {
         const gold = u.gold(lv)
         const mat = u.mat(lv)
         return {
-          id: u.id, name: u.name, glyph: u.glyph, desc: u.desc(lv), lv, max: u.max,
+          id: u.id, name: u.name, sub: u.sub, glyph: u.glyph, desc: u.desc(lv), lv, max: u.max,
           gold, mat, afford: this.save.gold >= gold && this.save.mat >= mat, maxed: lv >= u.max,
         }
       }),
@@ -2173,7 +2391,7 @@ export class LegionGame implements BattleHost, UiHostLike {
     if (lv >= def.max) return
     const gold = def.gold(lv)
     const mat = def.mat(lv)
-    if (this.save.gold < gold || this.save.mat < mat) { this.ui.toast('资源不够', 'bad'); return }
+    if (this.save.gold < gold || this.save.mat < mat) { this.ui.toast(`资源不足：需 ${gold} 金币 / ${mat} 材料，现有 ${this.save.gold} 金币 / ${this.save.mat} 材料`, 'bad'); return }
     this.save.gold -= gold
     this.save.mat -= mat
     this.save.meta[id] = lv + 1
@@ -2390,10 +2608,10 @@ export class LegionGame implements BattleHost, UiHostLike {
     const units = this.battle.units.filter((u) => u.active && !u.hero)
     for (const u of units) {
       const out = fusionOf(kind, u.kind)
-      if (out) return `融·${UNIT_BY_ID[out].glyph}`
+      if (out) return `可融·${UNIT_BY_ID[out].name}`
     }
-    if (lv < 5 && units.some((u) => u.kind === kind && u.lv === lv)) return `合 Lv${lv + 1}`
-    if (canForm) return '补成阵'
+    if (lv < 5 && units.some((u) => u.kind === kind && u.lv === lv)) return `可合·Lv${lv + 1}`
+    if (canForm) return '补位成合击'
     return ''
   }
 

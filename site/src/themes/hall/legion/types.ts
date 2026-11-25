@@ -134,6 +134,8 @@ export interface ItemDef {
 export interface InGameUpDef {
   id: InGameUpId
   name: string
+  /** 双层命名：原名作为小字副标题（name 已是通俗主名时省略） */
+  sub?: string
   glyph: string
   desc: string
   max: number
@@ -143,6 +145,7 @@ export interface InGameUpDef {
 export interface MetaDef {
   id: MetaId
   name: string
+  sub?: string
   glyph: string
   desc: (lv: number) => string
   max: number

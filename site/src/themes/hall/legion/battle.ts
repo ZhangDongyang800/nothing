@@ -1572,7 +1572,7 @@ export class Battle {
           this.strokeBeam(f.x, f.y, l.x, l.y, '#8a2f2a', 0.5, Math.max(3, b.cell * 0.14))
         }
         this.host.fx.shock(pc.x, pc.y, b.cell * 1.2, b.cell * 4.2, '#2f3340', 0.7, 2)
-        this.host.notify('墨麒麟抹去笔势：6 秒内成阵失效', 'bad')
+        this.host.notify('墨麒麟抹笔：6 秒内所有阵线合击失效', 'bad')
         break
       }
       default:

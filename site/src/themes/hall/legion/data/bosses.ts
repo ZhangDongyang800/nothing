@@ -26,9 +26,9 @@ export const BOSS_DEFS: BossDef[] = [
     rewardSilver: 24,
     intro: '山魈王踏着枯枝下来了',
     phases: [
-      { name: '怒啸', abilities: [{ id: 'slam', cd: 6, warn: 0.9, text: '山魈王捶地' }, { id: 'summon', cd: 9, warn: 0.6, text: '林间窜出流寇' }] },
-      { name: '裂岩', abilities: [{ id: 'slam', cd: 5, warn: 0.8, text: '山魈王捶地' }, { id: 'charge', cd: 8, warn: 0.9, text: '山魈王冲撞' }] },
-      { name: '狂魈', abilities: [{ id: 'slam', cd: 4, warn: 0.7, text: '山魈王捶地' }, { id: 'summon', cd: 7, warn: 0.5, text: '林间窜出流寇' }, { id: 'roar', cd: 10, warn: 0.7, text: '山魈王怒吼' }] },
+      { name: '怒啸', abilities: [{ id: 'slam', cd: 6, warn: 0.9, text: '砸地 · 范围伤害' }, { id: 'summon', cd: 9, warn: 0.6, text: '召唤援兵' }] },
+      { name: '裂岩', abilities: [{ id: 'slam', cd: 5, warn: 0.8, text: '砸地 · 范围伤害' }, { id: 'charge', cd: 8, warn: 0.9, text: '冲撞 · 直线伤害并前进' }] },
+      { name: '狂魈', abilities: [{ id: 'slam', cd: 4, warn: 0.7, text: '砸地 · 范围伤害' }, { id: 'summon', cd: 7, warn: 0.5, text: '召唤援兵' }, { id: 'roar', cd: 10, warn: 0.7, text: '怒吼 · 震住近身单位' }] },
     ],
   },
   {
@@ -46,9 +46,9 @@ export const BOSS_DEFS: BossDef[] = [
     rewardSilver: 36,
     intro: '铁浮屠压过来，纸面都在响',
     phases: [
-      { name: '铸甲', abilities: [{ id: 'shield', cd: 8, warn: 0.5, text: '铁浮屠开始铸盾' }, { id: 'charge', cd: 11, warn: 1.0, text: '铁浮屠冲撞' }] },
-      { name: '崩甲', abilities: [{ id: 'slam', cd: 6, warn: 0.9, text: '铁浮屠震地' }, { id: 'shield', cd: 9, warn: 0.5, text: '铁浮屠开始铸盾' }] },
-      { name: '碾阵', abilities: [{ id: 'charge', cd: 7, warn: 0.8, text: '铁浮屠冲撞' }, { id: 'slam', cd: 5, warn: 0.8, text: '铁浮屠震地' }, { id: 'shield', cd: 10, warn: 0.4, text: '铁浮屠开始铸盾' }] },
+      { name: '铸甲', abilities: [{ id: 'shield', cd: 8, warn: 0.5, text: '铸盾 · 需先破盾' }, { id: 'charge', cd: 11, warn: 1.0, text: '冲撞 · 直线伤害并前进' }] },
+      { name: '崩甲', abilities: [{ id: 'slam', cd: 6, warn: 0.9, text: '震地 · 范围伤害' }, { id: 'shield', cd: 9, warn: 0.5, text: '铸盾 · 需先破盾' }] },
+      { name: '碾阵', abilities: [{ id: 'charge', cd: 7, warn: 0.8, text: '冲撞 · 直线伤害并前进' }, { id: 'slam', cd: 5, warn: 0.8, text: '震地 · 范围伤害' }, { id: 'shield', cd: 10, warn: 0.4, text: '铸盾 · 需先破盾' }] },
     ],
   },
   {
@@ -66,9 +66,9 @@ export const BOSS_DEFS: BossDef[] = [
     rewardSilver: 46,
     intro: '赤蛛母拖着卵囊爬上山道',
     phases: [
-      { name: '产卵', abilities: [{ id: 'spiders', cd: 7, warn: 0.6, text: '赤蛛母产卵' }, { id: 'web', cd: 9, warn: 0.5, text: '赤蛛母铺网' }] },
-      { name: '毒雾', abilities: [{ id: 'poison', cd: 8, warn: 0.9, text: '毒雾漫开' }, { id: 'spiders', cd: 9, warn: 0.5, text: '赤蛛母产卵' }] },
-      { name: '蛛巢', abilities: [{ id: 'poison', cd: 6, warn: 0.8, text: '毒雾漫开' }, { id: 'web', cd: 6, warn: 0.4, text: '赤蛛母铺网' }, { id: 'summon', cd: 8, warn: 0.5, text: '巢中涌出裂虫' }] },
+      { name: '产卵', abilities: [{ id: 'spiders', cd: 7, warn: 0.6, text: '产卵 · 生成裂虫' }, { id: 'web', cd: 9, warn: 0.5, text: '铺网 · 降低我军攻速' }] },
+      { name: '毒雾', abilities: [{ id: 'poison', cd: 8, warn: 0.9, text: '毒雾 · 范围持续伤害' }, { id: 'spiders', cd: 9, warn: 0.5, text: '产卵 · 生成裂虫' }] },
+      { name: '蛛巢', abilities: [{ id: 'poison', cd: 6, warn: 0.8, text: '毒雾 · 范围持续伤害' }, { id: 'web', cd: 6, warn: 0.4, text: '铺网 · 降低我军攻速' }, { id: 'summon', cd: 8, warn: 0.5, text: '涌出裂虫' }] },
     ],
   },
   {
@@ -86,9 +86,9 @@ export const BOSS_DEFS: BossDef[] = [
     rewardSilver: 54,
     intro: '鼓妖敲响自己，山道跟着一起跳',
     phases: [
-      { name: '催阵', abilities: [{ id: 'drum', cd: 7, warn: 0.5, text: '鼓妖催阵' }, { id: 'heal', cd: 10, warn: 0.4, text: '鼓妖回气' }] },
-      { name: '乱心', abilities: [{ id: 'silence', cd: 9, warn: 0.8, text: '鼓声乱心' }, { id: 'drum', cd: 8, warn: 0.5, text: '鼓妖催阵' }] },
-      { name: '破阵', abilities: [{ id: 'drum', cd: 6, warn: 0.4, text: '鼓妖催阵' }, { id: 'slam', cd: 7, warn: 0.7, text: '鼓妖震地' }, { id: 'heal', cd: 9, warn: 0.3, text: '鼓妖回气' }] },
+      { name: '催阵', abilities: [{ id: 'drum', cd: 7, warn: 0.5, text: '催阵 · 全体敌人加速' }, { id: 'heal', cd: 10, warn: 0.4, text: '回气 · 自我回血' }] },
+      { name: '乱心', abilities: [{ id: 'silence', cd: 9, warn: 0.8, text: '乱心 · 范围内无法出手' }, { id: 'drum', cd: 8, warn: 0.5, text: '催阵 · 全体敌人加速' }] },
+      { name: '破阵', abilities: [{ id: 'drum', cd: 6, warn: 0.4, text: '催阵 · 全体敌人加速' }, { id: 'slam', cd: 7, warn: 0.7, text: '震地 · 范围伤害' }, { id: 'heal', cd: 9, warn: 0.3, text: '回气 · 自我回血' }] },
     ],
   },
   {
@@ -106,9 +106,9 @@ export const BOSS_DEFS: BossDef[] = [
     rewardSilver: 70,
     intro: '墨麒麟从纸背里走了出来',
     phases: [
-      { name: '起雾', abilities: [{ id: 'fog', cd: 8, warn: 0.6, text: '墨雾遮眼' }, { id: 'teleport', cd: 10, warn: 0.5, text: '墨麒麟潜行' }] },
-      { name: '开卷', abilities: [{ id: 'beam', cd: 9, warn: 1.0, text: '墨线贯阵' }, { id: 'fog', cd: 10, warn: 0.6, text: '墨雾遮眼' }] },
-      { name: '收官', abilities: [{ id: 'erase', cd: 11, warn: 0.8, text: '墨麒麟抹笔' }, { id: 'beam', cd: 7, warn: 0.8, text: '墨线贯阵' }, { id: 'slam', cd: 7, warn: 0.7, text: '墨麒麟踏地' }] },
+      { name: '起雾', abilities: [{ id: 'fog', cd: 8, warn: 0.6, text: '起雾 · 全军射程收缩' }, { id: 'teleport', cd: 10, warn: 0.5, text: '潜行 · 向前瞬移' }] },
+      { name: '开卷', abilities: [{ id: 'beam', cd: 9, warn: 1.0, text: '墨线 · 直线贯阵伤害' }, { id: 'fog', cd: 10, warn: 0.6, text: '起雾 · 全军射程收缩' }] },
+      { name: '收官', abilities: [{ id: 'erase', cd: 11, warn: 0.8, text: '抹笔 · 暂停所有合击 6 秒' }, { id: 'beam', cd: 7, warn: 0.8, text: '墨线 · 直线贯阵伤害' }, { id: 'slam', cd: 7, warn: 0.7, text: '踏地 · 范围伤害' }] },
     ],
   },
 ]
