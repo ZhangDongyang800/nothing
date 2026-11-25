@@ -1702,6 +1702,16 @@ export class Battle {
           p.hit.push(e.id)
           const crit = false
           this.hitEnemy(e, p.dmg, { color: p.color, crit })
+          /* 命中按弹种给不同的物质反馈：箭溅木屑、弩迸火星、火炸焰与烟。
+             原来只有溅射才有冲击波，普通命中一点痕迹都没有。 */
+          if (p.kind === 'fire') {
+            this.host.fx.burst(p.x, p.y, '#e07b3c', 5, cell * 2.4, 'spark')
+            this.host.fx.burst(p.x, p.y, '#6a5348', 2, cell * 0.8, 'smoke')
+          } else if (p.kind === 'bolt') {
+            this.host.fx.burst(p.x, p.y, '#3f6350', 4, cell * 2.2, 'spark')
+          } else {
+            this.host.fx.burst(p.x, p.y, p.color, 3, cell * 1.8, 'shard')
+          }
           if (p.burn > 0) { e.burnT = Math.max(e.burnT, 3); e.burnDmg = p.burn }
           if (p.splash > 0) {
             this.host.fx.shock(e.x, e.y, 4, p.splash, p.color, 0.35, 3)

@@ -29,6 +29,13 @@ const SEAL = '#e35b4f'
 const GOLD = '#ffd166'
 const SERIF = '"STKaiti","KaiTi","Noto Serif SC","Source Han Serif SC","Songti SC",serif'
 
+/** 确定性散列：地面碎石/纸纹用它定位，静态层缓存后每帧完全一致 */
+function cellHash(a: number, b: number): number {
+  let h = Math.imul(a + 1, 374761393) ^ Math.imul(b + 1, 668265263)
+  h = Math.imul(h ^ (h >>> 13), 1274126177)
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296
+}
+
 /* 棋盘上每个兵种压一个字的职能标记：不解释数值，只提示怎么打 */
 const KIND_MARK: Record<string, string> = {
   blade: '斩', spear: '穿', bow: '射', cavalry: '冲', mage: '法',
@@ -233,7 +240,7 @@ export class Scene {
             g.fillText('营 寨', cx, ry + rw * 0.73)
             g.globalAlpha = 1
           } else {
-            /* 行军土路：三层。底色吃光、中间浅、边线深 */
+            /* 行军土路：底色吃光、中间浅、边线深，再撒碎石与路肩 */
             const px = b.ox + x * cell
             const py = b.oy + y * cell
             g.fillStyle = '#ffd166'
@@ -242,6 +249,24 @@ export class Scene {
             g.fillStyle = '#ffe9a8'
             roundRect(g, px + inner, py + inner, cell - inner * 2, cell - inner * 2, cell * 0.05)
             g.fill()
+            /* 路肩：四条边上压一道更深的土色，路才有厚度而不是黄方块 */
+            g.fillStyle = 'rgba(150,110,40,.16)'
+            g.fillRect(px, py, cell, cell * 0.07)
+            g.fillRect(px, py + cell * 0.93, cell, cell * 0.07)
+            g.fillRect(px, py, cell * 0.07, cell)
+            g.fillRect(px + cell * 0.93, py, cell * 0.07, cell)
+            /* 碎石：确定性散点，同一格每帧一样，不会闪 */
+            for (let k = 0; k < 7; k++) {
+              const h1 = cellHash(x * 31 + k, y * 17 + 3)
+              const h2 = cellHash(x * 13 + 7, y * 41 + k)
+              const gx2 = px + cell * (0.14 + h1 * 0.72)
+              const gy2 = py + cell * (0.14 + h2 * 0.72)
+              const gr = cell * (0.012 + h1 * 0.018)
+              g.fillStyle = k % 3 === 0 ? 'rgba(120,88,36,.30)' : 'rgba(255,253,247,.42)'
+              g.beginPath()
+              g.ellipse(gx2, gy2, gr * 1.4, gr, h2 * 3, 0, Math.PI * 2)
+              g.fill()
+            }
             const at = ROUTE.findIndex((p) => p.x === x && p.y === y)
             const nx2 = ROUTE[Math.min(ROUTE.length - 1, at + 1)]
             const lx = nx2 ? (nx2.x - x) * cell * 0.2 : 0
@@ -298,11 +323,33 @@ export class Scene {
           continue
         }
 
-        /* 布阵格：一张压了墨角的小纸片，不是虚线框 */
+        /* 布阵格：一张压了墨角的小纸片，中间微微凹下去——是"落子位"，不是虚线框 */
         if (s.unlocked.has(i)) {
           g.fillStyle = '#fffdf7'
           roundRect(g, rx, ry, rw, rw, rad)
           g.fill()
+          /* 凹痕：上缘压暗、下缘提亮，格子看起来是陷进沙盘里的 */
+          g.save()
+          roundRect(g, rx, ry, rw, rw, rad)
+          g.clip()
+          const dip = g.createLinearGradient(0, ry, 0, ry + rw)
+          dip.addColorStop(0, 'rgba(90,74,58,.10)')
+          dip.addColorStop(0.35, 'rgba(90,74,58,0)')
+          dip.addColorStop(0.82, 'rgba(255,255,255,0)')
+          dip.addColorStop(1, 'rgba(255,255,255,.55)')
+          g.fillStyle = dip
+          g.fillRect(rx, ry, rw, rw)
+          /* 纸纤维：两道极淡的横纹 */
+          g.strokeStyle = 'rgba(90,74,58,.05)'
+          g.lineWidth = 1
+          for (let k = 0; k < 2; k++) {
+            const fy = ry + rw * (0.3 + k * 0.34 + cellHash(x, y + k) * 0.1)
+            g.beginPath()
+            g.moveTo(rx + rw * 0.1, fy)
+            g.lineTo(rx + rw * 0.9, fy + rw * 0.02)
+            g.stroke()
+          }
+          g.restore()
           g.strokeStyle = withAlpha('#252525', 0.9)
           g.lineWidth = 1
           roundRect(g, rx, ry, rw, rw, rad)
@@ -842,6 +889,153 @@ export class Scene {
 
   /* ---------------- 文字棋子 ---------------- */
 
+  /* ---------------- 兵牌造型 ----------------
+   * 文字棋子是这一版的核心识别，不动。但"所有兵种同一个圆角方块"要改：
+   *   ① 轮廓按职能切角——远看剪影就分得出近战/远程/骑兵；
+   *   ② 牌底加厚度与落地投影，棋子像立在沙盘上而不是贴在纸上；
+   *   ③ 底部职能字换成画出来的兵器徽记，小格子退回文字。
+   */
+  private unitPath(ctx: CanvasRenderingContext2D, kind: string, x: number, y: number, w: number, h: number, cut: number): void {
+    const r = x + w, b = y + h
+    ctx.beginPath()
+    switch (kind) {
+      case 'blade': /* 斜切对角：刀势 */
+        ctx.moveTo(x + cut * 2.2, y); ctx.lineTo(r, y); ctx.lineTo(r, b - cut * 2.2)
+        ctx.lineTo(r - cut * 2.2, b); ctx.lineTo(x, b); ctx.lineTo(x, y + cut * 2.2)
+        ctx.closePath(); break
+      case 'spear': case 'lance': { /* 尖顶：枪尖 */
+        const tip = kind === 'lance' ? cut * 2.6 : cut * 1.8
+        ctx.moveTo(x, y + tip); ctx.lineTo(x + w / 2, y); ctx.lineTo(r, y + tip)
+        ctx.lineTo(r, b - cut); ctx.lineTo(r - cut, b); ctx.lineTo(x + cut, b); ctx.lineTo(x, b - cut)
+        ctx.closePath(); break
+      }
+      case 'bow': /* 右缘内凹：弓背 */
+        ctx.moveTo(x + cut, y); ctx.lineTo(r - cut, y); ctx.lineTo(r, y + cut)
+        ctx.lineTo(r - cut * 1.6, y + h / 2); ctx.lineTo(r, b - cut)
+        ctx.lineTo(r - cut, b); ctx.lineTo(x + cut, b); ctx.lineTo(x, b - cut)
+        ctx.lineTo(x, y + cut); ctx.closePath(); break
+      case 'cavalry': /* 左下大斜切：冲势 */
+        ctx.moveTo(x + cut, y); ctx.lineTo(r - cut, y); ctx.lineTo(r, y + cut)
+        ctx.lineTo(r, b - cut); ctx.lineTo(r - cut, b); ctx.lineTo(x + cut * 3, b)
+        ctx.lineTo(x, b - cut * 3); ctx.lineTo(x, y + cut); ctx.closePath(); break
+      case 'mage': case 'warlock': /* 圆牌：法与咒 */
+        roundRect(ctx, x, y, w, h, cut * 3.2); break
+      case 'engineer': /* 方牌：械 */
+        roundRect(ctx, x, y, w, h, cut * 0.5); break
+      case 'halberd': /* 左缘月牙缺口：戟 */
+        ctx.moveTo(x + cut, y); ctx.lineTo(r - cut, y); ctx.lineTo(r, y + cut)
+        ctx.lineTo(r, b - cut); ctx.lineTo(r - cut, b); ctx.lineTo(x + cut, b)
+        ctx.lineTo(x, b - cut); ctx.lineTo(x + cut * 1.7, y + h / 2); ctx.lineTo(x, y + cut)
+        ctx.closePath(); break
+      case 'pyro': { /* 顶缘火舌 */
+        ctx.moveTo(x, y + cut * 1.6)
+        ctx.lineTo(x + w * 0.22, y); ctx.lineTo(x + w * 0.4, y + cut * 1.2)
+        ctx.lineTo(x + w * 0.62, y - cut * 0.4); ctx.lineTo(x + w * 0.82, y + cut * 1.1)
+        ctx.lineTo(r, y + cut * 0.4); ctx.lineTo(r, b - cut); ctx.lineTo(r - cut, b)
+        ctx.lineTo(x + cut, b); ctx.lineTo(x, b - cut); ctx.closePath(); break
+      }
+      default:
+        roundRect(ctx, x, y, w, h, cut)
+    }
+  }
+
+  /** 兵器徽记：在 [-1,1] 的方框里画，s 是半边长 */
+  private kindIcon(ctx: CanvasRenderingContext2D, kind: string, cx: number, cy: number, s: number, color: string): void {
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.scale(s, s)
+    ctx.strokeStyle = color
+    ctx.fillStyle = color
+    ctx.lineWidth = 0.16
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    switch (kind) {
+      case 'blade': /* 刀：弯背 + 柄 */
+        ctx.beginPath()
+        ctx.moveTo(-0.85, 0.6); ctx.quadraticCurveTo(0.1, 0.25, 0.8, -0.75)
+        ctx.quadraticCurveTo(0.35, 0.35, -0.6, 0.85)
+        ctx.closePath(); ctx.fill()
+        break
+      case 'spear': case 'lance': /* 枪：镞 + 杆 */
+        ctx.beginPath()
+        ctx.moveTo(0, -0.95); ctx.lineTo(0.34, -0.25); ctx.lineTo(0, -0.05); ctx.lineTo(-0.34, -0.25)
+        ctx.closePath(); ctx.fill()
+        ctx.beginPath(); ctx.moveTo(0, -0.1); ctx.lineTo(0, 0.95); ctx.stroke()
+        if (kind === 'lance') { ctx.beginPath(); ctx.moveTo(0.05, -0.05); ctx.lineTo(0.7, 0.15); ctx.lineTo(0.05, 0.35); ctx.closePath(); ctx.fill() }
+        break
+      case 'bow': /* 弓：背 + 弦 + 箭 */
+        ctx.beginPath(); ctx.arc(-0.15, 0, 0.8, -1.15, 1.15); ctx.stroke()
+        ctx.lineWidth = 0.1
+        ctx.beginPath()
+        ctx.moveTo(-0.15 + Math.cos(-1.15) * 0.8, Math.sin(-1.15) * 0.8)
+        ctx.lineTo(-0.15 + Math.cos(1.15) * 0.8, Math.sin(1.15) * 0.8)
+        ctx.stroke()
+        ctx.lineWidth = 0.14
+        ctx.beginPath(); ctx.moveTo(-0.5, 0); ctx.lineTo(0.85, 0); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(0.95, 0); ctx.lineTo(0.6, -0.22); ctx.lineTo(0.6, 0.22); ctx.closePath(); ctx.fill()
+        break
+      case 'cavalry': /* 马首 */
+        ctx.beginPath()
+        ctx.moveTo(-0.7, 0.9); ctx.lineTo(-0.45, -0.1); ctx.lineTo(-0.1, -0.6)
+        ctx.lineTo(0.15, -0.95); ctx.lineTo(0.35, -0.5); ctx.lineTo(0.8, -0.15)
+        ctx.lineTo(0.6, 0.25); ctx.lineTo(0.1, 0.2); ctx.lineTo(0.05, 0.9)
+        ctx.closePath(); ctx.fill()
+        break
+      case 'mage': /* 法杖 + 珠 */
+        ctx.beginPath(); ctx.moveTo(-0.35, 0.95); ctx.lineTo(0.2, -0.35); ctx.stroke()
+        ctx.beginPath(); ctx.arc(0.3, -0.6, 0.34, 0, Math.PI * 2); ctx.fill()
+        break
+      case 'engineer': { /* 齿轮：外齿 + 内环。不能用 destination-out 挖孔——
+                            那是在主画布上打洞，会把兵牌一起擦掉 */
+        ctx.beginPath()
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2
+          const a2 = a + Math.PI / 8
+          ctx.lineTo(Math.cos(a) * 0.95, Math.sin(a) * 0.95)
+          ctx.lineTo(Math.cos(a + 0.18) * 0.95, Math.sin(a + 0.18) * 0.95)
+          ctx.lineTo(Math.cos(a2) * 0.62, Math.sin(a2) * 0.62)
+          ctx.lineTo(Math.cos(a2 + 0.18) * 0.62, Math.sin(a2 + 0.18) * 0.62)
+        }
+        ctx.closePath(); ctx.fill()
+        ctx.lineWidth = 0.26
+        ctx.beginPath(); ctx.arc(0, 0, 0.3, 0, Math.PI * 2); ctx.stroke()
+        break
+      }
+      case 'warlock': /* 符：竖幅 + 螺旋 */
+        ctx.lineWidth = 0.14
+        ctx.strokeRect(-0.5, -0.95, 1, 1.9)
+        ctx.beginPath()
+        for (let i = 0; i <= 22; i++) {
+          const t = i / 22, a = t * Math.PI * 3, rr = 0.42 * (1 - t * 0.75)
+          const px = Math.cos(a) * rr, py = Math.sin(a) * rr
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py)
+        }
+        ctx.stroke()
+        break
+      case 'halberd': /* 戟：枪 + 月牙 */
+        ctx.beginPath()
+        ctx.moveTo(0.1, -0.95); ctx.lineTo(0.4, -0.3); ctx.lineTo(0.1, -0.15); ctx.lineTo(-0.2, -0.3)
+        ctx.closePath(); ctx.fill()
+        ctx.beginPath(); ctx.moveTo(0.1, -0.2); ctx.lineTo(0.1, 0.95); ctx.stroke()
+        ctx.beginPath(); ctx.arc(-0.2, -0.35, 0.45, -0.9, 1.5); ctx.stroke()
+        break
+      case 'pyro': /* 焰 */
+        ctx.beginPath()
+        ctx.moveTo(0, -0.95)
+        ctx.quadraticCurveTo(0.65, -0.25, 0.5, 0.35)
+        ctx.quadraticCurveTo(0.35, 0.95, 0, 0.95)
+        ctx.quadraticCurveTo(-0.45, 0.95, -0.55, 0.3)
+        ctx.quadraticCurveTo(-0.6, -0.2, -0.15, -0.4)
+        ctx.quadraticCurveTo(-0.2, 0.05, 0.05, 0.1)
+        ctx.quadraticCurveTo(0.3, -0.3, 0, -0.95)
+        ctx.closePath(); ctx.fill()
+        break
+      default:
+        ctx.beginPath(); ctx.arc(0, 0, 0.6, 0, Math.PI * 2); ctx.fill()
+    }
+    ctx.restore()
+  }
+
   private drawUnit(ctx: CanvasRenderingContext2D, s: DrawState, u: Unit, selected: boolean): void {
     const b = s.board
     const cell = b.cell
@@ -888,17 +1082,43 @@ export class Scene {
       ctx.fill()
     }
 
+    /* 落地投影：棋子是立在沙盘上的，不是印在纸上的 */
+    ctx.fillStyle = 'rgba(37,37,37,.16)'
+    ctx.beginPath()
+    ctx.ellipse(cell * 0.03, y + h + cell * 0.045, w * 0.46, cell * 0.055, 0, 0, Math.PI * 2)
+    ctx.fill()
+
     /* 品质色硬阴影：偏移实块，不是柔光 */
     ctx.fillStyle = color
-    roundRect(ctx, x + 2.5, y + 3.5, w, h, cut)
+    this.unitPath(ctx, u.kind, x + 2.5, y + 3.5, w, h, cut)
     ctx.fill()
 
     const face = ctx.createLinearGradient(0, y, 0, y + h)
-    face.addColorStop(0, '#3a3a3a')
-    face.addColorStop(1, '#252525')
+    face.addColorStop(0, '#454545')
+    face.addColorStop(0.55, '#2e2e2e')
+    face.addColorStop(1, '#1e1e1e')
     ctx.fillStyle = face
-    roundRect(ctx, x, y, w, h, cut)
+    this.unitPath(ctx, u.kind, x, y, w, h, cut)
     ctx.fill()
+
+    /* 牌面材质：顶部一道受光边 + 底部一条厚度暗边，纸片变成有厚度的兵牌 */
+    ctx.save()
+    this.unitPath(ctx, u.kind, x, y, w, h, cut)
+    ctx.clip()
+    ctx.fillStyle = 'rgba(255,253,247,.10)'
+    ctx.fillRect(x, y, w, h * 0.16)
+    ctx.fillStyle = 'rgba(0,0,0,.28)'
+    ctx.fillRect(x, y + h * 0.88, w, h * 0.12)
+    /* 极淡的斜纹：墨牌不是塑料 */
+    ctx.strokeStyle = 'rgba(255,253,247,.035)'
+    ctx.lineWidth = 1
+    for (let i = -2; i < 8; i++) {
+      ctx.beginPath()
+      ctx.moveTo(x + i * cell * 0.16, y)
+      ctx.lineTo(x + i * cell * 0.16 + h * 0.5, y + h)
+      ctx.stroke()
+    }
+    ctx.restore()
 
     /* 左侧品质书签 */
     ctx.fillStyle = color
@@ -907,7 +1127,7 @@ export class Scene {
 
     ctx.strokeStyle = color
     ctx.lineWidth = selected ? 2.4 : 1.5
-    roundRect(ctx, x, y, w, h, cut)
+    this.unitPath(ctx, u.kind, x, y, w, h, cut)
     ctx.stroke()
 
     /* 稀有以上：内细框；统帅：金色双框 */
@@ -939,8 +1159,10 @@ export class Scene {
     ctx.textBaseline = 'middle'
     ctx.fillText(hero ? hero.glyph : def.glyph, cell * 0.015, -cell * 0.035)
 
-    /* 底部职能：一个字说明它怎么打 */
+    /* 底部职能：格子够大就画兵器徽记，小格子退回一个字 */
     if (cell >= 56) {
+      this.kindIcon(ctx, u.kind, cell * 0.015, cell * 0.308, cell * 0.098, withAlpha('#fffdf7', 0.72))
+    } else {
       const mark = KIND_MARK[u.kind] || ''
       ctx.fillStyle = withAlpha('#fffdf7', 0.62)
       ctx.font = '500 ' + Math.round(cell * 0.115) + 'px ' + SERIF
@@ -979,6 +1201,57 @@ export class Scene {
 
   /* ---------------- 敌人 ---------------- */
 
+  /** 敌军牌形：九种兵各有剪影，远看形状就知道来的是什么，不用等字读出来 */
+  private enemyPath(ctx: CanvasRenderingContext2D, kind: string, boss: boolean, R: number): void {
+    ctx.beginPath()
+    if (boss) {
+      /* Boss：帅旗牌，上横杆 + 下垂燕尾 */
+      ctx.moveTo(-R, -R * 1.05); ctx.lineTo(R, -R * 1.05)
+      ctx.lineTo(R, R * 0.72); ctx.lineTo(R * 0.5, R * 0.5); ctx.lineTo(0, R * 1.05)
+      ctx.lineTo(-R * 0.5, R * 0.5); ctx.lineTo(-R, R * 0.72)
+      ctx.closePath(); return
+    }
+    switch (kind) {
+      case 'runner': /* 游骑：斜平行四边形，形状本身就在往前冲 */
+        ctx.moveTo(-R * 0.62, -R); ctx.lineTo(R, -R); ctx.lineTo(R * 0.62, R); ctx.lineTo(-R, R)
+        ctx.closePath(); break
+      case 'brute': /* 重甲：盾 */
+        ctx.moveTo(-R, -R * 0.86); ctx.lineTo(R, -R * 0.86)
+        ctx.lineTo(R * 0.92, R * 0.34); ctx.lineTo(0, R * 1.05); ctx.lineTo(-R * 0.92, R * 0.34)
+        ctx.closePath(); break
+      case 'gunner': /* 弩手：右缘开槽 */
+        ctx.moveTo(-R, -R); ctx.lineTo(R * 0.72, -R); ctx.lineTo(R, -R * 0.5)
+        ctx.lineTo(R * 0.66, 0); ctx.lineTo(R, R * 0.5); ctx.lineTo(R * 0.72, R)
+        ctx.lineTo(-R, R); ctx.closePath(); break
+      case 'bomber': /* 火雷兵：圆 */
+        ctx.arc(0, 0, R, 0, Math.PI * 2); break
+      case 'splitter': /* 裂虫：六边 */
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2 - Math.PI / 2
+          const px = Math.cos(a) * R, py = Math.sin(a) * R
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py)
+        }
+        ctx.closePath(); break
+      case 'hexer': /* 咒师：符形，上下尖 */
+        ctx.moveTo(0, -R * 1.12); ctx.lineTo(R * 0.86, -R * 0.3)
+        ctx.lineTo(R * 0.86, R * 0.5); ctx.lineTo(0, R * 1.12)
+        ctx.lineTo(-R * 0.86, R * 0.5); ctx.lineTo(-R * 0.86, -R * 0.3)
+        ctx.closePath(); break
+      case 'champion': /* 禁卫：带肩角的方牌 */
+        ctx.moveTo(-R, -R * 0.6); ctx.lineTo(-R * 0.66, -R); ctx.lineTo(R * 0.66, -R)
+        ctx.lineTo(R, -R * 0.6); ctx.lineTo(R, R * 0.8); ctx.lineTo(R * 0.8, R)
+        ctx.lineTo(-R * 0.8, R); ctx.lineTo(-R, R * 0.8); ctx.closePath(); break
+      case 'breaker': /* 断笔者：顶缘撕开 */
+        ctx.moveTo(-R, -R * 0.55); ctx.lineTo(-R * 0.5, -R); ctx.lineTo(-R * 0.1, -R * 0.5)
+        ctx.lineTo(R * 0.35, -R * 1.05); ctx.lineTo(R, -R * 0.5); ctx.lineTo(R, R)
+        ctx.lineTo(-R, R); ctx.closePath(); break
+      default: /* 流寇：切角方牌 */
+        ctx.moveTo(-R * 0.72, -R); ctx.lineTo(R * 0.72, -R); ctx.lineTo(R, -R * 0.72)
+        ctx.lineTo(R, R * 0.72); ctx.lineTo(R * 0.72, R); ctx.lineTo(-R * 0.72, R)
+        ctx.lineTo(-R, R * 0.72); ctx.lineTo(-R, -R * 0.72); ctx.closePath()
+    }
+  }
+
   private drawEnemy(ctx: CanvasRenderingContext2D, s: DrawState, e: NonNullable<Battle['boss']> | Battle['enemies'][number]): void {
     const b = s.board
     const cell = b.cell
@@ -1014,24 +1287,48 @@ export class Scene {
     ctx.globalAlpha = alpha
     ctx.translate(cx + hit, cy)
     ctx.scale(scale, scale)
+    /* 行军：一边摆一边微微颠，静止的方块阵看着像贴纸 */
+    if (!e.dead) {
+      const ph = s.time * (e.kind === 'runner' ? 9 : 5.2) + (cx + cy) * 0.05
+      ctx.translate(0, Math.sin(ph) * radius * 0.05)
+      ctx.rotate(Math.sin(ph * 0.5) * 0.045)
+    }
 
-    ctx.fillStyle = 'rgba(60,45,26,0.12)'
-    roundRect(ctx, -radius * 0.95 + 1, -radius * 0.95 + 2, radius * 1.9, radius * 1.9, radius * 0.28)
+    const R = radius * 0.95
+    /* 落地投影 */
+    ctx.fillStyle = 'rgba(60,45,26,0.18)'
+    ctx.beginPath()
+    ctx.ellipse(radius * 0.06, R + radius * 0.1, R * 0.82, radius * 0.16, 0, 0, Math.PI * 2)
     ctx.fill()
 
-    /* 底色带一点敌色：友军是米白纸片，敌军一眼就是"旧纸"，不会认错阵营 */
+    /* 底色带一点敌色：友军是墨牌，敌军是旧纸牌，一眼分得清阵营 */
     ctx.fillStyle = 'rgba(244,236,219,0.97)'
-    roundRect(ctx, -radius * 0.95, -radius * 0.95, radius * 1.9, radius * 1.9, radius * 0.28)
+    this.enemyPath(ctx, e.kind, !!e.boss, R)
     ctx.fill()
-    ctx.fillStyle = withAlpha(color, e.boss ? 0.18 : 0.09)
-    roundRect(ctx, -radius * 0.95, -radius * 0.95, radius * 1.9, radius * 1.9, radius * 0.28)
+    ctx.fillStyle = withAlpha(color, e.boss ? 0.2 : 0.1)
+    this.enemyPath(ctx, e.kind, !!e.boss, R)
     ctx.fill()
+    /* 纸纹：两道极淡的横纤维，旧纸不是塑料片 */
+    ctx.save()
+    this.enemyPath(ctx, e.kind, !!e.boss, R)
+    ctx.clip()
+    ctx.strokeStyle = 'rgba(90,74,58,.07)'
+    ctx.lineWidth = 1
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath()
+      ctx.moveTo(-R, i * R * 0.55)
+      ctx.lineTo(R, i * R * 0.55 + R * 0.1)
+      ctx.stroke()
+    }
+    ctx.fillStyle = 'rgba(60,45,26,.07)'
+    ctx.fillRect(-R, R * 0.62, R * 2, R * 0.4)
+    ctx.restore()
     ctx.strokeStyle = e.elite ? SEAL : color
     ctx.lineWidth = e.boss ? 2.8 : e.elite ? 2 : 1.4
-    roundRect(ctx, -radius * 0.95, -radius * 0.95, radius * 1.9, radius * 1.9, radius * 0.28)
+    this.enemyPath(ctx, e.kind, !!e.boss, R)
     ctx.stroke()
 
-    ctx.fillStyle = e.hitT > 0 ? '#ffffff' : INK
+    ctx.fillStyle = e.hitT > 0 ? SEAL : INK
     ctx.font = `700 ${Math.round(radius * (e.boss ? 1.0 : 0.94))}px ${SERIF}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -1060,29 +1357,67 @@ export class Scene {
   /* ---------------- 弹道 ---------------- */
 
   private drawProj(ctx: CanvasRenderingContext2D, p: Battle['projs'][number], cell: number): void {
-    const speed = Math.hypot(p.vx, p.vy) || 1
-    /* 箭画成一条短痕 + 一点箭镞：3px 的小圆点在满屏文字里根本看不见 */
-    const len = cell * (p.side === 'unit' ? 0.26 : 0.16)
-    const tx = p.x - (p.vx / speed) * len
-    const ty = p.y - (p.vy / speed) * len
+    const col = p.color || INK
+    const R = Math.max(2.2, p.r)
     ctx.save()
-    /* 光点：弹道头部带一圈淡光，箭/弩/火球在土路上才"亮" */
-    ctx.globalAlpha = 0.28
-    ctx.fillStyle = p.color || INK
+    ctx.translate(p.x, p.y)
+    ctx.rotate(Math.atan2(p.vy, p.vx))
+
+    /* 拖痕：三种弹都留尾，但长度与浓度按弹种分 */
+    const len = cell * (p.kind === 'fire' ? 0.3 : p.side === 'unit' ? 0.26 : 0.16)
+    ctx.globalAlpha = 0.22
+    ctx.fillStyle = col
     ctx.beginPath()
-    ctx.arc(p.x, p.y, Math.max(3, p.r * 2.1), 0, Math.PI * 2)
+    ctx.moveTo(0, -R * 0.55)
+    ctx.lineTo(-len, 0)
+    ctx.lineTo(0, R * 0.55)
+    ctx.closePath()
     ctx.fill()
     ctx.globalAlpha = 1
-    ctx.strokeStyle = withAlpha(p.color || INK, 0.5)
-    ctx.lineWidth = Math.max(1, p.r * 0.5)
-    ctx.beginPath()
-    ctx.moveTo(tx, ty)
-    ctx.lineTo(p.x, p.y)
-    ctx.stroke()
-    ctx.fillStyle = p.color || INK
-    ctx.beginPath()
-    ctx.arc(p.x, p.y, Math.max(1.6, p.r * 0.85), 0, Math.PI * 2)
-    ctx.fill()
+
+    if (p.kind === 'fire') {
+      /* 火：外焰 + 内芯 + 两点飞散火星 */
+      const k = 0.85 + Math.sin(p.age * 26) * 0.18
+      ctx.globalAlpha = 0.3
+      ctx.fillStyle = '#e07b3c'
+      ctx.beginPath(); ctx.arc(0, 0, R * 2.2 * k, 0, Math.PI * 2); ctx.fill()
+      ctx.globalAlpha = 1
+      ctx.fillStyle = col
+      ctx.beginPath()
+      ctx.moveTo(-R * 2.4 * k, 0)
+      ctx.quadraticCurveTo(-R * 0.3, -R * 1.5 * k, R * 1.15, 0)
+      ctx.quadraticCurveTo(-R * 0.3, R * 1.5 * k, -R * 2.4 * k, 0)
+      ctx.fill()
+      ctx.fillStyle = '#ffd166'
+      ctx.beginPath(); ctx.arc(R * 0.25, 0, R * 0.6 * k, 0, Math.PI * 2); ctx.fill()
+    } else if (p.kind === 'bolt') {
+      /* 弩矢：短粗杆 + 宽镞，比箭更"硬" */
+      ctx.strokeStyle = col
+      ctx.lineWidth = Math.max(1.6, R * 0.72)
+      ctx.lineCap = 'butt'
+      ctx.beginPath(); ctx.moveTo(-R * 2.1, 0); ctx.lineTo(R * 0.7, 0); ctx.stroke()
+      ctx.fillStyle = col
+      ctx.beginPath()
+      ctx.moveTo(R * 1.85, 0); ctx.lineTo(R * 0.5, -R * 0.95); ctx.lineTo(R * 0.5, R * 0.95)
+      ctx.closePath(); ctx.fill()
+      ctx.fillStyle = 'rgba(255,253,247,.75)'
+      ctx.beginPath(); ctx.arc(R * 0.95, 0, R * 0.28, 0, Math.PI * 2); ctx.fill()
+    } else {
+      /* 箭：杆 + 镞 + 尾羽 */
+      ctx.strokeStyle = col
+      ctx.lineWidth = Math.max(1.1, R * 0.42)
+      ctx.lineCap = 'butt'
+      ctx.beginPath(); ctx.moveTo(-R * 2.6, 0); ctx.lineTo(R * 0.9, 0); ctx.stroke()
+      ctx.fillStyle = col
+      ctx.beginPath()
+      ctx.moveTo(R * 2.0, 0); ctx.lineTo(R * 0.75, -R * 0.62); ctx.lineTo(R * 0.75, R * 0.62)
+      ctx.closePath(); ctx.fill()
+      ctx.lineWidth = Math.max(0.9, R * 0.3)
+      ctx.beginPath()
+      ctx.moveTo(-R * 2.6, 0); ctx.lineTo(-R * 3.3, -R * 0.72)
+      ctx.moveTo(-R * 2.6, 0); ctx.lineTo(-R * 3.3, R * 0.72)
+      ctx.stroke()
+    }
     ctx.restore()
   }
 

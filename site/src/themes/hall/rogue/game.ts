@@ -1592,8 +1592,22 @@ export class Game implements GameApi {
       pt.age += dt;
       pt.x += pt.vx * dt;
       pt.y += pt.vy * dt;
-      pt.vx *= 0.94;
-      pt.vy *= 0.94;
+      /* 按材质给不同的物理：碎块会坠、烟会升、墨溅很快滞住、火星带一点重力。
+         统一一个 0.94 阻尼是"所有特效共用一套动画"的根源。 */
+      if (pt.kind === 'shard') {
+        pt.vy += 300 * dt;
+        pt.vx *= 0.985; pt.vy *= 0.985;
+      } else if (pt.kind === 'smoke') {
+        pt.vy -= 16 * dt;
+        pt.vx *= 0.96; pt.vy *= 0.97;
+      } else if (pt.kind === 'spark') {
+        pt.vy += 140 * dt;
+        pt.vx *= 0.9; pt.vy *= 0.9;
+      } else if (pt.kind === 'splat') {
+        pt.vx *= 0.88; pt.vy *= 0.88;
+      } else {
+        pt.vx *= 0.94; pt.vy *= 0.94;
+      }
       pt.rot += pt.spin * dt;
       if (pt.age >= pt.life) pt.active = false;
     }
@@ -1630,6 +1644,21 @@ export class Game implements GameApi {
       const big = crit || e.boss;
       this.pop(e.x + (this.rnd() - 0.5) * 14, e.y - e.r - 4, crit ? String(Math.round(d)) + '!' : String(Math.round(d)), crit ? 'crit' : 'hit', big ? 22 : 17);
       this.audio.sfx('hit', 0.5);
+      /* 命中要有物质反馈：墨往被打的那一侧溅，暴击再加一簇火星和一圈薄锋。
+         方向取"玩家→敌人"，与绝大多数弹道一致，比原地对称炸一圈读得准。 */
+      const dir = Math.atan2(e.y - p.y, e.x - p.x);
+      const hx = e.x - Math.cos(dir) * e.r * 0.7;
+      const hy = e.y - Math.sin(dir) * e.r * 0.7;
+      if (e.shield > 0) {
+        this.spray(hx, hy, dir + Math.PI, '#c7a45a', 3, 120, 0.7, 'spark');
+      } else {
+        this.spray(hx, hy, dir, e.kind === 'bomber' ? '#b5342b' : '#26221e', crit ? 7 : 3, crit ? 210 : 130, 0.75);
+      }
+      if (crit) {
+        this.spray(hx, hy, dir, '#c0922f', 5, 260, 1.1, 'spark');
+        this.shockwave(e.x, e.y, e.r * 2.6, 0.22, '#c0922f', 2.5);
+        this.shake = Math.max(this.shake, 2.2);
+      }
     }
     if (e.hp <= 0) this.killEnemy(e);
   }
@@ -1651,7 +1680,28 @@ export class Game implements GameApi {
       p.streakT = 2.4;
     }
     if (this.statsData.killHeal > 0) p.hp = Math.min(p.maxHp, p.hp + this.statsData.killHeal);
-    this.burst(e.x, e.y, e.boss ? '#b5342b' : e.kind === 'bomber' ? '#b5342b' : '#26221e', e.boss ? 70 : e.elite ? 20 : 7, e.boss ? 300 : 150);
+    /* 死亡按材质分化：石类碎、幽类散、蛛类断丝、火类炸。
+       原来所有敌人共用一句 burst，两百只死法一模一样。 */
+    if (e.boss) {
+      this.burst(e.x, e.y, '#b5342b', 70, 300);
+      this.chips(e.x, e.y, '#26221e', 22, 240);
+      this.puff(e.x, e.y, '#4a4038', 12, 60);
+    } else if (e.kind === 'heavy' || e.kind === 'splitter' || e.kind === 'shard') {
+      this.chips(e.x, e.y, e.kind === 'heavy' ? '#1e1b18' : '#4a3b2e', e.elite ? 14 : 8, 190);
+      this.burst(e.x, e.y, '#26221e', e.elite ? 10 : 4, 120);
+    } else if (e.kind === 'phantom' || e.kind === 'chanter') {
+      this.puff(e.x, e.y, e.kind === 'phantom' ? '#6d6a75' : '#7c4a63', e.elite ? 12 : 7, 54);
+      this.burst(e.x, e.y, '#6d6a75', 3, 90);
+    } else if (e.kind === 'weaver') {
+      this.spray(e.x, e.y, this.rnd() * 6.28, '#4f7757', e.elite ? 12 : 7, 200, 3.14, 'line');
+      this.burst(e.x, e.y, '#4f7757', 4, 110);
+    } else if (e.kind === 'bomber') {
+      this.spray(e.x, e.y, this.rnd() * 6.28, '#e07b3c', 10, 260, 3.14, 'spark');
+      this.puff(e.x, e.y, '#5a4a42', 5, 40);
+    } else {
+      this.burst(e.x, e.y, '#26221e', e.elite ? 20 : 7, 150);
+    }
+    if (e.elite) this.shockwave(e.x, e.y, e.r * 3.4, 0.3, '#b5342b', 2.5);
     this.audio.sfx('kill', 0.6);
 
     if (e.boss) { this.onBossKilled(e); return }
@@ -2383,6 +2433,74 @@ export class Game implements GameApi {
       p.kind = this.rnd() < 0.3 ? 'splat' : this.rnd() < 0.5 ? 'line' : 'dot';
       p.spin = (this.rnd() - 0.5) * 8;
       p.rot = this.rnd() * 6.28;
+    }
+  }
+
+  /** 定向喷溅：沿 dir 的锥形扇面撒墨。命中反馈用它——墨要往被打的那一侧飞，
+   *  而不是原地炸一个对称的圆，玩家才读得出"从哪儿打中的"。 */
+  spray(x: number, y: number, dir: number, color: string, count: number, power = 150, spread = 0.9, kind = 'splat'): void {
+    const budget = this.save.settings.quality === 'low' ? 0.5 : 1;
+    const n = Math.round(count * budget);
+    for (let i = 0; i < n; i++) {
+      const p = this.particles.find(v => !v.active);
+      if (!p) return;
+      const a = dir + (this.rnd() - 0.5) * spread * 2;
+      const sp = power * (0.4 + this.rnd() * 0.9);
+      p.active = true;
+      p.x = x; p.y = y;
+      p.vx = Math.cos(a) * sp;
+      p.vy = Math.sin(a) * sp;
+      p.life = 0.2 + this.rnd() * 0.34;
+      p.age = 0;
+      p.size = 1.4 + this.rnd() * 3;
+      p.color = color;
+      p.kind = kind;
+      p.spin = (this.rnd() - 0.5) * 10;
+      p.rot = this.rnd() * 6.28;
+    }
+  }
+
+  /** 碎块：翻转着飞出去再坠下，重墨/裂墨/碑石用 */
+  chips(x: number, y: number, color: string, count: number, power = 170): void {
+    const budget = this.save.settings.quality === 'low' ? 0.5 : 1;
+    const n = Math.round(count * budget);
+    for (let i = 0; i < n; i++) {
+      const p = this.particles.find(v => !v.active);
+      if (!p) return;
+      const a = this.rnd() * Math.PI * 2;
+      const sp = power * (0.35 + this.rnd() * 0.8);
+      p.active = true;
+      p.x = x; p.y = y;
+      p.vx = Math.cos(a) * sp;
+      p.vy = Math.sin(a) * sp - 60;
+      p.life = 0.5 + this.rnd() * 0.45;
+      p.age = 0;
+      p.size = 2.4 + this.rnd() * 4;
+      p.color = color;
+      p.kind = 'shard';
+      p.spin = (this.rnd() - 0.5) * 16;
+      p.rot = this.rnd() * 6.28;
+    }
+  }
+
+  /** 烟：缓慢上飘、越散越淡。幽影散、火爆后的余烬用 */
+  puff(x: number, y: number, color: string, count: number, rise = 46): void {
+    const budget = this.save.settings.quality === 'low' ? 0.5 : 1;
+    const n = Math.round(count * budget);
+    for (let i = 0; i < n; i++) {
+      const p = this.particles.find(v => !v.active);
+      if (!p) return;
+      p.active = true;
+      p.x = x + (this.rnd() - 0.5) * 14;
+      p.y = y + (this.rnd() - 0.5) * 14;
+      p.vx = (this.rnd() - 0.5) * 40;
+      p.vy = -rise * (0.5 + this.rnd() * 0.8);
+      p.life = 0.6 + this.rnd() * 0.6;
+      p.age = 0;
+      p.size = 3 + this.rnd() * 5;
+      p.color = color;
+      p.kind = 'smoke';
+      p.spin = 0; p.rot = 0;
     }
   }
 
