@@ -270,20 +270,34 @@ export function drawGame(g: Game): void {
     ctx.save();
     ctx.translate(s.x, s.y);
     ctx.rotate(Math.atan2(s.vy, s.vx));
-    /* 敌弹是"必须躲"的东西：先垫纸、再压墨边，纸底上永远看得见 */
-    ctx.fillStyle = 'rgba(255,253,247,.92)';
+    /* 敌弹一律朱红。原来沿用来源色，墨卒/碑灵打出来的是黑菱形，
+       跟满地墨点、碎墨、墨渍混在一起 —— "必须躲的东西"不能跟背景同色。
+       口径：纸垫 → 朱体 → 墨边 → 亮芯，四层保证在任何底上都跳出来。 */
+    const spd = Math.hypot(s.vx, s.vy);
+    const tl = Math.min(2.6, spd / 170) * s.r;
+    if (tl > s.r * 0.4) {
+      ctx.fillStyle = 'rgba(181,52,43,.22)';
+      ctx.beginPath();
+      ctx.ellipse(-tl * 1.5, 0, tl * 1.6, s.r * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,253,247,.95)';
     ctx.beginPath();
-    ctx.ellipse(-s.r * 0.2, 0, s.r * 2.35, s.r * 1.05, 0, 0, Math.PI * 2);
+    ctx.ellipse(-s.r * 0.2, 0, s.r * 2.5, s.r * 1.2, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = s.color;
+    ctx.fillStyle = '#d1372c';
     ctx.beginPath();
-    ctx.ellipse(0, 0, s.r * 2, s.r * 0.7, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, s.r * 2, s.r * 0.78, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(38,34,30,.62)';
-    ctx.lineWidth = 1.4;
+    ctx.strokeStyle = '#5e1712';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.ellipse(0, 0, s.r * 2, s.r * 0.7, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, s.r * 2, s.r * 0.78, 0, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.fillStyle = '#ffd9a8';
+    ctx.beginPath();
+    ctx.ellipse(s.r * 0.55, 0, s.r * 0.62, s.r * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 

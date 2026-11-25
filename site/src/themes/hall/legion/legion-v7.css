@@ -1100,3 +1100,75 @@
 @media (min-width: 941px) {
   .lg .lg-hero-skill { margin-top: auto; }
 }
+/* ============================================================
+   2026-11-25 · 候选区角标撑满整卡的修复
+   legion.css 给 .lg-slot-lv 设了 left/bottom，legion-v6.css 又设了
+   right/top 却没重置前两个。绝对定位四边齐全 + width:auto = 拉满父盒，
+   再叠上 legion.css 的 background:var(--rar)，等级角标就成了一块
+   盖住整张卡的品质色实心板 —— 玩家看到的"候选区被灰块遮挡"就是它。
+   .lg-slot em（锐）同样中招，被拉成一块金板。
+   这里把四边收回到单角，并做成真正读得出的小角牌。
+   ============================================================ */
+.lg .lg-slot-lv {
+  left: auto;
+  bottom: auto;
+  right: 3px;
+  top: 3px;
+  width: auto;
+  height: auto;
+  min-width: 15px;
+  padding: 1px 3px;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  color: #fffdf7;
+  background: var(--rar, #6b6255);
+  border: 1.5px solid #252525;
+  border-radius: 0;
+  box-shadow: 1.5px 1.5px 0 rgba(37, 37, 37, 0.5);
+}
+.lg .lg-slot em {
+  right: auto;
+  top: auto;
+  left: 3px;
+  bottom: 3px;
+  width: auto;
+  height: auto;
+  padding: 1px 3px;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1.1;
+  color: #fffdf7;
+  background: #a8352a;
+  border: 1.5px solid #252525;
+  border-radius: 0;
+}
+/* 精锐候选卡：朱色左缘 + 淡朱底，跟普通卡一眼分得开 */
+.lg .lg-slot:has(em) {
+  background: #fff3ef;
+  box-shadow: inset 4px 0 0 #a8352a;
+}
+/* 兵种字压回中间，不再被角标挤 */
+.lg .lg-slot-glyph { color: #252525; }
+/* ---- 第四轮：候选卡合成落定 ----
+   点将台原来合完只是换了一个字，玩家不确定"到底合上没有"。
+   给刚合出来那一格一次性的落定动画：先胀一下再压回，边缘扫一道品质光。 */
+.lg .lg-slot.is-pop { animation: lgSlotPop .42s cubic-bezier(.22,1.4,.4,1) both; }
+@keyframes lgSlotPop {
+  0%   { transform: scale(.72) rotate(-5deg); filter: brightness(1.9); }
+  45%  { transform: scale(1.14) rotate(2deg); filter: brightness(1.35); }
+  100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+}
+.lg .lg-slot.is-pop::before {
+  content: ''; position: absolute; inset: -3px; border: 2px solid var(--rar);
+  border-radius: 6px; pointer-events: none;
+  animation: lgSlotRing .5s ease-out both;
+}
+@keyframes lgSlotRing {
+  0%   { opacity: .95; transform: scale(.85); }
+  100% { opacity: 0;   transform: scale(1.35); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lg .lg-slot.is-pop, .lg .lg-slot.is-pop::before { animation: none; }
+}

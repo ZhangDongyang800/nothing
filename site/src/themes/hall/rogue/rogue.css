@@ -664,3 +664,55 @@
   .rg-hp { flex: 0 1 clamp(380px, 34vw, 620px); }
   .rg-clock { min-width: 132px; }
 }
+
+/* ============================================================
+   v9 · 2026-11-25 · 构筑条收纳
+   武器 + 被动原来是"带名字的标签墙"：Lv22 时 6 武器 + 10 被动铺成三行，
+   压掉战场左上近 100px。信息要留，但不能吃视野。
+   改成：图标 + 等级 的紧凑筹码，武器行与被动行并排；名字收进悬停浮标。
+   ============================================================ */
+.rg .rg-build {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 8px;
+  max-width: min(78%, 900px);
+}
+.rg .rg-build-row { flex: 0 1 auto; flex-wrap: wrap; gap: 3px; max-height: none; overflow: visible; }
+/* 被动行左缘一道细墨线，跟武器行分开，不用靠文字标签区分 */
+.rg .rg-build-row + .rg-build-row { padding-left: 8px; border-left: 2px solid rgba(38, 34, 30, .28); }
+.rg .rg-chip {
+  position: relative;
+  padding: 2px 4px 2px 2px;
+  gap: 3px;
+  box-shadow: 1.5px 1.5px 0 var(--c);
+}
+.rg .rg-chip i { width: 20px; height: 20px; font-size: 11px; }
+.rg .rg-chip b { display: none; }
+.rg .rg-chip em { font-size: 10px; font-weight: 800; color: var(--ink); }
+.rg .rg-chip.is-evo { box-shadow: 2px 2px 0 var(--coral); }
+/* 名字只在指到时浮出来，绝对定位不参与布局，展开不会把战场再压下去 */
+.rg .rg-chip::after {
+  content: attr(data-name);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 5px);
+  transform: translateX(-50%) translateY(3px);
+  padding: 2px 6px;
+  border: 2px solid var(--ink);
+  background: rgba(255, 253, 247, .98);
+  box-shadow: 2px 2px 0 rgba(38, 34, 30, .35);
+  font: 700 11px/1.3 var(--mono);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s ease, transform .12s ease;
+  z-index: 6;
+}
+.rg .rg-chip:hover::after,
+.rg .rg-chip:focus-visible::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (max-width: 900px) {
+  .rg .rg-build { max-width: 88%; }
+  .rg .rg-chip i { width: 17px; height: 17px; font-size: 10px; }
+  .rg .rg-chip em { font-size: 9px; }
+}

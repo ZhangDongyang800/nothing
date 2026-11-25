@@ -1711,7 +1711,7 @@ export class Game implements GameApi {
     if (this.rnd() < 0.008) this.dropGem(e.x, e.y, 'heal', 0);
     if (e.elite) {
       for (let i = 0; i < 6; i++) this.dropGem(e.x + (this.rnd() - 0.5) * 60, e.y + (this.rnd() - 0.5) * 60, 'gold', e.gold * 0.6);
-      if (this.rnd() < 0.55) this.spawnPickup('chest', e.x, e.y);
+      if (this.rnd() < 0.25) this.spawnPickup('chest', e.x, e.y);
     }
     if (e.kind === 'splitter' && !e.elite) {
       for (let i = 0; i < 2; i++) this.spawnEnemy('shard', e.x + (i ? 14 : -14), e.y, false);
@@ -1723,8 +1723,15 @@ export class Game implements GameApi {
     if (e.pack) {
       this.packAlive--;
       if (this.packAlive <= 0) {
-        this.spawnPickup('chest', e.x, e.y);
-        this.toast('墨将清完 · 掉了一只箱子', 'good');
+        /* 清完一队墨将不再必掉箱子：精英掉、定时掉、清队掉三条叠在一起，
+           中后期几乎每十几秒一只，宝箱从"事件"变成了"背景音"。 */
+        if (this.rnd() < 0.5) {
+          this.spawnPickup('chest', e.x, e.y);
+          this.toast('墨将清完 · 掉了一只箱子', 'good');
+        } else {
+          for (let i = 0; i < 4; i++) this.dropGem(e.x + (this.rnd() - 0.5) * 48, e.y + (this.rnd() - 0.5) * 48, 'gold', e.gold * 0.8);
+          this.toast('墨将清完 · 墨钱撒了一地', 'good');
+        }
       }
     }
   }
@@ -1940,7 +1947,7 @@ export class Game implements GameApi {
     }
     this.chestTimer -= dt;
     if (this.chestTimer <= 0) {
-      this.chestTimer = 72;
+      this.chestTimer = 110;
       const a = this.rnd() * Math.PI * 2;
       const d = 240 + this.rnd() * 260;
       this.spawnPickup('chest', this.player.x + Math.cos(a) * d, this.player.y + Math.sin(a) * d);

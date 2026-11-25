@@ -366,7 +366,7 @@ export class RogueUI {
     if (this.prev.weaponKey !== wkey) {
       this.prev.weaponKey = wkey
       this.el.rgWeapons.innerHTML = h.weapons.map(w => `
-        <span class="rg-chip ${w.evolved ? 'is-evo' : ''}" style="--c:${w.color}">
+        <span class="rg-chip ${w.evolved ? 'is-evo' : ''}" style="--c:${w.color}" data-name="${w.name}${w.evolved ? ' · 进化' : ' Lv.' + w.level}" title="${w.name}${w.evolved ? ' · 进化' : ' Lv.' + w.level}">
           <i>${w.glyph}</i><b>${w.name}</b><em>${w.evolved ? '进' : w.level}</em>
         </span>`).join('')
     }
@@ -374,7 +374,7 @@ export class RogueUI {
     if (this.prev.passiveKey !== pkey) {
       this.prev.passiveKey = pkey
       this.el.rgPassives.innerHTML = h.passives.map(p => `
-        <span class="rg-chip is-pass"><i>${p.glyph}</i><b>${p.name}</b><em>${p.level}</em></span>`).join('')
+        <span class="rg-chip is-pass" data-name="${p.name} Lv.${p.level}" title="${p.name} Lv.${p.level}"><i>${p.glyph}</i><b>${p.name}</b><em>${p.level}</em></span>`).join('')
     }
   }
 

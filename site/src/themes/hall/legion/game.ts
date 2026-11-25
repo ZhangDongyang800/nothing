@@ -166,6 +166,9 @@ export class LegionGame implements BattleHost, UiHostLike {
   private hover = -1
   private selected = -1
   private benchPicked = -1
+  /** 刚合出来的那一格，给一次性的落定动画；渲染后立刻清掉 */
+  private benchPop = -1
+  private benchPopT = -9
   private freeRerolls = 3
   private drag: DragState | null = null
   private cellHint: number[] = []
@@ -1310,6 +1313,8 @@ export class LegionGame implements BattleHost, UiHostLike {
     this.bench.splice(hi, 1)
     this.bench.splice(lo, 1, { kind: outKind, lv: outLv, veteran: outVet })
     this.benchPicked = -1
+    this.benchPop = lo
+    this.benchPopT = this.time
     this.merges++
     this.bestLv = Math.max(this.bestLv, outLv)
     this.audio.sfx(mode === 'fuse' ? 'merge5' : 'merge')
@@ -1438,12 +1443,35 @@ export class LegionGame implements BattleHost, UiHostLike {
     const refund = Math.round((5 + lv * 4) * (1 + 0.3 * (this.ups.merge || 0) + 0.06 * (this.save.meta.mergeGain || 0)))
     this.addGrain(refund)
     if (this.runMod('mergeGrain') > 0) this.addGrain(this.runMod('mergeGrain'))
-    this.fx.shock(c.x, c.y, this.board.cell * 0.2, this.board.cell * (newLv >= 5 ? 1.9 : 1.2), newLv >= 5 ? '#b8860b' : resultDef.color, 0.5, newLv >= 5 ? 4 : 2)
-    this.fx.shards(c.x, c.y, newLv >= 5 ? '#b8860b' : '#c9b98f', newLv >= 5 ? 24 : 10, 220)
-    const label = fused ? `合 · ${resultDef.glyph}` : `${'ⅠⅡⅢⅣⅤ'[newLv - 1]} 级`
-    this.fx.text(c.x, c.y - this.board.cell * 0.36, label, fused ? '#3f6b5a' : newLv >= 5 ? '#b8860b' : '#3f6b3a', fused ? 18 : newLv >= 5 ? 22 : 15)
+    /* 合成演出分三档，不再共用一套冲击环。
+       异兵融是"两个兵种交笔"，用交叉双锋 + 双色环；五级是"封顶"，用金；
+       普通升级只给一档轻量反馈，免得每合一次都全屏炸。 */
+    const R = this.board.cell
+    if (fused) {
+      const d = R * 0.78
+      this.fx.slash(c.x - d, c.y - d, c.x + d, c.y + d, '#3f6b5a', 0.3, R * 0.13, 0.26, '#8fd6b4', 1)
+      this.fx.slash(c.x + d, c.y - d, c.x - d, c.y + d, '#b8860b', 0.34, R * 0.11, -0.26, '#ffe9b0', 1)
+      this.fx.shock(c.x, c.y, R * 0.18, R * 1.7, '#3f6b5a', 0.52, 3.5)
+      this.fx.shock(c.x, c.y, R * 0.1, R * 1.15, '#b8860b', 0.38, 2)
+      this.fx.burst(c.x, c.y, '#8fd6b4', 16, 260, 'spark')
+      this.fx.shards(c.x, c.y, '#e0b64a', 18, 250)
+    } else if (newLv >= 5) {
+      this.fx.shock(c.x, c.y, R * 0.2, R * 1.9, '#b8860b', 0.5, 4)
+      this.fx.shock(c.x, c.y, R * 0.12, R * 1.25, '#ffe9b0', 0.34, 2)
+      this.fx.shards(c.x, c.y, '#b8860b', 24, 220)
+      this.fx.burst(c.x, c.y, '#ffd166', 14, 200, 'spark')
+    } else {
+      this.fx.shock(c.x, c.y, R * 0.2, R * 1.2, resultDef.color, 0.5, 2)
+      this.fx.shards(c.x, c.y, '#c9b98f', 10, 220)
+      /* 一道向上的短锋：等级是"往上走"，方向感比光圈更直白 */
+      this.fx.slash(c.x, c.y + R * 0.34, c.x, c.y - R * 0.42, resultDef.color, 0.22, R * 0.075, 0.1, '', 0.6)
+    }
+    unit.flash = 0.34
+    const label = fused ? `融 · ${resultDef.glyph}` : `${'ⅠⅡⅢⅣⅤ'[newLv - 1]} 级`
+    this.fx.text(c.x, c.y - R * 0.36, label, fused ? '#2f5548' : newLv >= 5 ? '#b8860b' : '#3f6b3a', fused ? 22 : newLv >= 5 ? 22 : 16)
     this.audio.sfx(fused ? 'merge5' : newLv >= 5 ? 'merge5' : 'merge')
     this.shake(fused || newLv >= 5 ? 6 : 2)
+    if (fused) this.ui.banner('异兵融 · 两笔成一兵', `${resultDef.name}`, 'gold')
     if (newLv >= 5) this.ui.banner('五级 · 不动如山', `${resultDef.levels[4].name}`, 'gold')
     if (newLv >= 4) this.grantAch('lv4')
     if (newLv >= 5) this.grantAch('lv5')
@@ -2382,7 +2410,7 @@ export class LegionGame implements BattleHost, UiHostLike {
       const b = this.bench[i]
       views.push(b ? { kind: b.kind, lv: b.lv, veteran: b.veteran } : null)
     }
-    this.ui.renderBench(views, this.benchSlots, this.benchPicked)
+    this.ui.renderBench(views, this.benchSlots, this.benchPicked, this.time - this.benchPopT < 0.5 ? this.benchPop : -1)
   }
 
   private syncItems(): void {
@@ -2577,17 +2605,17 @@ export class LegionGame implements BattleHost, UiHostLike {
       else this.items.push({ id, charges: n })
       this.syncAll()
     },
-    addUnit: (kind: UnitKind, lv = 1, cell = -1, path = -1): number => {
+    addUnit: (kind: UnitKind, lv = 1, cell = -1, path = -1, veteran = false): number => {
       const target = cell >= 0 ? cell : this.firstFreeCell()
       if (target < 0) return -1
-      const u = this.battle.addUnit(kind, lv, false, target)
+      const u = this.battle.addUnit(kind, lv, veteran, target)
       if (!u) return -1
       if (path >= 0) u.path = path
       this.bestLv = Math.max(this.bestLv, lv)
       this.syncAll()
       return target
     },
-    benchAdd: (kind: UnitKind, lv = 1): void => { this.bench.push({ kind, lv, veteran: false }); this.syncAll() },
+    benchAdd: (kind: UnitKind, lv = 1, veteran = false): void => { this.bench.push({ kind, lv, veteran }); this.syncAll() },
     mergeAt: (a: number, b: number): boolean => {
       const ua = this.battle.unitAt(a)
       const ub = this.battle.unitAt(b)

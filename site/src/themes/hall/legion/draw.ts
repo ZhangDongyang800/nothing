@@ -17,7 +17,7 @@ import type { Battle } from './battle'
 import { enemyRadius } from './battle'
 import type { Effects } from './fx'
 import { HERO_BY_ID } from './data/heroes'
-import { UNIT_BY_ID } from './data/units'
+import { UNIT_BY_ID, isFusion } from './data/units'
 import { RARITY_COLOR } from './data/rarity'
 import { BOSS_BY_ID } from './data/bosses'
 import { ENEMY_BY_ID } from './data/enemies'
@@ -1120,10 +1120,47 @@ export class Scene {
     }
     ctx.restore()
 
-    /* 左侧品质书签 */
-    ctx.fillStyle = color
-    roundRect(ctx, x + cell * 0.035, y + cell * 0.1, cell * 0.042, h - cell * 0.2, 1.5)
+    /* 左侧书签 = 五段等级刻度。
+       原来只是一条实心品质条，Lv1 和 Lv4 的牌除了角标数字几乎一模一样 ——
+       "合成没反馈"的根子在这儿。改成五格，亮几格就是几级，扫一眼就懂。 */
+    const gxp = x + cell * 0.028
+    const bw = cell * 0.075
+    const gyp = y + cell * 0.1
+    const bh = h - cell * 0.2
+    ctx.fillStyle = 'rgba(0,0,0,.5)'
+    roundRect(ctx, gxp, gyp, bw, bh, 1.5)
     ctx.fill()
+    const segH = bh / 5
+    for (let i = 0; i < 5; i++) {
+      const lit = i >= 5 - Math.min(5, u.lv)
+      const sy = gyp + i * segH
+      /* 亮格用纸白：墨牌上只有纸色才跳得出来，品质色压墨底等于看不见 */
+      ctx.fillStyle = lit ? (u.lv >= 5 ? '#ffd166' : '#fff8e8') : 'rgba(255,248,232,.13)'
+      ctx.fillRect(gxp + bw * 0.16, sy + segH * 0.18, bw * 0.68, segH * 0.64)
+      if (lit) {
+        ctx.fillStyle = withAlpha(color, 0.85)
+        ctx.fillRect(gxp + bw * 0.16, sy + segH * 0.18, bw * 0.22, segH * 0.64)
+      }
+    }
+
+    /* 满级：四角金饰 + 一圈呼吸金框，"不动如山"要看得出来 */
+    if (u.lv >= 5) {
+      const pulse = 0.5 + 0.5 * Math.sin(s.time * 2.2 + u.id * 0.7)
+      ctx.strokeStyle = withAlpha('#e0b64a', 0.5 + pulse * 0.32)
+      ctx.lineWidth = 1.8
+      this.unitPath(ctx, u.kind, x + 3, y + 3, w - 6, h - 6, cut)
+      ctx.stroke()
+      ctx.strokeStyle = '#b8860b'
+      ctx.lineWidth = 1.6
+      const cn = cell * 0.13
+      for (const [qx, qy, sx, sy] of [[x + 3, y + 3, 1, 1], [x + w - 3, y + 3, -1, 1], [x + 3, y + h - 3, 1, -1], [x + w - 3, y + h - 3, -1, -1]] as const) {
+        ctx.beginPath()
+        ctx.moveTo(qx + cn * sx, qy)
+        ctx.lineTo(qx, qy)
+        ctx.lineTo(qx, qy + cn * sy)
+        ctx.stroke()
+      }
+    }
 
     ctx.strokeStyle = color
     ctx.lineWidth = selected ? 2.4 : 1.5
@@ -1145,7 +1182,14 @@ export class Scene {
     ctx.fillStyle = u.lv >= 4 ? color : '#fffdf7'
     roundRect(ctx, bx, by, badge, badge, badge * 0.22)
     ctx.fill()
-    ctx.fillStyle = '#fff8e8'
+    if (u.lv < 4) {
+      ctx.strokeStyle = withAlpha(color, 0.75)
+      ctx.lineWidth = 1.2
+      roundRect(ctx, bx, by, badge, badge, badge * 0.22)
+      ctx.stroke()
+    }
+    /* 低级角标是纸底，字必须落墨 —— 原来纸底配纸色字，1~3 级根本读不出来 */
+    ctx.fillStyle = u.lv >= 4 ? '#fff8e8' : INK
     ctx.font = '800 ' + Math.round(badge * 0.55) + 'px ' + SERIF
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -1170,11 +1214,64 @@ export class Scene {
       ctx.fillText(mark, cell * 0.015, cell * 0.305)
     }
 
+    /* 精锐：原来只是左下角一个 cell*0.105 的"锐"字，缩略图上根本分不出来。
+       改成朱红方印（阴文白字）+ 整牌一道朱边，远看就能挑出精锐。 */
     if (u.veteran) {
-      ctx.fillStyle = SEAL
-      ctx.font = '800 ' + Math.round(cell * 0.105) + 'px ' + SERIF
-      ctx.textAlign = 'left'
-      ctx.fillText('锐', x + cell * 0.1, y + h - cell * 0.09)
+      const ss = cell * 0.235
+      const sx = x + cell * 0.075
+      const sy = y + h - ss - cell * 0.055
+      ctx.strokeStyle = withAlpha(SEAL, 0.85)
+      ctx.lineWidth = 1.8
+      this.unitPath(ctx, u.kind, x + 1, y + 1, w - 2, h - 2, cut)
+      ctx.stroke()
+      ctx.fillStyle = 'rgba(0,0,0,.3)'
+      ctx.fillRect(sx + 1.5, sy + 2, ss, ss)
+      ctx.fillStyle = '#b5342b'
+      ctx.fillRect(sx, sy, ss, ss)
+      ctx.strokeStyle = 'rgba(255,220,210,.55)'
+      ctx.lineWidth = 1
+      ctx.strokeRect(sx + 1.5, sy + 1.5, ss - 3, ss - 3)
+      ctx.fillStyle = '#fff3ec'
+      ctx.font = '800 ' + Math.round(ss * 0.72) + 'px ' + SERIF
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('锐', sx + ss / 2, sy + ss / 2 + ss * 0.03)
+      ctx.textBaseline = 'alphabetic'
+    }
+
+    /* 异兵融出来的兵（枪骑/戟/火）：右上角一枚青金"融"印 + 双色顶缘，
+       它是两个兵种的孩子，牌面上就该带着"合过"的痕迹。 */
+    if (isFusion(u.kind)) {
+      const fs = cell * 0.2
+      const fx0 = x + cell * 0.125
+      const fy0 = y + cell * 0.05
+      const fpulse = 0.5 + 0.5 * Math.sin(s.time * 1.9 + u.id)
+      ctx.strokeStyle = withAlpha('#3f6b5a', 0.55 + fpulse * 0.25)
+      ctx.lineWidth = 1.6
+      ctx.beginPath()
+      ctx.moveTo(x + cut * 0.6, y + cell * 0.035)
+      ctx.lineTo(x + w * 0.5, y + cell * 0.035)
+      ctx.stroke()
+      ctx.strokeStyle = withAlpha(GOLD, 0.55 + fpulse * 0.25)
+      ctx.beginPath()
+      ctx.moveTo(x + w * 0.5, y + cell * 0.035)
+      ctx.lineTo(x + w - cell * 0.05, y + cell * 0.035)
+      ctx.stroke()
+      ctx.fillStyle = '#2f5548'
+      ctx.beginPath()
+      ctx.arc(fx0 + fs / 2, fy0 + fs / 2, fs / 2, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = withAlpha(GOLD, 0.8)
+      ctx.lineWidth = 1.2
+      ctx.beginPath()
+      ctx.arc(fx0 + fs / 2, fy0 + fs / 2, fs / 2 - 1, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.fillStyle = '#ffe9b0'
+      ctx.font = '800 ' + Math.round(fs * 0.66) + 'px ' + SERIF
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('融', fx0 + fs / 2, fy0 + fs / 2 + fs * 0.03)
+      ctx.textBaseline = 'alphabetic'
     }
 
     if (hero) {

@@ -432,14 +432,14 @@ export class LegionUI {
 
   /* ---------------- 点将台 ---------------- */
 
-  renderBench(list: (BenchView | null)[], slots: number, picked = -1): void {
+  renderBench(list: (BenchView | null)[], slots: number, picked = -1, pop = -1): void {
     const marks = list.map((b, i) => {
       const a = picked >= 0 ? list[picked] : null
       if (!a || !b || i === picked) return ''
       if (a.kind === b.kind && a.lv === b.lv && a.lv < 5) return '合'
       return fusionOf(a.kind, b.kind) ? '融' : ''
     })
-    const key = list.map((b) => (b ? `${b.kind}${b.lv}${b.veteran ? 1 : 0}` : '-')).join('|') + `#${slots}@${picked}:${marks.join('')}`
+    const key = list.map((b) => (b ? `${b.kind}${b.lv}${b.veteran ? 1 : 0}` : '-')).join('|') + `#${slots}@${picked}:${marks.join('')}!${pop}`
     if (key === this.benchKey) return
     this.benchKey = key
     const box = this.benchEl
@@ -450,7 +450,7 @@ export class LegionUI {
       if (!b) { html += `<div class="lg-slot is-empty" data-slot="${i}"><i>+</i></div>`; continue }
       const def = UNIT_BY_ID[b.kind]
       const mark = marks[i]
-      html += `<div class="lg-slot${picked === i ? ' is-picked' : ''}${mark ? ' is-' + (mark === '融' ? 'fuse' : 'ready') : ''}" data-slot="${i}" style="--rar:${RARITY_COLOR[def.rarity]}">
+      html += `<div class="lg-slot${picked === i ? ' is-picked' : ''}${mark ? ' is-' + (mark === '融' ? 'fuse' : 'ready') : ''}${pop === i ? ' is-pop' : ''}" data-slot="${i}" style="--rar:${RARITY_COLOR[def.rarity]}">
         <span class="lg-slot-glyph">${def.glyph}</span>
         <span class="lg-slot-name">${def.name}</span>
         <span class="lg-slot-lv">${'ⅠⅡⅢⅣⅤ'[Math.max(0, Math.min(4, b.lv - 1))]}</span>
