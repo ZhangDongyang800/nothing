@@ -2131,4 +2131,155 @@ body.is-playing .cabs *{animation-play-state:paused!important}
   }
 }
 
+/* =================================================================
+   2026-11-25 · 工作室打磨轮
+   开局面板 / 结算判词 / 首页留白与末行 / 破砖关卡名
+   思路：玩家对一台机器的第一眼和最后一眼，决定他会不会再开一次。
+   · 开局：四台（03 走墨 / 06 垒塔 / 09 抽词 / 10 敲印）原来是一张居中的小白卡，
+     标题 30px、一句灰字、一个按钮，盖在一块被清空的空画布上。
+     改成一张左对齐的"开局海报"：编号 → 大字名 → 一句话（黄条）→ 纪录 → 通栏按钮，
+     每台一支强调色落在卡片硬阴影上；面纱调淡，台面里静止的场景（山 / 塔基 / 牌背）透出来。
+   · 结算：判词原来 15px、印 46px，混在 HUD 中间不显眼。抬到 20px / 58px。
+   · 首页：应用卡中段约 90px 空白收掉，小游戏区上移进首屏；
+     末行孤零零一张「敲印」改成一张通栏横幅（名字 | 演示 | 一句话）。
+   只动版式与颜色，不碰各台玩法的尺寸计算（fitBox 量的就是改完之后的容器）。
+   ================================================================= */
+
+/* ---------- 各台强调色：卡片硬阴影 / 编号色块 / 按钮投影 ---------- */
+.pane-run{--g-accent:var(--nb-coral)}
+.pane-stack{--g-accent:var(--nb-yellow)}
+.pane-word{--g-accent:var(--nb-yellow)}
+.pane-tap{--g-accent:var(--nb-blue)}
+
+.g-start,.pair-start{background:rgba(255,248,232,.34)}
+
+.g-start-card,.pair-start-card{
+  width:min(86vw,460px);
+  align-items:stretch;text-align:left;
+  gap:clamp(10px,1.8vh,16px);
+  padding:clamp(18px,2.6vw,30px) clamp(20px,3vw,38px);
+  box-shadow:8px 8px 0 var(--g-accent,var(--nb-coral));
+}
+.g-start-kicker{
+  display:flex;align-items:center;gap:8px;margin:0;
+  font-family:var(--font-mono);font-weight:700;font-size:clamp(10px,.95vw,12px);
+  letter-spacing:.22em;color:#4b463d;
+}
+/* 字族里的 Arial Black 不含汉字，中文会落到微软雅黑的常规字重 —— "粗体字族"只写 font-family
+   时标题其实是细的。所有开局海报上的黑体字一律补 font-weight:900，雅黑才有真粗。 */
+.g-start-title,.g-start-tip,.pair-start-tip,.g-go,.pair-go,.g-start-key b,.g-start-best b{font-weight:900}
+.g-start-kicker{font-weight:700}
+
+.g-start-kicker::before{
+  content:'';flex:none;width:10px;height:10px;
+  background:var(--g-accent,var(--nb-coral));border:1.5px solid var(--nb-ink);
+}
+.g-start-title{
+  margin:0 0 0 -.08em;
+  font-family:var(--font-heavy);font-size:clamp(42px,5.4vw,68px);
+  line-height:.98;letter-spacing:.1em;
+}
+/* 一句话玩法：沿用首页 .zone-note 的黄条语汇，玩家在首页见过，这里认得出来 */
+.g-start-tip,.pair-start-tip{
+  margin:0;padding:6px 10px;text-align:left;
+  border-left:3px solid var(--nb-coral);background:rgba(255,209,102,.42);
+  font-family:var(--font-heavy);font-size:clamp(13px,1.25vw,17px);
+  line-height:1.7;letter-spacing:.02em;opacity:1;
+}
+.g-start-best{
+  align-self:flex-start;margin:0;padding:3px 10px;
+  border:1.5px solid var(--nb-ink);background:var(--nb-paper);
+  font-family:var(--font-mono);font-size:clamp(11px,1vw,13px);
+  letter-spacing:.08em;color:#4b463d;line-height:1.7;
+}
+.g-start-best[hidden]{display:none}
+.g-start-best b{
+  margin:0 2px;font-family:var(--font-heavy);font-size:1.55em;line-height:1;
+  letter-spacing:0;color:var(--nb-coral);vertical-align:-.08em;
+}
+.g-go,.pair-go{width:100%;letter-spacing:.3em;text-indent:.3em;text-align:center}
+.g-go{box-shadow:5px 5px 0 var(--g-accent,var(--nb-coral))}
+.g-go:hover{box-shadow:7px 7px 0 var(--g-accent,var(--nb-coral))}
+.g-go:active{box-shadow:2px 2px 0 var(--g-accent,var(--nb-coral))}
+.g-start-key{
+  margin:0;text-align:center;color:#4b463d;opacity:.7;
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;
+}
+.g-start-key b{
+  display:inline-block;margin:0 3px;padding:0 6px 1px;
+  border:1.5px solid var(--nb-ink);background:var(--nb-paper);
+  font-family:var(--font-heavy);font-size:1.1em;letter-spacing:.02em;
+  box-shadow:2px 2px 0 rgba(37,37,37,.12);opacity:1;
+}
+.pair-tier{justify-content:flex-start}
+.pair-start-note{opacity:.6}
+
+/* ---------- 结算判词：这是玩家看到的最后一眼，要读得清、记得住 ---------- */
+.verdict{min-height:clamp(44px,6.2vh,62px);gap:clamp(10px,1.4vw,18px)}
+.verdict-text{font-size:clamp(14px,1.45vw,20px)}
+.verdict-seal{
+  width:clamp(40px,4.4vw,58px);height:clamp(40px,4.4vw,58px);
+  font-size:clamp(20px,2.3vw,30px);
+}
+
+/* ---------- 触屏：没有键盘就不写键位；横屏时开局海报压扁，别把台面全盖住 ---------- */
+@media (pointer:coarse){
+  .g-start-key,.key-only{display:none}
+}
+@media (pointer:coarse) and (min-aspect-ratio:1/1){
+  .g-start-card,.pair-start-card{width:min(62vw,360px);gap:7px;padding:12px 18px}
+  .g-start-kicker{font-size:10px}
+  .g-start-title{font-size:32px}
+  .g-start-tip,.pair-start-tip{font-size:12px;padding:4px 8px}
+  .g-start-best{font-size:10.5px;padding:2px 8px}
+  .g-go,.pair-go{font-size:15px;padding:7px 10px}
+  .verdict{min-height:44px}
+  .verdict-text{font-size:13px}
+  .verdict-seal{width:40px;height:40px;font-size:20px}
+}
+
+/* ---------- 桌面（≥901px） ---------- */
+@media (min-width:901px){
+  .g-start-card,.pair-start-card{
+    width:min(34vw,500px);
+    padding:clamp(24px,3vw,36px) clamp(28px,3.4vw,44px);
+  }
+  .g-start-title{font-size:clamp(48px,4.9vw,72px)}
+  .g-start-tip,.pair-start-tip{font-size:clamp(15px,1.3vw,18px)}
+  .g-start-best{font-size:13px}
+  .g-go,.pair-go{font-size:clamp(19px,1.7vw,24px);padding:13px 20px}
+  .g-start-key{font-size:11.5px}
+  .pair-start-note{font-size:11.5px}
+
+  /* 应用卡：内容只占 200px 左右，原来 34vh 的下限在笔记本上留出约 90px 死白 */
+  .app-card{min-height:clamp(190px,24vh,236px)}
+  .app-actions{margin-top:clamp(10px,2vh,22px)}
+
+  /* 末行只有一张卡（10 敲印）：铺成通栏横幅，而不是留三个空格 */
+  .cabs > .cab:last-child{
+    grid-column:1/-1;flex-direction:row;align-items:stretch;
+    gap:clamp(14px,2vw,30px);
+    padding:clamp(12px,1.4vw,18px) clamp(14px,1.8vw,26px);
+  }
+  .cabs > .cab:last-child .cab-top{
+    flex:0 0 clamp(130px,14vw,210px);flex-direction:column;justify-content:center;gap:6px;
+  }
+  .cabs > .cab:last-child .cab-name{font-size:clamp(24px,2.6vw,38px);line-height:1}
+  .cabs > .cab:last-child .cab-no{font-size:11px;padding-top:0}
+  .cabs > .cab:last-child .cab-screen{
+    flex:1 1 auto;margin-top:0;min-height:0;height:auto;aspect-ratio:16/5;max-height:clamp(140px,20vh,196px);
+  }
+  /* 12 格摆成 6×2 一条，和游戏里的 4×3 同一套格子，只是拉宽 */
+  .cabs > .cab:last-child .mtap{grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(2,1fr)}
+  .cabs > .cab:last-child .mtap i{font-size:clamp(12px,1.5vw,22px)}
+  .cabs > .cab:last-child .cab-meta{
+    flex:0 0 clamp(170px,18vw,290px);margin-top:0;flex-direction:column;align-items:flex-start;
+    justify-content:flex-end;gap:8px;font-size:clamp(11px,.95vw,13px);letter-spacing:.14em;opacity:1;
+  }
+  .cabs > .cab:last-child .cab-meta span:last-child{font-size:clamp(20px,1.8vw,26px);color:var(--nb-coral)}
+}
+
+/* 首页「敲印」演示屏：和游戏里的 4×3 十二格同一套格子（原来是 3×3 九格，与机台对不上） */
+.scr-tap .mtap{grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr)}
+
 

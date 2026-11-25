@@ -204,6 +204,7 @@ export function mountWord(ctx){
     pMaxCombo = 0;
     pCombo = comboState(tier().comboWin, 6);
     pBestScore = BEST.get('pair.score');
+    ctx.startBest('pairStartBest', pBestScore, '分');
     pLock = true;
     PAIR_GRID.innerHTML = '';
     PAIR_GRID.classList.remove('is-live', 'is-flaw', 'is-dead');
@@ -438,6 +439,14 @@ export function mountWord(ctx){
       : (t === 'easy' ? '易档 · 六对，先亮一眼，字疏好认' : '中档 · 八对，先亮一眼，有近形字');
   });
   on(PAIR_GO, 'click', beginPair);
+  /* 键盘也能开局：开局面板盖着时空格 / 回车 = 开始（选中的难度照常生效） */
+  on(window, 'keydown', function(e){
+    if (ctx.current !== 'word') return;
+    if (e.key !== ' ' && e.key !== 'Enter') return;
+    if (!PAIR_START.classList.contains('is-on') || pPhase !== 'idle' || e.repeat) return;
+    e.preventDefault();
+    beginPair();
+  });
 
   /* 看一眼：花 2 步换一次全亮。步数是硬账，值不值得由人自己判。 */
   if (PAIR_PEEK) on(PAIR_PEEK, 'click', function(){

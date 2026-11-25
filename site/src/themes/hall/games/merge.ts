@@ -247,6 +247,11 @@ export function mountMerge(ctx){
     var cx = p.x + m.size / 2, cy = p.y + m.size / 2;
     var nl = ev.nl;
     var hot = mgCombo.n >= 2;
+    /* mgPos 给的是台面内的坐标；FX 层画在视口上，必须加上台面左上角。
+       少了这一步，向心聚合 / 印章 / 飘分会全落到页面最左边（台面之外）。 */
+    var sr = MG_STAGE.getBoundingClientRect();
+    cx += sr.left;
+    cy += sr.top;
     var colors = nl >= 8
       ? ['#ffd166', '#fff8e8', '#252525']
       : ['#ffd166', '#f28b82', '#efe9da'];

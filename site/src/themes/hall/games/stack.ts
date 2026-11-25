@@ -85,6 +85,9 @@ export function mountStack(ctx){
     stkCtx = STK.getContext('2d');
     var s = STK.width / SW;
     stkCtx.setTransform(s, 0, 0, s, 0, 0);
+    /* 改画布尺寸会把它清空；循环没起的时候（开局面板盖着）补一帧静态塔基。
+       首次 refit 时还没开过机（没有塔），stkDraw 会去读塔顶 —— 那一帧不画。 */
+    if (!stkRunning && stkBlocks.length) stkDraw();
   }
 
   function stkHud(){
@@ -105,6 +108,7 @@ export function mountStack(ctx){
     stkMoving = { x: (SW - SBASE) / 2, w: pendingWidth(stkBlocks[0], kind), kind: kind };
     stkRunning = false; stkDone = false; stkPaused = false;
     stkBest = BEST.get('stack.best');
+    ctx.startBest('stackStartBest', stkBest, '层');
     STK_PANE.classList.remove('is-over');
     STK_V.classList.remove('is-on');
     STK_VS.className = 'verdict-seal';

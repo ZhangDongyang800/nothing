@@ -251,6 +251,16 @@ export function createCtx() {
     FX.pop(r.left + r.width / 2, r.top + r.height / 2 - 6, text, { cls: cls });
   }
   function hudSet(el, v){ if (el) el.textContent = String(v); }
+  /* 开局面板上的一行纪录：有纪录写"最好多少"，没有就告诉玩家这一局会写上第一笔。
+     文案只有这一处，四台带开局面板的机器共用。 */
+  function startBest(id, n, unit){
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.hidden = false;
+    el.innerHTML = n > 0
+      ? '最好 <b>' + n + '</b> ' + unit + ' · 这一局来破它'
+      : '还没有纪录 · <b>这一局就是第一笔</b>';
+  }
   function fmtStars(n){ return n >= 3 ? '★★★' : n === 2 ? '★★' : '★'; }
 
   function shuffle(a){
@@ -352,7 +362,7 @@ export function createCtx() {
     POEMS, pickPoem, COLS, ROWS,
     /* 公共小工具 */
     comboState, comboAdd, comboBump, comboBreak, comboMult,
-    popAt, hudSet, fmtStars, shuffle, splitLines, showVerdict, fitBox, BEST,
+    popAt, hudSet, startBest, fmtStars, shuffle, splitLines, showVerdict, fitBox, BEST,
     /* 环境 */
     FINEPOINTER,
     /* 外壳 DOM */

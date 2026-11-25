@@ -58,6 +58,8 @@ export function createFx(signal) {
       + 'font:700 21px/1 "Songti SC","SimSun",serif;letter-spacing:.14em;'
       + 'transform:translate(-50%,-50%) rotate(var(--fx-rot,0deg));white-space:nowrap}'
       + '.fx-stamp.is-live{animation:fx-stamp .44s cubic-bezier(.2,1.45,.3,1) both}'
+      + '.fx-stamp.is-hold{opacity:.94}'
+      + '.fx-stamp.is-hold.is-out{opacity:0;transition:opacity .45s ease}'
       + '@keyframes fx-stamp{0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--fx-rot,0deg)) scale(1.5)}'
       + '56%{opacity:1;transform:translate(-50%,-50%) rotate(var(--fx-rot,0deg)) scale(.96)}'
       + '100%{opacity:.94;transform:translate(-50%,-50%) rotate(var(--fx-rot,0deg)) scale(1)}}';
@@ -441,12 +443,27 @@ export function createFx(signal) {
     if (!n) {
       n = document.createElement('span');
       n.addEventListener('animationend', function () {
+        /* opt.hold：盖下之后在纸上停一会儿再淡出（关卡名这类要读完的字）。
+           默认 0 = 一落完就收，行为与以前完全一致。 */
+        const hold = n._hold || 0;
+        const putBack = function () {
+          n.classList.remove('is-live', 'is-hold', 'is-out');
+          n.style.display = 'none';
+          if (stampFree.length < 8) stampFree.push(n);
+        };
+        if (!hold){ putBack(); return; }
         n.classList.remove('is-live');
-        n.style.display = 'none';
-        if (stampFree.length < 8) stampFree.push(n);
+        n.classList.add('is-hold');
+        if (n._holdT1) window.clearTimeout(n._holdT1);
+        if (n._holdT2) window.clearTimeout(n._holdT2);
+        n._holdT1 = window.setTimeout(function () { n.classList.add('is-out'); }, hold);
+        n._holdT2 = window.setTimeout(putBack, hold + 480);
       });
       document.body.appendChild(n);
     }
+    if (n._holdT1) window.clearTimeout(n._holdT1);
+    if (n._holdT2) window.clearTimeout(n._holdT2);
+    n._hold = opt.hold || 0;
     n.style.display = '';
     n.className = 'fx-stamp' + (opt.cls ? ' ' + opt.cls : '');
     n.textContent = text;

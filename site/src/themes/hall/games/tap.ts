@@ -119,6 +119,7 @@ export function mountTap(ctx){
     tapMaxCombo = 0; tapSpawnAcc = 0;
     tapCombo = comboState(2400, 10);
     tapBest = BEST.get('tap.score');
+    ctx.startBest('tapStartBest', tapBest, '分');
     TAP_PANE.classList.remove('is-over');
     TAP_V.classList.remove('is-on');
     TAP_VS.className = 'verdict-seal';
@@ -337,6 +338,15 @@ export function mountTap(ctx){
   }
 
   if (TAP_GO) on(TAP_GO, 'click', tapGo);
+  /* 键盘也能开局：空格 / 回车。敲印是纯点击游戏，玩家手放在键盘上时
+     看到黑底大按钮会先按一下空格 —— 这一下不能没反应。 */
+  on(window, 'keydown', function(e){
+    if (ctx.current !== 'tap') return;
+    if (e.key !== ' ' && e.key !== 'Enter') return;
+    if (!TAP_START.classList.contains('is-on') || e.repeat) return;
+    e.preventDefault();
+    tapGo();
+  });
   if (TAP_PAUSE) on(TAP_PAUSE, 'click', function(){
     if (!tapRunning || tapDone) return;
     tapPaused = !tapPaused;

@@ -2459,7 +2459,11 @@ export class LegionGame implements BattleHost, UiHostLike {
   }
 
   escape(): boolean {
-    if (this.overlay) { this.closeOverlay(); return true }
+    /* 大厅（start / over 背后那张开始页）本身就是这张覆盖层：在这里按 Esc，
+       以前走的是"关掉覆盖层"，结果什么都没变，玩家以为 Esc 失灵。
+       大厅里的 Esc 交还给机台厅去关弹层。 */
+    if (this.overlay && this.overlay !== 'start') { this.closeOverlay(); return true }
+    if (this.phase === 'start') return false
     if (this.phase === 'prep' || this.phase === 'wave') { this.togglePause(); return true }
     return false
   }

@@ -133,19 +133,29 @@ export function mountRun(ctx){
     runBgNear.width = RW; runBgNear.height = RH;
     runPaintBg(runBgFar.getContext('2d'), 0);
     runPaintBg(runBgNear.getContext('2d'), 1);
+    /* 改画布尺寸会把它清空。开局面板还盖在上面、循环没起的时候没人重画，
+       窗口一变（或开机 30/300ms 的两次 refit）台面就成了空框 —— 补一帧静态场景。 */
+    if (!runRunning) runDraw();
   }
 
-  /* 两层山各自画进一张离屏画布，每帧只贴图 + 平移 —— 每帧重画 40 个点的山脊线没必要。 */
+  /* 两层山各自画进一张离屏画布，每帧只贴图 + 平移 —— 每帧重画 40 个点的山脊线没必要。
+     山脊线的频率必须是「整张画布内恰好整数个起伏」：它左右首尾相接才能无缝循环，
+     否则每贴一张就在接缝处断一次（旧版 sin(x·0.0042) 在 960px 处不归零，看得出一道竖坎）。 */
   function runPaintBg(c, layer){
     c.clearRect(0, 0, RW, RH);
     var base = RGROUND - 4;
     var amp = layer ? 62 : 112;
     c.fillStyle = layer ? '#e2d7bf' : '#f0e7d4';
+    /* 两支周期谐波叠出起伏：主起伏一张一幅（远）/ 两幅（近），再叠三倍频的细碎褶皱 */
+    var n1 = layer ? 2 : 1, ph = layer ? 0.9 : 2.4;
+    function ridge(x){
+      var a = Math.PI * n1 * x / RW + ph;
+      return Math.abs(Math.sin(a)) * 0.76 + Math.abs(Math.sin(a * 3 + 0.7)) * 0.24;
+    }
     c.beginPath();
     c.moveTo(0, base);
     for (var x = 0; x <= RW; x += 24){
-      var y = base - Math.abs(Math.sin(x * 0.0042 + layer * 1.7)) * amp - (layer ? 0 : 20);
-      c.lineTo(x, y);
+      c.lineTo(x, base - ridge(x) * amp - (layer ? 0 : 20));
     }
     c.lineTo(RW, base);
     c.closePath();
@@ -154,7 +164,7 @@ export function mountRun(ctx){
     c.lineWidth = layer ? 2.4 : 1.6;
     c.beginPath();
     for (var x2 = 0; x2 <= RW; x2 += 24){
-      var y2 = base - Math.abs(Math.sin(x2 * 0.0042 + layer * 1.7)) * amp - (layer ? 0 : 20);
+      var y2 = base - ridge(x2) * amp - (layer ? 0 : 20);
       if (x2 === 0) c.moveTo(x2, y2); else c.lineTo(x2, y2);
     }
     c.stroke();
@@ -167,7 +177,9 @@ export function mountRun(ctx){
     if (layer){
       c.strokeStyle = 'rgba(37,37,37,.14)';
       c.lineWidth = 1.4;
-      for (var hx = -RH; hx < RW + RH; hx += 22){
+      /* 斜纹间距取画布宽的整数等分（960 / 40 = 24），左右两张才能在接缝处对上斜线 */
+      var pitch = RW / 40;
+      for (var hx = -RH; hx < RW + RH; hx += pitch){
         c.beginPath();
         c.moveTo(hx, RGROUND);
         c.lineTo(hx + (RH - RGROUND) * 1.4, RH);
@@ -186,6 +198,7 @@ export function mountRun(ctx){
     runRunning = false; runDone = false; runPaused = false;
     runCombo = comboState(2200, 8);
     runBest = BEST.get('run.best');
+    ctx.startBest('runStartBest', runBest, '米');
     RUN_PANE.classList.remove('is-over');
     RUN_V.classList.remove('is-on');
     RUN_VS.className = 'verdict-seal';
@@ -568,7 +581,16 @@ export function mountRun(ctx){
   /* 键盘：空格 / ↑ / W 起跳，松开截断跳高；←/→ 或 A/D 空中微调 */
   on(window, 'keydown', function(e){
     if (ctx.current !== 'run') return;
-    if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') jumpKeyDown(e);
+    if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === 'Enter'){
+      /* 开局面板还盖着：页脚写的是「空格起跳」，这一下应该是「开始」，不能没反应 */
+      if (RUN_START.classList.contains('is-on')){
+        if (e.repeat) return;
+        e.preventDefault();
+        runGo();
+        return;
+      }
+      if (e.key !== 'Enter') jumpKeyDown(e);
+    }
     else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') runTrimL = true;
     else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') runTrimR = true;
   });

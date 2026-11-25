@@ -49,25 +49,25 @@ export function mountBreak(ctx){
      armorRows 底部几行装甲；armorHp 装甲血量；gold/split/wide/chain 特殊砖数量；
      balls 初始库存。难度递增靠空隙结构与特殊砖布局，不是单纯堆密。 */
   var BKLEVELS = [
-    { /* 1 入门实墙：满墙普通砖，熟悉反弹与接球 */
+    { name: '入门实墙', /* 满墙普通砖，熟悉反弹与接球 */
       map: ['1111111111111','1111111111111','1111111111111','1111111111111','1111111111111','1111111111111','1111111111111','1111111111111'],
       armorRows: 0, armorHp: 0, gold: 1, split: 0, wide: 0, chain: 0, balls: 11 },
-    { /* 2 双眼镂空：上下对称两个菱形孔，练斜线落位 */
+    { name: '双眼镂空', /* 上下对称两个菱形孔，练斜线落位 */
       map: ['1111111111111','1111111111111','1111101011111','1111111111111','1111011101111','1111111111111','1111101011111','1111111111111'],
       armorRows: 0, armorHp: 0, gold: 2, split: 1, wide: 0, chain: 0, balls: 11 },
-    { /* 3 拱门：上宽下窄的中央通道，底部一行装甲拦路 */
+    { name: '拱门', /* 上宽下窄的中央通道，底部一行装甲拦路 */
       map: ['1111111111111','1111111111111','1111100011111','1111110111111','1111111111111','1111110111111','1111101011111','1111111111111'],
       armorRows: 1, armorHp: 2, gold: 2, split: 1, wide: 1, chain: 0, balls: 12 },
-    { /* 4 棋盘：交错镂空，散放连锁砖，第一次体验引燃 */
+    { name: '棋盘', /* 交错镂空，散放连锁砖，第一次体验引燃 */
       map: ['1111111111111','1101101101101','1111111111111','1011011011011','1111111111111','1101101101101','1111111111111','1011011011011','1111111111111'],
       armorRows: 1, armorHp: 2, gold: 2, split: 2, wide: 1, chain: 3, balls: 12 },
-    { /* 5 三竖道：三条纵向贯通缝，中间一簇连锁砖，底部三血装甲 */
+    { name: '三竖道', /* 三条纵向贯通缝，中间一簇连锁砖，底部三血装甲 */
       map: ['1111111111111','1111111111111','1110011100111','1110011100111','1111101011111','1110011100111','1110011100111','1111111111111','1111111111111'],
       armorRows: 1, armorHp: 3, gold: 3, split: 2, wide: 0, chain: 4, balls: 14 },
-    { /* 6 堡垒：两侧翼墙 + 中轴窄廊，两行三血装甲守底 */
+    { name: '堡垒', /* 两侧翼墙 + 中轴窄廊，两行三血装甲守底 */
       map: ['1111111111111','1111111111111','1101111111011','1101111111011','1101101011011','1101111111011','1101111111011','1111111111111','1111111111111'],
       armorRows: 2, armorHp: 3, gold: 3, split: 2, wide: 1, chain: 3, balls: 13 },
-    { /* 7 终局：上下镜像密墙 + 中央十字孔，全砖种混合 */
+    { name: '终局', /* 上下镜像密墙 + 中央十字孔，全砖种混合 */
       map: ['1111111111111','1110011100111','1111111111111','1111101011111','1110011100111','1111101011111','1111111111111','1110011100111','1111111111111'],
       armorRows: 2, armorHp: 3, gold: 3, split: 2, wide: 1, chain: 4, balls: 14 }
   ];
@@ -136,8 +136,11 @@ export function mountBreak(ctx){
     bkWallCv.width = BK.width;
     bkWallCv.height = BK.height;
     bkWallCtx = bkWallCv.getContext('2d');
-    bkWallCtx.setTransform(s, 0, 0, s, 0, 0);
+    if (bkWallCtx) bkWallCtx.setTransform(s, 0, 0, s, 0, 0);
     bkWallDirty = true;
+    /* 改画布尺寸会把它清空。循环停着的时候（已收场 / 刚开机）没人重画，
+       窗口一变台面就成一张白纸 —— 这里补一帧。 */
+    if (!bkRunning) bkDraw();
   }
 
   function bkHud(){
@@ -254,8 +257,17 @@ export function mountBreak(ctx){
       case KIND.ARMOR: return br.maxHp >= 3 ? '#b5aa95' : '#cdc6b8';
       /* 普通砖用站内那支蓝：原来那抹薄荷绿是全站唯一一处绿，整面墙一片绿，
          跟纸黄 / 墨黑 / 朱砂的调子对不上，看着像另一个游戏。 */
-      default: return '#9cc7f5';
+      /* 同一面蓝墙按行分深浅：顶行最深、越靠下越浅。一整面 104 块同一个蓝读起来是一块色板，
+         有了这 8% 的明暗阶，墙才有"厚度"，打穿时缺口也一眼能认出来。 */
+      default: return bkRowTone(br.row);
     }
+  }
+  var BK_TONE_TOP = [132, 182, 238], BK_TONE_BOT = [170, 208, 248];
+  function bkRowTone(row){
+    var t = Math.max(0, Math.min(1, row / 8));
+    return 'rgb(' + Math.round(BK_TONE_TOP[0] + (BK_TONE_BOT[0] - BK_TONE_TOP[0]) * t) + ',' +
+      Math.round(BK_TONE_TOP[1] + (BK_TONE_BOT[1] - BK_TONE_TOP[1]) * t) + ',' +
+      Math.round(BK_TONE_TOP[2] + (BK_TONE_BOT[2] - BK_TONE_TOP[2]) * t) + ')';
   }
   function bkLabel(br){
     switch (br.kind){
@@ -519,9 +531,13 @@ export function mountBreak(ctx){
       }
       if (b.lastBrick && b.idle > 0.25) b.lastBrick = 0;
 
-      /* 拖尾：连击抬高时加长球拖尾（重大档反馈） */
+      /* 拖尾：连击抬高时加长球拖尾（重大档反馈）。
+         FX 层认视口坐标：球的位置是 480×430 的逻辑坐标，先换算再交给它，
+         否则拖尾会画在台面左上角之外的页面上。 */
       if (bkCombo.n >= 3 && bkRunning){
-        FX.trail(b.x, b.y, bkCombo.n >= 5 ? 'rgba(242,139,130,.5)' : 'rgba(37,37,37,.4)', bkCombo.n >= 5 ? 6 : 4);
+        var tr = BK.getBoundingClientRect();
+        FX.trail(tr.left + b.x * (tr.width / BW), tr.top + b.y * (tr.height / BH),
+          bkCombo.n >= 5 ? 'rgba(242,139,130,.5)' : 'rgba(37,37,37,.4)', bkCombo.n >= 5 ? 6 : 4);
       }
 
       if (b.idle > 12) dead = true;
@@ -685,6 +701,15 @@ export function mountBreak(ctx){
     bkRaf = requestAnimationFrame(bkFrame);
     if (syncLoops) syncLoops();
     laterTrack(function(){ if (bkRunning && BK && BK.clientWidth) bkFit(); }, 140);
+    /* 关卡开场印章：关名 + 第几关。七关的墙形各有名字（拱门 / 棋盘 / 堡垒……），
+       以前只写在代码注释里，玩家看不到 —— 盖在墙正中，等弹层的入场动画走完再落。 */
+    laterTrack(function(){
+      if (!bkRunning || bkDone || !BK) return;
+      var r = BK.getBoundingClientRect();
+      FX.stamp(r.left + r.width / 2, r.top + r.height * 0.56,
+        '第 ' + (bkLv + 1) + ' 关 · ' + BKLEVELS[bkLv].name,
+        { size: Math.max(22, Math.min(34, r.width / 14)), color: '#b5342b', hold: 1300, rot: -4 });
+    }, 300);
   }
 
   function bkStart(){

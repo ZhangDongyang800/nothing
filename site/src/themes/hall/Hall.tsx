@@ -324,6 +324,10 @@ export default function Hall() {
                 <i />
                 <i className="is-ink">墨</i>
                 <i />
+                <i />
+                <i className="is-hot">金</i>
+                <i />
+                <i />
               </span>
             </span>
             <span className="cab-meta">
@@ -496,7 +500,10 @@ export default function Hall() {
               <div className="pair-count" id="pairCount" aria-hidden="true" />
               <div className="pair-start is-on" id="pairStart">
                 <div className="pair-start-card">
+                  <p className="g-start-kicker">09 · 翻卡成双</p>
+                  <p className="g-start-title">抽词</p>
                   <p className="pair-start-tip">翻开一样的两个，成双收走</p>
+                  <p className="g-start-best" id="pairStartBest" hidden />
                   <div className="pair-tier" id="pairTier">
                     <button type="button" data-tier="easy">
                       易 · 12 张
@@ -511,7 +518,9 @@ export default function Hall() {
                   <button className="pair-go" type="button" id="pairGo">
                     开始
                   </button>
-                  <p className="pair-start-note">步数用完就散了</p>
+                  <p className="pair-start-note">
+                    <span className="key-only">按 空格 开始 · </span>步数用完就散了
+                  </p>
                 </div>
               </div>
             </section>
@@ -595,8 +604,10 @@ export default function Hall() {
               </div>
               <div className="g-start is-on" id="tapStart">
                 <div className="g-start-card">
+                  <p className="g-start-kicker">10 · 反应速度</p>
                   <p className="g-start-title">敲印</p>
                   <p className="g-start-tip">点掉冒出来的印 · 墨印点了扣命</p>
+                  <p className="g-start-best" id="tapStartBest" hidden />
                   <button className="g-go" type="button" id="tapGo">
                     开始
                   </button>
@@ -632,11 +643,16 @@ export default function Hall() {
               </div>
               <div className="g-start is-on" id="runStart">
                 <div className="g-start-card">
+                  <p className="g-start-kicker">03 · 无尽跑</p>
                   <p className="g-start-title">走墨</p>
                   <p className="g-start-tip">空格 / 点画面跳 · 空中还能补一次</p>
+                  <p className="g-start-best" id="runStartBest" hidden />
                   <button className="g-go" type="button" id="runGo">
                     起跑
                   </button>
+                  <p className="g-start-key">
+                    按 <b>空格</b> 开始
+                  </p>
                 </div>
               </div>
             </section>
@@ -669,11 +685,16 @@ export default function Hall() {
               </div>
               <div className="g-start is-on" id="stackStart">
                 <div className="g-start-card">
+                  <p className="g-start-kicker">06 · 时序堆叠</p>
                   <p className="g-start-title">垒塔</p>
                   <p className="g-start-tip">空格 / 点画面落砖 · 对准了砖会变宽</p>
+                  <p className="g-start-best" id="stackStartBest" hidden />
                   <button className="g-go" type="button" id="stackGo">
                     开始
                   </button>
+                  <p className="g-start-key">
+                    按 <b>空格</b> 开始
+                  </p>
                 </div>
               </div>
             </section>
