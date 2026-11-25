@@ -1130,16 +1130,24 @@ export class Scene {
     ctx.fillStyle = 'rgba(0,0,0,.5)'
     roundRect(ctx, gxp, gyp, bw, bh, 1.5)
     ctx.fill()
-    const segH = bh / 5
-    for (let i = 0; i < 5; i++) {
-      const lit = i >= 5 - Math.min(5, u.lv)
-      const sy = gyp + i * segH
-      /* 亮格用纸白：墨牌上只有纸色才跳得出来，品质色压墨底等于看不见 */
-      ctx.fillStyle = lit ? (u.lv >= 5 ? '#ffd166' : '#fff8e8') : 'rgba(255,248,232,.13)'
-      ctx.fillRect(gxp + bw * 0.16, sy + segH * 0.18, bw * 0.68, segH * 0.64)
-      if (lit) {
-        ctx.fillStyle = withAlpha(color, 0.85)
-        ctx.fillRect(gxp + bw * 0.16, sy + segH * 0.18, bw * 0.22, segH * 0.64)
+    if (hero) {
+      /* 统帅没有等级：整条金书签，只表身份，不假装能被数出几级 */
+      ctx.fillStyle = GOLD
+      ctx.fillRect(gxp + bw * 0.16, gyp + bh * 0.03, bw * 0.68, bh * 0.94)
+      ctx.fillStyle = 'rgba(255,255,255,.35)'
+      ctx.fillRect(gxp + bw * 0.16, gyp + bh * 0.03, bw * 0.24, bh * 0.94)
+    } else {
+      const segH = bh / 5
+      for (let i = 0; i < 5; i++) {
+        const lit = i >= 5 - Math.min(5, u.lv)
+        const sy = gyp + i * segH
+        /* 亮格用纸白：墨牌上只有纸色才跳得出来，品质色压墨底等于看不见 */
+        ctx.fillStyle = lit ? (u.lv >= 5 ? '#ffd166' : '#fff8e8') : 'rgba(255,248,232,.13)'
+        ctx.fillRect(gxp + bw * 0.16, sy + segH * 0.18, bw * 0.68, segH * 0.64)
+        if (lit) {
+          ctx.fillStyle = withAlpha(color, 0.85)
+          ctx.fillRect(gxp + bw * 0.16, sy + segH * 0.18, bw * 0.22, segH * 0.64)
+        }
       }
     }
 
@@ -1175,25 +1183,10 @@ export class Scene {
       ctx.stroke()
     }
 
-    /* 等级：一枚小角牌，字号跟着格子走 */
-    const badge = Math.max(11, Math.round(cell * 0.235))
-    const bx = x + w - badge - cell * 0.045
-    const by = y + cell * 0.045
-    ctx.fillStyle = u.lv >= 4 ? color : '#fffdf7'
-    roundRect(ctx, bx, by, badge, badge, badge * 0.22)
-    ctx.fill()
-    if (u.lv < 4) {
-      ctx.strokeStyle = withAlpha(color, 0.75)
-      ctx.lineWidth = 1.2
-      roundRect(ctx, bx, by, badge, badge, badge * 0.22)
-      ctx.stroke()
-    }
-    /* 低级角标是纸底，字必须落墨 —— 原来纸底配纸色字，1~3 级根本读不出来 */
-    ctx.fillStyle = u.lv >= 4 ? '#fff8e8' : INK
-    ctx.font = '800 ' + Math.round(badge * 0.55) + 'px ' + SERIF
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(String(u.lv), bx + badge / 2, by + badge / 2 + 0.5)
+    /* 右上角原来还有一枚等级角牌，删了。
+       左侧刻度已经把等级说清楚，同一个事实编码两遍是噪声；
+       而且白底那块是整张墨牌上最跳的元素，把视线引到最不重要的信息上。
+       英雄更是错的：battle.addUnit 里英雄写死 lv:1，永不升级，角标永远显示 1。 */
 
     /* 主字：兵种字放到足够大，纸色压在墨底上 */
     if (u.flash > 0) ctx.fillStyle = withAlpha(color, 0.95)
