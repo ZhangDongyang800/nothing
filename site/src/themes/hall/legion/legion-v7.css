@@ -1058,3 +1058,45 @@
 @media (max-width: 940px) and (min-height: 900px) {
   .lg .lg-dock { height: 288px; }
 }
+
+/* ============================================================
+   2026-11-25 · 横屏矮屏：点将台不再三行互相压
+   ≤940 的竖排（head / main / side 三行）在 844×390 这类横屏里
+   高度只有 364px，中间行被压到 21px，英雄列表（544px）直接盖到
+   "开始守卫"按钮上。宽够高压不够时改回两栏：左边点将台可滚，
+   右边开始栏固定，标题与装饰收紧。
+   ============================================================ */
+@media (min-width: 700px) and (max-height: 560px) {
+  .lg .lg-start {
+    height: calc(100vh - 26px);
+    height: calc(100dvh - 26px);
+    box-sizing: border-box;
+    max-height: none;
+    align-items: stretch;
+    padding: 8px 12px 10px;
+    grid-template-columns: minmax(0, 1fr) 232px;
+    grid-template-areas: "head side" "main side";
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 8px 14px;
+  }
+  .lg .lg-start-art { display: none; }
+  .lg .lg-start-head { grid-area: head; }
+  .lg .lg-start-head .lg-kicker { font-size: 9px; }
+  .lg .lg-start-head .lg-title { font-size: 26px; letter-spacing: 2px; margin: 2px 0 0; }
+  .lg .lg-start-head .lg-sub,
+  .lg .lg-start-head .lg-loop { display: none; }
+  .lg .lg-start-main { grid-area: main; min-height: 0; overflow-y: auto; gap: 6px; padding-right: 4px; }
+  .lg .lg-start-main .lg-rules,
+  .lg .lg-start-main .lg-hero-detail { display: none; }
+  .lg .lg-start-main .lg-hero-list { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; gap: 8px; }
+  .lg .lg-hero { height: auto; }
+  .lg .lg-start-side { grid-area: side; display: flex; flex-direction: column; justify-content: flex-start; gap: 8px; }
+  .lg .lg-go { width: 100%; height: 46px; font-size: 16px; letter-spacing: 4px; }
+}
+/* 点将台卡片：Q 技那行钉到卡片底边。
+   卡片被 2×2 网格拉到 265px 高，内容只占 170px，原来底下空一大块；
+   把技能行（自带虚线分隔）推到底，空白变成"正文 / 页脚"之间的呼吸，
+   卡片看着是有意为之，而不是没写完。 */
+@media (min-width: 941px) {
+  .lg .lg-hero-skill { margin-top: auto; }
+}

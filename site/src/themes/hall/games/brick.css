@@ -92,3 +92,15 @@
   border-color: rgba(37,37,37,.30);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.55);
 }
+
+/* ============================================================
+   2026-11-25 · 手里那三块跟盘子同比例
+   盘子格子由 fit() 量出来写进 --brk-cell。原来手牌固定 22px、
+   盘子 91px，差四倍，看着不像同一副砖；现在取盘子的一半，
+   下限 13px（手机按得中）、上限 40px（大盘子上不喧宾夺主）。
+   ============================================================ */
+.brk-main{--brk-tcell:clamp(13px,calc(var(--brk-cell,36px) * .5),40px)}
+.pane-brick .brk-tray .bp-grid i{width:var(--brk-tcell);height:var(--brk-tcell)}
+@media (min-width:901px){
+  .pane-brick .brk-tray{width:calc(var(--brk-tcell) * 3 + 30px)}
+}

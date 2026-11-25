@@ -543,11 +543,8 @@ p,h1,h2,h3{margin:0}
     linear-gradient(to bottom, rgba(255,248,232,.055) 1px, transparent 1px);
   background-size:var(--cell) var(--cell);
 }
-.machine-foot{
-  flex:none;height:50px;display:flex;align-items:center;gap:10px;
-  padding:0 clamp(10px,1.2vw,16px);
-  background:var(--nb-sheet);border-top:2px solid var(--nb-ink);
-}
+/* 2026-11-25：底部那条 50px 页脚整条并进顶栏（见文件末尾"机台外壳"一段），
+   .machine-foot 这个容器已经不存在，相关规则一并撤掉。 */
 .m-btn{
   display:inline-flex;align-items:center;gap:7px;flex:none;
   padding:7px 11px;border:2px solid var(--nb-ink);background:var(--nb-paper);
@@ -1004,7 +1001,6 @@ p,h1,h2,h3{margin:0}
   /* 全屏机台在全局规则里已经 `inset:0`，这里只补手机的刘海安全区。
      （不要再写 `translate(-50%,-50%)` 的进场动画：机台已经不是居中定位，那个位移会把它整体推出屏幕。） */
   .machine-top{height:54px;padding:0 12px;padding-top:env(safe-area-inset-top)}
-  .machine-foot{height:56px;padding:0 12px;padding-bottom:env(safe-area-inset-bottom)}
   .machine-body{--cell:clamp(28px,9.6vw,40px)}
   .pane-paper{flex-direction:column;gap:16px}
   .readout{flex-direction:row;align-items:center;gap:10px}
@@ -1316,7 +1312,6 @@ body.is-playing{overflow:hidden}
   /* 手机上顶栏与底栏只用来"写明是哪台、怎么回去"，各留 42/46 就够；
      省下来的 8px 全给游玩区（比例尺不同但方向一致：界面越薄，台面越大）。 */
   .machine-top{height:42px;padding:0 8px}
-  .machine-foot{height:46px;padding:0 8px}
   .m-hint{font-size:8px;letter-spacing:.1em}
   .machine-body{--cell:clamp(24px,8.6vw,38px)}
   .pane{padding:8px 10px}
@@ -1353,14 +1348,13 @@ body.is-playing{overflow:hidden}
    条件用 min-aspect-ratio 而不 orientation：浏览器工具条伸缩时 orientation 会抖，
    而且 iPad 横屏 768 高也应当吃满（旧的 max-height:620px 正好把它挡在外面）。 */
 @media (pointer:coarse) and (min-aspect-ratio:1/1){
-  .machine-top,.machine-foot{
+  .machine-top{
     position:absolute;z-index:6;height:auto;padding:0;margin:0;
     background:none;border:0;gap:8px;
   }
   .machine-top{left:auto;right:calc(8px + env(safe-area-inset-right));top:calc(8px + env(safe-area-inset-top))}
-  .machine-foot{left:calc(8px + env(safe-area-inset-left));right:auto;top:calc(8px + env(safe-area-inset-top))}
   .machine-top .m-no,.machine-top .m-name,.machine-top .m-tag{display:none}
-  .machine-foot .m-hint,.machine-foot .m-count{display:none}
+  .machine-top .m-hint,.machine-top .m-count{display:none}
   .pane{padding:6px calc(10px + env(safe-area-inset-right)) 6px calc(10px + env(safe-area-inset-left))}
   /* 只动这四台：它们的台面是"按 host 高度算"的 canvas / 棋盘，
      HUD 挪开后多出来的每 1px 都直接变成游玩区；03/04/05/07/08 是分栏排版，HUD 仍留在行内。 */
@@ -2282,4 +2276,85 @@ body.is-playing .cabs *{animation-play-state:paused!important}
 /* 首页「敲印」演示屏：和游戏里的 4×3 十二格同一套格子（原来是 3×3 九格，与机台对不上） */
 .scr-tap .mtap{grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr)}
 
+/* =================================================================
+   2026-11-25 · 机台外壳：底部页脚整条并进顶栏
+   作者反馈：游玩时底部那条「再来一次 · 提示 · 01/10」没有必要单独占一条，还会压着台面。
+   处理：容器删掉，内容原样搬进顶栏右侧（提示 → 动作按钮 → 关闭），元素 id 不变，
+   各台写 mHint / mReplay 的代码一行没改。台面因此每台多出 46–56px 高度。
+   计数并进左上角的编号（01 / 10），不再在右下角重复一遍。
+   ================================================================= */
+.machine-top{
+  height:auto;min-height:52px;
+  gap:clamp(8px,1vw,14px);
+  padding:6px clamp(10px,1.2vw,16px);
+}
+.m-tools{
+  margin-left:auto;min-width:0;
+  display:flex;align-items:center;gap:clamp(6px,.8vw,12px);
+}
+.m-close{margin-left:0}
+.m-count{display:none}
+.m-no{font-size:11px;letter-spacing:.16em;opacity:.5}
+.m-hint{
+  min-width:0;max-width:min(40vw,540px);
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.m-btn{flex:none}
 
+/* 窄屏：提示是键位说明，触屏上没有键盘、也放不下，收起来；
+   规则在开局面板与顶栏标签里已经写过一遍。
+   901–1100 的笔记本仍然留着它 —— 放不下时自己省略号，总比整条消失强。 */
+@media (max-width:900px){
+  .m-hint{display:none}
+}
+@media (max-width:900px){
+  .machine-top{min-height:54px;padding-top:calc(6px + env(safe-area-inset-top));padding-bottom:6px}
+  .m-tools{gap:8px}
+  .m-btn{padding:6px 9px;font-size:11px;box-shadow:2px 2px 0 var(--nb-yellow)}
+  .m-btn i{font-size:12px}
+  .m-close{width:32px;height:32px}
+}
+@media (max-width:420px){
+  .machine-top{min-height:48px;gap:6px;padding-left:8px;padding-right:8px}
+  .m-no{display:none}
+  .m-name{font-size:15px}
+  .m-tag{font-size:8px;padding:2px 5px;margin-left:2px}
+  .m-btn span{font-size:10.5px}
+}
+/* 横屏手机：顶栏本来就浮在右上角，现在动作按钮跟着一起过去（原来「再来一次」在左上角） */
+@media (pointer:coarse) and (min-aspect-ratio:1/1){
+  .machine-top{min-height:0;padding:0}
+  .m-tools{gap:8px}
+}
+
+
+
+/* 砖块手牌与盘子同比例的规则在 games/brick.css（那一层的 .pane-brick .brk-tray .bp-grid i
+   优先级更高，写在这里会被它盖掉）。--brk-cell 由 games/brick.ts 的 fit() 量出来。 */
+/* ============================================================
+   2026-11-25 · 判词落成一张纸签
+   判词浮在台面底沿（.pane > .verdict 绝对定位）。砖块 / 叠山的盘子吃满整台，
+   收场那行字直接压在最后一行砖上，读都读不清。给它一张自己的纸：
+   收到内容宽、居中、墨边硬阴影 —— 从"字糊在盘上"变成"盘面落了款"，
+   台面尺寸一点没动。叠山收场也跟着降透明度，和砖块 / 破砖同一口径。
+   ============================================================ */
+.pane > .verdict.is-on{
+  width:fit-content;max-width:min(94%,780px);
+  margin-inline:auto;
+  padding:clamp(5px,.7vh,9px) clamp(12px,1.6vw,22px);
+  background:var(--nb-paper);
+  border:2.5px solid var(--nb-ink);
+  box-shadow:4px 4px 0 rgba(37,37,37,.2);
+}
+.pane-merge.is-over .merge-stage{
+  opacity:.5;filter:saturate(.55);
+  transition:opacity .3s ease,filter .3s ease;
+}
+/* 叠山手机上有一排方向键在台面下方，判词纸签不能盖住它（和牌堆 / 连字同一处理）。
+   方向键高度是定值：竖排 124px、横屏 132px，各让开 12–14px。 */
+@media (pointer:coarse){
+  .pane-merge > .verdict{bottom:138px}
+}
+@media (pointer:coarse) and (min-aspect-ratio:1/1){
+  .pane-merge > .verdict{bottom:144px}
+}

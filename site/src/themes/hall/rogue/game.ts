@@ -306,9 +306,11 @@ export class Game implements GameApi {
     const raw = window.devicePixelRatio || 1;
     const dpr = this.save.settings.quality === 'low' ? 1 : Math.min(1.5, raw);
     this.view = { w, h, dpr };
-    /* 桌面 0.82（多看 22% 的横竖范围）；手机屏幕小，放得更远一档。
-       只在这里改，draw.ts 用同一个值算剔除范围。 */
-    this.zoom = w < 620 ? 0.74 : 0.82;
+    /* 相机按屏幕宽归一：以前固定 0.82，1440 宽的机器能看到 1756 世界单位、
+       1920 能看到 2341 —— 屏幕越大场面越空、还越简单，墨点只有十几像素。
+       现在让可见世界宽稳定在 1200 上下（0.82–1.3 之间钳住），
+       换台显示器看到的是同一场仗。手机仍走 0.74 那一档。 */
+    this.zoom = w < 620 ? 0.74 : Math.min(1.3, Math.max(0.82, w / 1200));
     this.ui.canvas.width = Math.round(w * dpr);
     this.ui.canvas.height = Math.round(h * dpr);
     /* 改分辨率和窗口尺寸会清空画布。循环停着（暂停里改画面档）时必须当场补画一次，
@@ -1797,10 +1799,17 @@ export class Game implements GameApi {
     return n;
   }
 
+  /** 视野外一圈的世界距离：对角线一半 + 余量。三处出生点共用同一把尺。 */
+  private offDist(extra: number): number {
+    return Math.hypot(this.view.w, this.view.h) / (2 * this.zoom) + extra;
+  }
+
   private spawnRing(initial = false): void {
     const p = this.player;
     const a = this.rnd() * Math.PI * 2;
-    const d = Math.max(this.view.w, this.view.h) / 2 + 70 + this.rnd() * 140;
+    /* 出生圈按「视野对角线的一半（世界单位）」算。
+       原来拿屏幕像素当世界距离用：宽屏上左右两侧的敌人会在画面里凭空冒出来。 */
+    const d = this.offDist(60) + this.rnd() * 140;
     const x = p.x + Math.cos(a) * d;
     const y = p.y + Math.sin(a) * d;
     const def = pickEnemyKind(() => this.rnd(), this.minutes);
@@ -1865,7 +1874,7 @@ export class Game implements GameApi {
       this.waveTimer = 24;
       const n = Math.min(28, 5 + Math.floor(m * 1.6));
       const base = this.rnd() * Math.PI * 2;
-      const d = Math.max(this.view.w, this.view.h) / 2 + 90;
+      const d = this.offDist(90);
       const p = this.player;
       for (let i = 0; i < n; i++) {
         const a = base + (i / n - 0.5) * 0.9 + (this.rnd() - 0.5) * 0.2;
@@ -1947,7 +1956,7 @@ export class Game implements GameApi {
         break
       case 'tide': {
         const a = this.rnd() * Math.PI * 2;
-        const d = Math.max(this.view.w, this.view.h) / 2 + 80;
+        const d = this.offDist(80);
         for (let i = 0; i < 18; i++) {
           this.spawnEnemy(pickEnemyKind(() => this.rnd(), m).id, p.x + Math.cos(a) * (d + this.rnd() * 60), p.y + Math.sin(a) * (d + this.rnd() * 60) + (i - 9) * 46);
         }

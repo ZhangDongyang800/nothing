@@ -136,7 +136,7 @@ export function attachHall() {
     if (!PANES[name]) return;
     ctx.current = name;
     var info = INFO[name];
-    MNO.textContent = info.no;
+    MNO.textContent = info.idx;
     MNAME.textContent = info.name;
     MTAG.textContent = info.tag;
     /* 墨潮的页脚提示要分组：键位单独做键帽，读起来才不是一撮细字 */

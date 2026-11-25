@@ -603,6 +603,13 @@ export function mountBrick(ctx){
     if (side < 80) return;
     b.style.width = side + 'px';
     b.style.height = side + 'px';
+    /* 待放砖块的格子跟着盘子走：盘子越大，手里那三块也得越大，
+       否则 94px 的格子旁边摆 18px 的缩略图，看着不像同一副砖。 */
+    var cs = getComputedStyle(b);
+    var pad = parseFloat(cs.paddingLeft) || 0;
+    var gap = parseFloat(cs.columnGap) || 0;
+    var cell = (side - pad * 2 - gap * 7) / 8;
+    if (cell > 4) host.style.setProperty('--brk-cell', cell.toFixed(1) + 'px');
   }
 
   function stop(){ bAlive = false; }

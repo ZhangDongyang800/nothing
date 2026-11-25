@@ -355,7 +355,7 @@ export default function Hall() {
         <div className="machine">
           <div className="machine-top">
             <span className="m-no" id="mNo">
-              01
+              01 / 10
             </span>
             <span className="m-name" id="mName">
               稿纸
@@ -363,9 +363,32 @@ export default function Hall() {
             <span className="m-tag" id="mTag">
               A4 · 竖排
             </span>
-            <button className="m-close" type="button" data-close aria-label="关掉机台">
-              ✕
-            </button>
+            {/* 原来这些在底部一条 50px 的页脚里：游玩时它既占高度又压着台面下沿。
+                现在整条并进顶栏 —— 提示在右、动作按钮跟着、关闭在最右。
+                元素 id 一个没改，各台写 mHint / mReplay 的代码照旧。 */}
+            <div className="m-tools">
+              <span className="m-hint" id="mHint">
+                点纸就写，回车换列
+              </span>
+              <button className="m-btn" type="button" id="mReplay">
+                <i>↻</i>
+                <span>再来一次</span>
+              </button>
+              <button className="m-btn" type="button" id="mSeal">
+                <i>◉</i>
+                <span>落印</span>
+              </button>
+              <button className="m-btn" type="button" id="mClear">
+                <i>⌫</i>
+                <span>清空</span>
+              </button>
+              <span className="m-count" id="mCount" hidden>
+                01 / 10
+              </span>
+              <button className="m-close" type="button" data-close aria-label="关掉机台">
+                ✕
+              </button>
+            </div>
           </div>
 
           <div className="machine-body">
@@ -708,26 +731,6 @@ export default function Hall() {
             </section>
           </div>
 
-          <div className="machine-foot">
-            <button className="m-btn" type="button" id="mReplay">
-              <i>↻</i>
-              <span>再来一次</span>
-            </button>
-            <button className="m-btn" type="button" id="mSeal">
-              <i>◉</i>
-              <span>落印</span>
-            </button>
-            <button className="m-btn" type="button" id="mClear">
-              <i>⌫</i>
-              <span>清空</span>
-            </button>
-            <span className="m-hint" id="mHint">
-              点纸就写，回车换列
-            </span>
-            <span className="m-count" id="mCount">
-              01 / 10
-            </span>
-          </div>
         </div>
       </div>
     </div>
