@@ -22,6 +22,8 @@ import { RARITY_COLOR } from './data/rarity'
 import { BOSS_BY_ID } from './data/bosses'
 import { ENEMY_BY_ID } from './data/enemies'
 import type { Stroke } from './formation'
+import { drawGlyph, drawGlyphHit } from './glyph'
+import { brushStroke } from './fx'
 
 const PAPER = '#fff8e8'
 const INK = '#252525'
@@ -471,6 +473,9 @@ export class Scene {
       ctx.fillRect(0, 0, s.w, s.h)
     }
 
+    /* 地面墨渍：死亡 / 灼烧留在纸上的痕迹，压在棋子之下 */
+    s.fx.drawGround(ctx)
+
     const b = s.board
     const cell = b.cell
     const selected = s.battle.units.find((u) => u.active && u.cell === s.selected)
@@ -569,10 +574,7 @@ export class Scene {
         roundRect(ctx, -cell * 0.4, -cell * 0.4, cell * 0.8, cell * 0.8, cell * 0.08)
         ctx.stroke()
         ctx.fillStyle = INK
-        ctx.font = `700 ${Math.round(cell * 0.38)}px ${SERIF}`
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(m.glyph, 0, 0)
+        drawGlyph(ctx, m.glyph, m.kind, cell * 0.38, INK, 0, 0)
         ctx.restore()
       }
     }
@@ -723,36 +725,17 @@ export class Scene {
       const fade = 1 - t
       const w = Math.max(1, b.width * (1 - t * 0.45))
       ctx.save()
-      ctx.lineCap = 'butt'
-      ctx.lineJoin = 'round'
-      /* 外晕：一团抹开的墨，告诉玩家"这整片都被扫了" */
+      const reveal = Math.min(1, t / 0.3 + 0.15)
+      /* 洇墨底：宽 beam（横扫 / 冲锋 / Boss 墨线）铺一层抹开的墨 */
       if (b.width >= 6) {
-        ctx.globalAlpha = 0.22 * fade
-        ctx.strokeStyle = withAlpha(b.color, 0.5)
-        ctx.lineWidth = w * 2.2
-        ctx.beginPath()
-        ctx.moveTo(b.x1, b.y1)
-        ctx.lineTo(b.x2, b.y2)
-        ctx.stroke()
+        ctx.globalAlpha = 0.16 * fade
+        ctx.fillStyle = b.color
+        brushStroke(ctx, b.x1, b.y1, b.x2, b.y2, w * 2.1, 0.03, reveal, 'sweep', b.width)
       }
-      /* 内芯 */
-      ctx.globalAlpha = 0.9 * fade
-      ctx.strokeStyle = b.color
-      ctx.lineWidth = w
-      ctx.beginPath()
-      ctx.moveTo(b.x1, b.y1)
-      ctx.lineTo(b.x2, b.y2)
-      ctx.stroke()
-      /* 亮芯：宽的光束（横扫/冲锋/穿刺）再压一条更细的暖白，让线条"发热" */
-      if (b.width >= 4) {
-        ctx.globalAlpha = 0.55 * fade
-        ctx.strokeStyle = '#fff3cf'
-        ctx.lineWidth = Math.max(1, w * 0.42)
-        ctx.beginPath()
-        ctx.moveTo(b.x1, b.y1)
-        ctx.lineTo(b.x2, b.y2)
-        ctx.stroke()
-      }
+      /* 主笔：书法横扫，起笔顿、收锋出尖，不再是几何直线 */
+      ctx.globalAlpha = 0.88 * fade
+      ctx.fillStyle = b.color
+      brushStroke(ctx, b.x1, b.y1, b.x2, b.y2, w, 0.04, reveal, 'sweep', b.width)
       ctx.restore()
     }
   }
@@ -1188,13 +1171,19 @@ export class Scene {
        而且白底那块是整张墨牌上最跳的元素，把视线引到最不重要的信息上。
        英雄更是错的：battle.addUnit 里英雄写死 lv:1，永不升级，角标永远显示 1。 */
 
-    /* 主字：兵种字放到足够大，纸色压在墨底上 */
-    if (u.flash > 0) ctx.fillStyle = withAlpha(color, 0.95)
-    else ctx.fillStyle = '#fffdf7'
-    ctx.font = '700 ' + Math.round(cell * (u.lv >= 4 ? 0.48 : 0.5)) + 'px ' + SERIF
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(hero ? hero.glyph : def.glyph, cell * 0.015, -cell * 0.035)
+    /* 主字：活字书法，纸白压墨底（碑拓语言）；每兵种独立书风，待机微呼吸 */
+    {
+      const gcol = u.flash > 0 ? color : '#fffdf7'
+      const gsize = cell * (u.lv >= 4 ? 0.48 : 0.5)
+      const gtext = hero ? hero.glyph : def.glyph
+      const gstyle = hero ? 'hero' : u.kind
+      ctx.save()
+      ctx.translate(cell * 0.015, -cell * 0.035)
+      ctx.rotate(Math.sin(s.time * 1.7 + u.id * 0.9) * 0.016)
+      if (u.hitT > 0) drawGlyphHit(ctx, gtext, gstyle, gsize, gcol, 0, 0, Math.min(1, u.hitT / 0.2))
+      else drawGlyph(ctx, gtext, gstyle, gsize, gcol, 0, 0)
+      ctx.restore()
+    }
 
     /* 底部职能：格子够大就画兵器徽记，小格子退回一个字 */
     if (cell >= 56) {
@@ -1279,12 +1268,31 @@ export class Scene {
     ctx.restore()
 
     if (selected) {
-      ctx.save()
-      ctx.strokeStyle = withAlpha(GOLD, 0.9)
-      ctx.lineWidth = 2
       const r = b.rectOf(u.cell)
-      roundRect(ctx, r.x + 2, r.y + 2, cell - 4, cell - 4, cell * 0.08)
+      ctx.save()
+      /* 脚下墨圈：选中的单位被一圈淡墨托住 */
+      ctx.globalAlpha = 0.16
+      ctx.strokeStyle = INK
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.arc(r.x + cell / 2, r.y + cell / 2, cell * 0.47, 0, Math.PI * 2)
       ctx.stroke()
+      /* 朱砂四角印框：印章语言的选择态 */
+      ctx.globalAlpha = 0.92
+      ctx.strokeStyle = SEAL
+      ctx.lineWidth = 2.2
+      ctx.lineCap = 'round'
+      const m = 3
+      const L = cell * 0.2
+      for (const [sx, sy] of [[0, 0], [1, 0], [0, 1], [1, 1]] as const) {
+        const px = r.x + m + sx * (cell - m * 2)
+        const py = r.y + m + sy * (cell - m * 2)
+        ctx.beginPath()
+        ctx.moveTo(px + (sx ? -L : L), py)
+        ctx.lineTo(px, py)
+        ctx.lineTo(px, py + (sy ? -L : L))
+        ctx.stroke()
+      }
       ctx.restore()
     }
   }
@@ -1418,11 +1426,27 @@ export class Scene {
     this.enemyPath(ctx, e.kind, !!e.boss, R)
     ctx.stroke()
 
-    ctx.fillStyle = e.hitT > 0 ? SEAL : INK
-    ctx.font = `700 ${Math.round(radius * (e.boss ? 1.0 : 0.94))}px ${SERIF}`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(glyph, 0, -radius * 0.04)
+    /* 敌军墨字：受击时字形压缩 + 笔画错位，不是单纯闪红 */
+    {
+      const gcol = e.hitT > 0 ? SEAL : INK
+      const gsize = radius * (e.boss ? 1.0 : 0.94)
+      const gstyle = e.boss ? 'boss' : e.kind
+      if (e.hitT > 0 && !e.dead) drawGlyphHit(ctx, glyph, gstyle, gsize, gcol, 0, -radius * 0.04, Math.min(1, e.hitT / 0.2))
+      else drawGlyph(ctx, glyph, gstyle, gsize, gcol, 0, -radius * 0.04)
+    }
+
+    /* 被控：两道笔画缠绕成束缚（术士定身 / 眩晕），不是头顶一个图标 */
+    if (e.stunT > 0 && !e.dead) {
+      ctx.strokeStyle = withAlpha('#5b3a6b', 0.72)
+      ctx.lineWidth = Math.max(1.4, radius * 0.09)
+      ctx.lineCap = 'round'
+      for (const sgn of [-1, 1]) {
+        ctx.beginPath()
+        ctx.moveTo(-R * 0.92, sgn * R * 0.34)
+        ctx.quadraticCurveTo(0, sgn * R * 0.78, R * 0.92, sgn * R * 0.18)
+        ctx.stroke()
+      }
+    }
 
     ctx.restore()
 
@@ -1453,59 +1477,45 @@ export class Scene {
     ctx.translate(p.x, p.y)
     ctx.rotate(Math.atan2(p.vy, p.vx))
 
-    /* 拖痕：三种弹都留尾，但长度与浓度按弹种分 */
-    const len = cell * (p.kind === 'fire' ? 0.3 : p.side === 'unit' ? 0.26 : 0.16)
-    ctx.globalAlpha = 0.22
+    /* 墨迹拖尾：渐淡的笔锋尾 */
+    const len = cell * (p.kind === 'fire' ? 0.34 : p.side === 'unit' ? 0.3 : 0.2)
+    ctx.globalAlpha = 0.2
     ctx.fillStyle = col
     ctx.beginPath()
-    ctx.moveTo(0, -R * 0.55)
-    ctx.lineTo(-len, 0)
-    ctx.lineTo(0, R * 0.55)
+    ctx.moveTo(-len * 0.2, -R * 0.5)
+    ctx.lineTo(-len * 1.3, 0)
+    ctx.lineTo(-len * 0.2, R * 0.5)
     ctx.closePath()
     ctx.fill()
     ctx.globalAlpha = 1
 
     if (p.kind === 'fire') {
-      /* 火：外焰 + 内芯 + 两点飞散火星 */
+      /* 朱砂笔触 + 焰芯：火不是光球，是一笔烧过去的墨 */
       const k = 0.85 + Math.sin(p.age * 26) * 0.18
-      ctx.globalAlpha = 0.3
+      ctx.globalAlpha = 0.28
       ctx.fillStyle = '#e07b3c'
-      ctx.beginPath(); ctx.arc(0, 0, R * 2.2 * k, 0, Math.PI * 2); ctx.fill()
+      ctx.beginPath(); ctx.arc(0, 0, R * 2 * k, 0, Math.PI * 2); ctx.fill()
       ctx.globalAlpha = 1
       ctx.fillStyle = col
-      ctx.beginPath()
-      ctx.moveTo(-R * 2.4 * k, 0)
-      ctx.quadraticCurveTo(-R * 0.3, -R * 1.5 * k, R * 1.15, 0)
-      ctx.quadraticCurveTo(-R * 0.3, R * 1.5 * k, -R * 2.4 * k, 0)
-      ctx.fill()
+      brushStroke(ctx, -len * 0.7, 0, len * 0.55, 0, R * 2.2 * k, 0.12, 1, 'slash', p.id)
       ctx.fillStyle = '#ffd166'
-      ctx.beginPath(); ctx.arc(R * 0.25, 0, R * 0.6 * k, 0, Math.PI * 2); ctx.fill()
+      ctx.beginPath(); ctx.arc(len * 0.3, 0, R * 0.55 * k, 0, Math.PI * 2); ctx.fill()
     } else if (p.kind === 'bolt') {
-      /* 弩矢：短粗杆 + 宽镞，比箭更"硬" */
-      ctx.strokeStyle = col
-      ctx.lineWidth = Math.max(1.6, R * 0.72)
-      ctx.lineCap = 'butt'
-      ctx.beginPath(); ctx.moveTo(-R * 2.1, 0); ctx.lineTo(R * 0.7, 0); ctx.stroke()
+      /* 械矢：短横硬笔 + 机括 notch */
       ctx.fillStyle = col
-      ctx.beginPath()
-      ctx.moveTo(R * 1.85, 0); ctx.lineTo(R * 0.5, -R * 0.95); ctx.lineTo(R * 0.5, R * 0.95)
-      ctx.closePath(); ctx.fill()
-      ctx.fillStyle = 'rgba(255,253,247,.75)'
-      ctx.beginPath(); ctx.arc(R * 0.95, 0, R * 0.28, 0, Math.PI * 2); ctx.fill()
+      brushStroke(ctx, -len * 0.6, 0, len * 0.5, 0, R * 1.5, 0.02, 1, 'sweep', p.id)
+      ctx.fillStyle = 'rgba(255,253,247,.7)'
+      ctx.fillRect(-len * 0.1, -R * 0.5, R * 0.5, R)
     } else {
-      /* 箭：杆 + 镞 + 尾羽 */
-      ctx.strokeStyle = col
-      ctx.lineWidth = Math.max(1.1, R * 0.42)
-      ctx.lineCap = 'butt'
-      ctx.beginPath(); ctx.moveTo(-R * 2.6, 0); ctx.lineTo(R * 0.9, 0); ctx.stroke()
+      /* 笔画箭：捺画为镞（收锋出尖），两撇为羽 */
       ctx.fillStyle = col
+      brushStroke(ctx, -len * 0.6, 0, len * 0.6, 0, R * 1.5, 0.06, 1, 'slash', p.id)
+      ctx.strokeStyle = col
+      ctx.lineWidth = Math.max(0.9, R * 0.32)
+      ctx.lineCap = 'round'
       ctx.beginPath()
-      ctx.moveTo(R * 2.0, 0); ctx.lineTo(R * 0.75, -R * 0.62); ctx.lineTo(R * 0.75, R * 0.62)
-      ctx.closePath(); ctx.fill()
-      ctx.lineWidth = Math.max(0.9, R * 0.3)
-      ctx.beginPath()
-      ctx.moveTo(-R * 2.6, 0); ctx.lineTo(-R * 3.3, -R * 0.72)
-      ctx.moveTo(-R * 2.6, 0); ctx.lineTo(-R * 3.3, R * 0.72)
+      ctx.moveTo(-len * 0.6, 0); ctx.lineTo(-len * 0.95, -R * 0.8)
+      ctx.moveTo(-len * 0.6, 0); ctx.lineTo(-len * 0.95, R * 0.8)
       ctx.stroke()
     }
     ctx.restore()
@@ -1536,10 +1546,7 @@ export class Scene {
     roundRect(ctx, -size / 2, -size / 2, size, size, size * 0.09)
     ctx.stroke()
     ctx.fillStyle = INK
-    ctx.font = `700 ${Math.round(size * 0.48)}px ${SERIF}`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(hero ? hero.glyph : def.glyph, 0, -size * 0.04)
+    drawGlyph(ctx, hero ? hero.glyph : def.glyph, hero ? 'hero' : d.kind, size * 0.48, INK, 0, -size * 0.04)
     ctx.fillStyle = withAlpha(INK, 0.55)
     ctx.font = `500 ${Math.round(size * 0.13)}px ${SERIF}`
     ctx.fillText(`Lv.${d.lv}`, 0, size * 0.3)

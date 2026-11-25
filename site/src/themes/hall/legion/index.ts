@@ -2,6 +2,7 @@
 import './legion.css'
 import './legion-v6.css'
 import './legion-v7.css'
+import './design/glyph.css'
 import { LegionGame } from './game'
 
 export interface LegionHandle {

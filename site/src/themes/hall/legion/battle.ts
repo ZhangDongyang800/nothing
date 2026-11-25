@@ -218,6 +218,10 @@ export class Battle {
     const c = this.host.board.center(u.cell)
     if (!quiet) {
       this.host.fx.burst(c.x, c.y, u.hero ? '#b8860b' : '#4a4139', 14, 220)
+      /* 友军阵亡：墨字解体散开，不是直接消失 */
+      const g = u.hero ? HERO_BY_ID[u.hero].glyph : UNIT_BY_ID[u.kind].glyph
+      this.host.fx.shatter(c.x, c.y, g, u.hero ? 'hero' : u.kind, this.host.board.cell * 0.5, '#3a332a', 1)
+      this.host.fx.stain(c.x, c.y, this.host.board.cell * 0.4, '#3a332a', 2)
       this.host.fx.text(c.x, c.y - 14, '阵亡', '#8a3b2a', 13)
     }
     for (const e of this.enemies) if (e.active && e.engaged === u.id) { e.engaged = 0; u.blocked = Math.max(0, u.blocked - 1) }
@@ -753,6 +757,8 @@ export class Battle {
         const crit = d > dmgBase
         if (u.lv >= 5 && !target.boss && target.hp < target.maxHp * 0.15) {
           this.hitEnemy(target, target.hp + 1, { color: '#8a3b2a', label: '断' })
+          /* 处决盖「断」印：一刀断的仪式感 */
+          this.host.fx.stamp(target.x, target.y, '断', this.host.board.cell * 0.5, '#a8342a')
         } else {
           this.hitEnemy(target, d, { color: crit ? '#a0432c' : '#8d3b2f', crit, label: crit ? '暴' : '' })
         }
@@ -818,7 +824,18 @@ export class Battle {
           if (u.lv >= 3 && u.path === 1 && !e.boss) { e.slowT = Math.max(e.slowT, 0.8); e.prog = Math.max(0, e.prog - 0.12); this.spreadControl(e) }
           if (++n >= (radial ? 8 : maxN)) break
         }
-        this.beam(c.x, c.y, c.x + Math.cos(dir) * len, c.y + Math.sin(dir) * len, '#5d6b3a', 0.18, (radial ? 3 : 2) + (u.lv - 1) * 0.8)
+        const tw = (radial ? 3 : 2.4) + (u.lv - 1) * 0.8
+        if (radial) {
+          /* 五级枪阵：八方针刺 + 一圈墨晕 */
+          for (let k = 0; k < 8; k++) {
+            const a = (k / 8) * Math.PI * 2
+            this.host.fx.thrust(c.x, c.y, c.x + Math.cos(a) * len * 0.7, c.y + Math.sin(a) * len * 0.7, '#5d6b3a', 0.28, tw)
+          }
+          this.host.fx.bloom(c.x, c.y, this.host.board.cell * 0.3, this.host.board.cell * 1.4, '#5d6b3a', 0.4)
+        } else {
+          /* 墨针突刺：笔画凝聚成针，瞬间延伸贯穿 */
+          this.host.fx.thrust(c.x, c.y, c.x + Math.cos(dir) * len, c.y + Math.sin(dir) * len, '#5d6b3a', 0.26, tw)
+        }
         this.host.fx.hitSpark(c.x + Math.cos(dir) * this.host.board.cell * 0.34, c.y + Math.sin(dir) * this.host.board.cell * 0.34, '#8a945a', Math.min(1, 0.18 + u.lv * 0.16))
         this.host.audio.sfx('shoot', 0.7)
         break
@@ -838,7 +855,15 @@ export class Battle {
         const rain = u.lv >= 5 && u.pulse % 4 === 0
         if (rain) {
           this.addZone(target.x, target.y, this.host.board.cell * 1.2, 0.9, 'rain', u.atk * 0.8, '#6a5b2e', 'unit', 0.32)
-          this.host.fx.shock(target.x, target.y, 4, this.host.board.cell * 1.2, '#6a5b2e', 0.4, 2)
+          /* 箭雨：落点墨晕 + 数支自上方钉落的笔画箭 */
+          this.host.fx.bloom(target.x, target.y, this.host.board.cell * 0.3, this.host.board.cell * 1.2, '#6a5b2e', 0.5)
+          for (let k = 0; k < 6; k++) {
+            const a = Math.random() * Math.PI * 2
+            const rr = Math.random() * this.host.board.cell * 1.1
+            const px = target.x + Math.cos(a) * rr
+            const py = target.y + Math.sin(a) * rr
+            this.host.fx.thrust(px, py - this.host.board.cell * 0.8, px, py, '#6a5b2e', 0.3, 2)
+          }
           this.host.audio.sfx('arrow', 1)
           break
         }
@@ -870,6 +895,16 @@ export class Battle {
         )
         this.host.fx.shock(c.x + Math.cos(dir) * this.host.board.cell * 0.2, c.y + Math.sin(dir) * this.host.board.cell * 0.2, 2, this.host.board.cell * 0.72, '#c08a52', 0.26, 2.2)
         this.host.fx.burst(c.x + Math.cos(dir) * this.host.board.cell * 0.5, c.y + Math.sin(dir) * this.host.board.cell * 0.5, '#b09a72', 6, this.host.board.cell * 2)
+        /* 冲锋撞击盖「踏」印 + 沿途蹄点墨滴 */
+        {
+          const ix = c.x + Math.cos(dir) * len * 0.72
+          const iy = c.y + Math.sin(dir) * len * 0.72
+          this.host.fx.stamp(ix, iy, '踏', this.host.board.cell * 0.46, '#7a4a2f', 0.6)
+          for (let k = 1; k <= 3; k++) {
+            const t = k / 4
+            this.host.fx.burst(c.x + Math.cos(dir) * len * t, c.y + Math.sin(dir) * len * t, '#6f5a3a', 2, this.host.board.cell * 0.8)
+          }
+        }
         const hits = (u.lv >= 4 ? 2 : 1) + (u.lv >= 3 && u.path === 0 ? 1 : 0)
         let rings = 0
         let n = 0
@@ -920,7 +955,10 @@ export class Battle {
             u.turretT = 0
             const p = this.host.board.laneWorld(target.lane, Math.max(0, target.prog - 0.5))
             this.addZone(p.x, p.y, this.host.board.cell * 2.2, 0.7, 'meteor', u.atk * 1.4, '#a0432c', 'unit', 0.25)
-            this.host.fx.shock(p.x, p.y, 8, this.host.board.cell * 2.2, '#a0432c', 0.6, 4)
+            /* 陨火：墨晕 + 盖「焚」印 + 焦纸渍 */
+            this.host.fx.bloom(p.x, p.y, this.host.board.cell * 0.5, this.host.board.cell * 2.2, '#a0432c', 0.6)
+            this.host.fx.stamp(p.x, p.y, '焚', this.host.board.cell * 0.62, '#a0432c', 0.8)
+            this.host.fx.stain(p.x, p.y, this.host.board.cell * 1.4, '#6a3a2a', 2.6)
             this.host.audio.sfx('cannon', 0.8)
           }
         }
@@ -947,8 +985,10 @@ export class Battle {
           if (n >= 6) break
         }
         u.pulse++
-        this.host.fx.shock(c.x, c.y, 4, this.host.board.cell * radius, '#5b3a6b', 0.35, 2 + u.lv * 0.5)
-        this.host.fx.shock(c.x, c.y, 2, this.host.board.cell * radius * 0.78, '#a98cc0', 0.3, 1.4)
+        /* 咒波：紫墨晕染扩散，不是双层圆环 */
+        this.host.fx.bloom(c.x, c.y, this.host.board.cell * 0.3, this.host.board.cell * radius, '#5b3a6b', 0.42)
+        this.host.fx.bloom(c.x, c.y, this.host.board.cell * 0.2, this.host.board.cell * radius * 0.7, '#a98cc0', 0.34)
+        if (u.lv >= 4 && u.pulse % 3 === 0) this.host.fx.stamp(c.x, c.y, '缚', this.host.board.cell * 0.44, '#5b3a6b', 0.6)
         this.host.audio.sfx('orb', 0.7)
         break
       }
@@ -963,7 +1003,9 @@ export class Battle {
         u.lungeDir = dir
         u.lungeX = Math.cos(dir) * this.host.board.cell * 0.55
         u.lungeY = Math.sin(dir) * this.host.board.cell * 0.55
-        this.beam(c.x, c.y, c.x + Math.cos(dir) * len, c.y + Math.sin(dir) * len, '#8a4a34', 0.26, 6)
+        /* 贯穿突刺 + 一道淡残影 */
+        this.host.fx.thrust(c.x, c.y, c.x + Math.cos(dir) * len, c.y + Math.sin(dir) * len, '#8a4a34', 0.28, 6)
+        this.host.fx.thrust(c.x, c.y, c.x + Math.cos(dir) * len * 0.85, c.y + Math.sin(dir) * len * 0.85, '#b09a72', 0.34, 3)
         let n = 0
         for (const e of this.nearby(u.hint, u.range + 1.2)) {
           if (!e.active || e.dead) continue
@@ -1043,7 +1085,9 @@ export class Battle {
             u.turretT = 0
             const burn = u.atk * (u.path === 1 ? 1.35 : 1) * 0.3
             this.addZone(target.x, target.y, this.host.board.cell * 2, 1.3, 'fire', burn, '#a04a2c', 'unit', 0.28)
-            this.host.fx.shock(target.x, target.y, 6, this.host.board.cell * 2, '#a04a2c', 0.5, 3)
+            /* 焚阵火雨：朱砂墨晕 + 燃烧焦渍 */
+            this.host.fx.bloom(target.x, target.y, this.host.board.cell * 0.4, this.host.board.cell * 2, '#a04a2c', 0.55)
+            this.host.fx.stain(target.x, target.y, this.host.board.cell * 1.2, '#7a3a22', 2.4)
             this.host.audio.sfx('cannon', 0.8)
           }
         }
@@ -1395,7 +1439,9 @@ export class Battle {
     switch (id) {
       case 'slam': {
         const r = b.cell * 2.6
-        this.host.fx.shock(pc.x, pc.y, 10, r, '#8a3b2a', 0.6, 5)
+        /* Boss 重击 = 盖印冲击：墨晕 + 「震」印 */
+        this.host.fx.bloom(pc.x, pc.y, b.cell * 0.4, r, '#8a3b2a', 0.6)
+        this.host.fx.stamp(pc.x, pc.y, '震', b.cell * 0.7, def.color, 0.8)
         this.host.fx.burst(pc.x, pc.y, '#5c4a3a', 26, 300, 'ash')
         for (const u of this.units) {
           if (!u.active) continue
@@ -1573,10 +1619,12 @@ export class Battle {
       const jy = ((e.id % 3) - 1) * 9 + (Math.random() - 0.5) * 6
       this.host.fx.text(e.x + jx, e.y - e.r * 0.8 + jy, opt.label || String(Math.round(dmg)), opt.color || (opt.crit ? '#a0432c' : '#3a332b'), opt.crit ? 16 : 12)
     }
-    /* 命中亮一下：不飘数字的杂兵也有一圈火星，玩家能看出"这一下打实了" */
+    /* 命中亮一下：不飘数字的杂兵也有一圈墨点，玩家能看出"这一下打实了" */
     if (!opt.silent) {
       const pw = opt.crit ? 1 : Math.min(1, 0.22 + dmg / Math.max(24, e.maxHp) * 1.4)
       this.host.fx.hitSpark(e.x, e.y, opt.color || '#8d3b2f', pw)
+      /* 沿随机方向溅几点墨：受击不是闪一下，是纸面被打溅 */
+      this.host.fx.spatter(e.x, e.y, Math.random() * Math.PI * 2, opt.color || '#3a332a', 3, 90 + pw * 80)
     }
     if (opt.crit) this.host.audio.sfx('crit', 0.8)
     else if (!opt.silent) this.host.audio.sfx('hit', 0.5)
@@ -1596,6 +1644,13 @@ export class Battle {
     const b = this.host.board
     this.host.audio.sfx(e.boss ? 'bossDie' : 'kill', e.boss ? 1.5 : 0.6)
     this.host.fx.burst(e.x, e.y, e.boss ? '#8a3b2a' : ENEMY_BY_ID[e.kind].color, e.boss ? 50 : 10, e.boss ? 420 : 150, 'ash')
+    /* 字形解体：笔画散开化墨，纸面留一枚渐隐墨渍 */
+    {
+      const def = e.boss && e.bossId ? BOSS_BY_ID[e.bossId] : ENEMY_BY_ID[e.kind]
+      const rad = enemyRadius(e, b.cell)
+      this.host.fx.shatter(e.x, e.y, def.glyph, e.boss ? 'boss' : e.kind, rad * (e.boss ? 1.0 : 0.94), '#252525', e.boss ? 1.6 : 1)
+      this.host.fx.stain(e.x, e.y, rad * (e.boss ? 1.6 : 0.9), e.boss ? '#8a3b2a' : '#3a332a', e.boss ? 3 : 2.2)
+    }
     if (e.boss) {
       this.host.fx.shards(e.x, e.y, '#b8860b', 40, 320)
       this.host.fx.shock(e.x, e.y, e.r, b.cell * 6, '#b8860b', 0.9, 6)
@@ -1714,7 +1769,9 @@ export class Battle {
           }
           if (p.burn > 0) { e.burnT = Math.max(e.burnT, 3); e.burnDmg = p.burn }
           if (p.splash > 0) {
-            this.host.fx.shock(e.x, e.y, 4, p.splash, p.color, 0.35, 3)
+            /* 溅射 = 墨晕染开，火落点还留焦渍 */
+            this.host.fx.bloom(e.x, e.y, 4, p.splash, p.color, 0.4)
+            if (p.kind === 'fire') this.host.fx.stain(e.x, e.y, p.splash * 0.5, '#6a3a2a', 1.8)
             for (const o of this.enemies) {
               if (o === e || !o.active || o.dead) continue
               if (Math.hypot(o.x - e.x, o.y - e.y) <= p.splash) this.hitEnemy(o, p.dmg * 0.6, { color: p.color, silent: true })

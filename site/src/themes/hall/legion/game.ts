@@ -1363,7 +1363,10 @@ export class LegionGame implements BattleHost, UiHostLike {
       this.bench.splice(index, 1)
       this.benchPicked = -1
       this.bestLv = Math.max(this.bestLv, b.lv)
-      this.fx.burst(this.board.center(cell).x, this.board.center(cell).y, UNIT_BY_ID[b.kind].color, 8, 140)
+      /* 落子：一滴墨在纸上晕开 */
+      const cc = this.board.center(cell)
+      this.fx.bloom(cc.x, cc.y, this.board.cell * 0.15, this.board.cell * 0.6, UNIT_BY_ID[b.kind].color, 0.4)
+      this.fx.burst(cc.x, cc.y, UNIT_BY_ID[b.kind].color, 6, 120)
       this.audio.sfx('sell', 0.8)
       if (b.lv >= 3 && u.path < 0) this.promptBranch(u)
       return
@@ -1467,6 +1470,10 @@ export class LegionGame implements BattleHost, UiHostLike {
       this.fx.slash(c.x, c.y + R * 0.34, c.x, c.y - R * 0.42, resultDef.color, 0.22, R * 0.075, 0.1, '', 0.6)
     }
     unit.flash = 0.34
+    /* 印章语言：融合「融」、五级「极」、普通升级「升」——升级是盖印，不是光圈 */
+    if (fused) this.fx.stamp(c.x, c.y, '融', R * 0.6, '#2f5548', 0.8)
+    else if (newLv >= 5) this.fx.stamp(c.x, c.y, '极', R * 0.6, '#b8860b', 0.85)
+    else this.fx.stamp(c.x, c.y, '升', R * 0.46, resultDef.color, 0.6)
     const label = fused ? `融 · ${resultDef.glyph}` : `${'ⅠⅡⅢⅣⅤ'[newLv - 1]} 级`
     this.fx.text(c.x, c.y - R * 0.36, label, fused ? '#2f5548' : newLv >= 5 ? '#b8860b' : '#3f6b3a', fused ? 22 : newLv >= 5 ? 22 : 16)
     this.audio.sfx(fused ? 'merge5' : newLv >= 5 ? 'merge5' : 'merge')
@@ -1696,8 +1703,10 @@ export class LegionGame implements BattleHost, UiHostLike {
         nu.hp = Math.round(nu.maxHp * Math.max(0.35, oldRatio))
         this.bestLv = Math.max(this.bestLv, nu.lv)
         this.applySynergy(nu)
-        this.fx.shock(this.board.center(cell).x, this.board.center(cell).y, 4, this.board.cell, '#6b4a8f', 0.5, 3)
-        this.fx.text(this.board.center(cell).x, this.board.center(cell).y - 20, '升级', '#6b4a8f', 16)
+        const cc = this.board.center(cell)
+        /* 道具升级也是盖印 */
+        this.fx.stamp(cc.x, cc.y, nu.lv >= 5 ? '极' : '升', this.board.cell * (nu.lv >= 5 ? 0.6 : 0.5), nu.lv >= 5 ? '#b8860b' : '#6b4a8f', 0.8)
+        this.fx.shards(cc.x, cc.y, '#c9b98f', 8, 200)
         this.audio.sfx('levelup')
         if (nu.lv >= 4) this.grantAch('lv4')
         if (nu.lv >= 5) this.grantAch('lv5')
