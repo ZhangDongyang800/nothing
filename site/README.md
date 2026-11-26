@@ -31,7 +31,7 @@
 
 * TxxT Android：`/downloads/TxxT-Android-1.1.apk`（4,594,467 B，sha256 `5e1dbe05…`）
 
-* 工具箱 Windows：`/downloads/Toolbox-Setup-0.1.0.exe`（NSIS，254,983,951 B，sha256 `ec2d1a35…`）
+* 工具箱 Windows：`/downloads/Toolbox-Setup-0.1.3.exe`（NSIS，254,998,354 B，sha256 `104fc578…`）
 
 上游仍保留在 `ZhangDongyang800/nothing` 的滚动 Release（客户端自动更新读那里），但网页侧只暴露本站地址。大包支持 Range 断点续传；`/downloads/` 限流 burst 给到 64，留给多线程下载器的十几个并发请求。
 
@@ -109,7 +109,7 @@
 
 中文输入法在稿纸里做了守卫：`compositionstart` 置位、`compositionend` 提交，`input` 在 `e.isComposing` 时直接返回，避免组词过程中被逐个吞字。
 
-下载入口只在应用卡里，共 3 个：TxxT 的电脑版 `TxxT-Setup-1.4.0.exe` 与安卓版 `TxxT-Android-1.1.apk` 同在一张卡，工具箱子卡只给 `Toolbox-Setup-0.1.0.exe`。三个地址都是同域 `/downloads/...`，不带 `github.com`。两端不做 UA 分流，手机也会看到电脑版。`qa-hall.mjs` 断言两端 3 个入口都可见、HEAD 200；`scripts/probe-download.mjs` 真点一次，断言触发 download 事件且页面不离开本站。
+下载入口只在应用卡里，共 3 个：TxxT 的电脑版 `TxxT-Setup-1.4.0.exe` 与安卓版 `TxxT-Android-1.1.apk` 同在一张卡，工具箱子卡只给 `Toolbox-Setup-0.1.3.exe`。三个地址都是同域 `/downloads/...`，不带 `github.com`。两端不做 UA 分流，手机也会看到电脑版。`qa-hall.mjs` 断言两端 3 个入口都可见、HEAD 200；`scripts/probe-download.mjs` 真点一次，断言触发 download 事件且页面不离开本站。
 
 ## 运行
 
@@ -145,7 +145,7 @@ npm run preview    # http://localhost:5274/
 | --- | --- | --- | --- |
 | Windows | `downloads/TxxT-Setup-1.4.0.exe` | 96,118,751 | `3b38890780db3b377039c9ce9fd78b5eb48c4f336630afb1c2664966975bac93` |
 | Android | `downloads/TxxT-Android-1.1.apk` | 4,594,467 | `5e1dbe05ca2c7e9f2d169e6adaf723507900cb8c64e276d4f1a500d4b7ec2297` |
-| Windows（工具箱） | `downloads/Toolbox-Setup-0.1.0.exe` | 254,983,951 | `ec2d1a355377ddd909ea30975493ae1bf815af41b01a1d1e7be7e01fed113cb0` |
+| Windows（工具箱） | `downloads/Toolbox-Setup-0.1.3.exe` | 254,998,354 | `104fc57853ba1c19c7d0329aaf1546a5b5aae38babbe691b12563e926e6c131d` |
 
 Android 当前为 debug 签名内测包；正式分发前需要换 release keystore，并统一版本号口径。
 

@@ -6,7 +6,7 @@ import { attachHall } from './engine';
 // github.com 的仓库页，国内还常被断流。同域 + octet-stream 才是"点一下就开始下"。
 const DESKTOP_DOWNLOAD = '/downloads/TxxT-Setup-1.4.1.exe';
 const ANDROID_DOWNLOAD = '/downloads/TxxT-Android-1.1.apk';
-const TOOLBOX_DOWNLOAD = '/downloads/Toolbox-Setup-0.1.2.exe';
+const TOOLBOX_DOWNLOAD = '/downloads/Toolbox-Setup-0.1.3.exe';
 
 /**
  * 官网首页：应用在前（主产品），游戏厅在后。
@@ -62,11 +62,11 @@ export default function Hall() {
               <div className="app-actions">
                 <a className="app-dl" href={DESKTOP_DOWNLOAD} download>
                   <span>Windows · EXE</span>
-                  <b>79 MB ↓</b>
+                  <b>v1.4.1 · 79 MB ↓</b>
                 </a>
                 <a className="app-dl app-dl-alt" href={ANDROID_DOWNLOAD} download>
                   <span>Android · APK</span>
-                  <b>4.4 MB ↓</b>
+                  <b>v1.1 · 4.4 MB ↓</b>
                 </a>
               </div>
             </article>
@@ -76,7 +76,7 @@ export default function Hall() {
                 <span className="app-kicker">独立工具 · WINDOWS</span>
                 <h3 className="app-name">工具箱</h3>
               </div>
-              <p className="app-line">音频录音棚 · 像素工厂 · 文稿工坊</p>
+              <p className="app-line">音频录音棚 · 像素工厂 · 文稿工坊（完整 Markdown 编辑器）</p>
               <div className="app-facts">
                 <span>3 个工具</span>
                 <span>双击安装</span>
@@ -84,7 +84,7 @@ export default function Hall() {
               <div className="app-actions">
                 <a className="app-dl app-dl-blue" href={TOOLBOX_DOWNLOAD} download>
                   <span>Windows · EXE</span>
-                  <b>243 MB ↓</b>
+                  <b>v0.1.3 · 243 MB ↓</b>
                 </a>
               </div>
             </article>
@@ -166,7 +166,7 @@ export default function Hall() {
               </span>
             </span>
             <span className="cab-meta">
-              <span>无尽跑 · 二段跳</span>
+              <span>无尽跑 · 空中可再跳一次</span>
               <span>▶</span>
             </span>
           </button>
@@ -230,7 +230,7 @@ export default function Hall() {
               </span>
             </span>
             <span className="cab-meta">
-              <span>八格 · 填满一行就消</span>
+              <span>8×8 · 填满一行或一列就消</span>
               <span>▶</span>
             </span>
           </button>
@@ -250,7 +250,7 @@ export default function Hall() {
               </span>
             </span>
             <span className="cab-meta">
-              <span>时序堆叠 · 对准算「准」</span>
+              <span>看准时机落砖 · 对准算「准」</span>
               <span>▶</span>
             </span>
           </button>
@@ -374,7 +374,7 @@ export default function Hall() {
                 <i>↻</i>
                 <span>再来一次</span>
               </button>
-              <button className="m-btn" type="button" id="mSeal">
+              <button className="m-btn" type="button" id="mSeal" title="完成本页并盖章（Ctrl+回车）">
                 <i>◉</i>
                 <span>落印</span>
               </button>
@@ -403,7 +403,7 @@ export default function Hall() {
                 </div>
                 <div className="sheet-foot">
                   <span>TxxT · A4</span>
-                  <span id="state">待落笔</span>
+                  <span id="state">点纸就写</span>
                 </div>
               </div>
               <aside className="readout" aria-hidden="true">
@@ -426,11 +426,11 @@ export default function Hall() {
 
             <section className="pane pane-brick grid-paper" id="pane-brick">
               <div className="brk-hud">
-                <span>
+                <span title="已消行数 · 消满 10 行获胜">
                   <b id="brkRows">0</b>/<span id="brkGoal">10</span> 行
                 </span>
                 <span>
-                  第 <b id="brkHand">0</b> 手
+                  第 <b id="brkHand">0</b> 步
                 </span>
                 <span className="hud-score">
                   分 <b id="brkScore">0</b>
@@ -458,7 +458,7 @@ export default function Hall() {
                 <span>
                   砖 <b id="bkLeft">32</b>/<span id="bkTotal">32</span>
                 </span>
-                <span>
+                <span title="备用球 · 发球消耗，接住 +1 道具可补充">
                   球 <b id="bkLife">14</b>
                 </span>
                 <span className="hud-score">
@@ -509,8 +509,8 @@ export default function Hall() {
                   <span className="combo-lab">连击</span>
                   <b id="pairCombo">×1</b>
                 </span>
-                <button className="pair-peek" type="button" id="pairPeek">
-                  看一眼（2）
+                <button className="pair-peek" type="button" id="pairPeek" title="全部亮牌 1.2 秒，消耗 2 步">
+                  看一眼（2）· 耗 2 步
                 </button>
               </div>
               <div className="stage-host" id="pairHost">
@@ -556,15 +556,15 @@ export default function Hall() {
                 <span>
                   最高 <b id="mergeBest">0</b>
                 </span>
-                <span>
-                  最远 <b id="mergeTop">尘</b>
+                <span title="当前最高等级的字">
+                  最大 <b id="mergeTop">尘</b>
                 </span>
                 <span className="hud-combo">
                   <span className="combo-lab">连击</span>
                   <b id="mergeCombo">×1</b>
                 </span>
                 <span>
-                  <button className="hud-btn" type="button" id="mergeUndo">
+                  <button className="hud-btn" type="button" id="mergeUndo" title="撤销上一步（每局 3 次）">
                     回退 3
                   </button>
                 </span>
@@ -607,7 +607,7 @@ export default function Hall() {
                   <b id="tapCombo">×1</b>
                 </span>
                 <span>
-                  第 <b id="tapLv">1</b> 段
+                  第 <b id="tapLv">1</b> 关
                 </span>
                 <span>
                   命 <b className="tap-lives" id="tapLives">
@@ -630,6 +630,7 @@ export default function Hall() {
                   <p className="g-start-kicker">10 · 反应速度</p>
                   <p className="g-start-title">敲印</p>
                   <p className="g-start-tip">点掉冒出来的印 · 墨印点了扣命</p>
+                  <p className="g-start-tip">金印 +1 命 · 漏掉好印也扣命 · 越敲越快</p>
                   <p className="g-start-best" id="tapStartBest" hidden />
                   <button className="g-go" type="button" id="tapGo">
                     开始
@@ -646,7 +647,7 @@ export default function Hall() {
                 <span>
                   最好 <b id="runBest">0</b>
                 </span>
-                <span>
+                <span title="吃到的字 · 每个 +8 分">
                   收字 <b id="runChars">0</b>
                 </span>
                 <span className="hud-combo">
@@ -668,7 +669,8 @@ export default function Hall() {
                 <div className="g-start-card">
                   <p className="g-start-kicker">03 · 无尽跑</p>
                   <p className="g-start-title">走墨</p>
-                  <p className="g-start-tip">空格 / 点画面跳 · 空中还能补一次</p>
+                  <p className="g-start-tip">空格 / 点画面跳 · 空中还能再跳一次</p>
+                  <p className="g-start-tip">长按跳更高 · 红顶高墙要跳两次</p>
                   <p className="g-start-best" id="runStartBest" hidden />
                   <button className="g-go" type="button" id="runGo">
                     起跑
@@ -692,7 +694,7 @@ export default function Hall() {
                   分 <b id="stackScore">0</b>
                 </span>
                 <span className="hud-combo">
-                  <span className="combo-lab">连准</span>
+                  <span className="combo-lab" title="连续对准次数">连准</span>
                   <b id="stackCombo">×0</b>
                 </span>
                 <button className="g-pause" type="button" id="stackPause" aria-label="暂停">
@@ -708,9 +710,10 @@ export default function Hall() {
               </div>
               <div className="g-start is-on" id="stackStart">
                 <div className="g-start-card">
-                  <p className="g-start-kicker">06 · 时序堆叠</p>
+                  <p className="g-start-kicker">06 · 看准时机落砖</p>
                   <p className="g-start-title">垒塔</p>
                   <p className="g-start-tip">空格 / 点画面落砖 · 对准了砖会变宽</p>
+                  <p className="g-start-tip">完全没搭上下层就塌 · 窄砖更难、宽砖更好搭</p>
                   <p className="g-start-best" id="stackStartBest" hidden />
                   <button className="g-go" type="button" id="stackGo">
                     开始
