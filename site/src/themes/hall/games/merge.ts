@@ -354,7 +354,7 @@ export function mountMerge(ctx){
       for (var i = 0; i < 16; i++) if (mgBoard[i] && mgBoard[i].lvl > top) top = mgBoard[i].lvl;
       if (top >= MG_CH.length) mgEnd(true);
       else if (!mgCanMove()) mgEnd(false);
-      else MHINT.textContent = '方向键推 · 同字相撞长一级';
+      else MHINT.textContent = '方向键推 · 同字相撞升一级';
       mgHud();
 
       if (mgQueue && !mgDone){
@@ -380,7 +380,7 @@ export function mountMerge(ctx){
     mgAdd(1); mgAdd(1);
     mgRender();
     mgHud();
-    MHINT.textContent = '方向键 / WASD 或滑动 · 同字相撞长一级';
+    MHINT.textContent = '方向键 / WASD 或滑动 · 同字相撞升一级 · 合出「天」获胜';
   }
 
   function mgEnd(win){
@@ -391,7 +391,7 @@ export function mountMerge(ctx){
       MHINT.textContent = '垒到天了 · 再来一次还能更高';
     } else {
       showVerdict(MG_V, MG_VT, MG_VS, 'v-bad', '推不动了 · ' + mgScore + ' 分 / ' + mgTopText(), '散');
-      MHINT.textContent = '散了 · 满盘又没得撞';
+      MHINT.textContent = '散了 · 棋盘满了，没有能合成的同字';
       SFX.play('merge.bad');
     }
     mReplayLabel('再来一次');

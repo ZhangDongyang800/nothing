@@ -73,7 +73,7 @@ export const MERCHANT_GOODS: MerchantGood[] = [
 export const CHEST_KINDS = [
   { id: 'weapon', name: '一件武器 +2', desc: '随机武器连升两级', color: '#b8892f' },
   { id: 'evo', name: '进化墨引', desc: '把一件满级武器推进化', color: '#b5342b' },
-  { id: 'gold', name: '一把铜钱', desc: '金币 +80~160', color: '#8a6a3a' },
+  { id: 'gold', name: '一把铜钱', desc: '铜钱 +80~160', color: '#8a6a3a' },
   { id: 'heal', name: '一口回墨', desc: '回复 45% 生命', color: '#4f7757' },
   { id: 'passive', name: '一枚旧印', desc: '随机被动 +1', color: '#3f5c86' },
   { id: 'reroll', name: '重选符 ×2', desc: '本局重选 +2', color: '#7c4a63' },

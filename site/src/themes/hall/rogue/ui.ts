@@ -123,7 +123,7 @@ export class RogueUI {
               <div class="rg-clock"><b id="rgTime">00:00</b><span id="rgStage">初落笔</span></div>
               <div class="rg-nums">
                 <span class="rg-stat is-main" title="斩杀"><i>斩</i><b id="rgKills">0</b></span>
-                <span class="rg-stat" title="铜钱"><i>墨</i><b id="rgGold">0</b></span>
+                <span class="rg-stat" title="铜钱：在墨商处买东西"><i>钱</i><b id="rgGold">0</b></span>
                 <span class="rg-stat is-combo" id="rgComboBox" title="连斩"><i>连</i><b id="rgCombo">0</b></span>
               </div>
               <div class="rg-tools">
@@ -477,7 +477,7 @@ export class RogueUI {
           </div>
           <div class="rg-acts">
             ${cp ? `<button class="rg-btn" data-act="continue">续上一局 ${fmtTime(cp.elapsed)} · Lv.${cp.level}</button>` : ''}
-            <button class="rg-go" data-act="start" data-char="${d.lastChar}">进入墨潮</button>
+            <button class="rg-go" data-act="start" data-char="${d.lastChar}">开始游戏</button>
           </div>
         </div>
         <div class="rg-foot-note">WASD / 拖动移动 · 空格 冲刺 · P 暂停 · 武器自动出手 · 无尽模式，死了就结算</div>
@@ -516,7 +516,7 @@ export class RogueUI {
         ${pips ? `<span class="rg-pips" aria-hidden="true">${pips}</span>` : ''}
       </button>`
     }).join('')
-    const sub = info ? `Lv.${info.level} · 还剩 ${info.pending} 次` : '选一项'
+    const sub = info ? `Lv.${info.level} · 选一项强化 · 还剩 ${info.pending} 次` : '选一项'
     this.openOverlay(`
       <div class="rg-panel rg-levelup" role="dialog" aria-modal="true" aria-label="落笔 · 选择升级">
         <div class="rg-level-head">
@@ -526,7 +526,7 @@ export class RogueUI {
         </div>
         <div class="rg-offers" role="listbox" aria-label="升级选项">${cards}</div>
         <div class="rg-level-foot">
-          <button class="rg-mini ${rerolls ? '' : 'is-off'}" data-act="reroll" ${rerolls ? '' : 'disabled'}>重摇 ×${rerolls}${rerolls ? ' · R' : ''}</button>
+          <button class="rg-mini ${rerolls ? '' : 'is-off'}" data-act="reroll" ${rerolls ? '' : 'disabled'}>换一批 ×${rerolls}${rerolls ? ' · R' : ''}</button>
           <span class="rg-lock-note">战斗已暂停</span>
         </div>
       </div>`, 'levelup')
@@ -538,7 +538,7 @@ export class RogueUI {
     this.openOverlay(`
       <div class="rg-panel rg-pause">
         <div class="rg-screen-head">
-          <div class="rg-title-wrap"><h2>停笔</h2><p>${h.time} · ${h.stage}</p></div>
+          <div class="rg-title-wrap"><h2>暂停</h2><p>${h.time} · ${h.stage}</p></div>
           <div class="rg-dust"><span>本局</span><b>${h.kills} 斩</b></div>
         </div>
         <div class="rg-pause-grid">
@@ -577,13 +577,13 @@ export class RogueUI {
       <div class="rg-panel rg-over">
         <div class="rg-over-head">
           <div class="rg-stamp">墨尽</div>
-          <div><h2>${s.charName}</h2><p>${s.record ? '这一局写进了记录' : '比上次差一点，也比上次多知道一点'}</p></div>
+          <div><h2>${s.charName}</h2><p>${s.record ? '这一局写进了记录' : '墨屑已存入墨库 · 可换永久强化'}</p></div>
           ${rec}
         </div>
         <div class="rg-over-stats">
           <span><i>存活</i><b>${fmtTime(s.time)}</b><em>最久 ${fmtTime(s.bestTime)}</em></span>
           <span><i>斩杀</i><b>${s.kills}</b><em>总计 ${s.dmg > 9999 ? (s.dmg / 1000).toFixed(1) + 'k' : Math.round(s.dmg)} 伤害</em></span>
-          <span><i>等级</i><b>Lv.${s.level}</b><em>金币 ${s.gold}</em></span>
+          <span><i>等级</i><b>Lv.${s.level}</b><em>铜钱 ${s.gold}</em></span>
           <span class="is-dust"><i>墨屑</i><b>+${s.dust}</b><em>可用于永久成长</em></span>
         </div>
         <div class="rg-over-build">
@@ -596,9 +596,9 @@ export class RogueUI {
         </div>
         ${ach}
         <div class="rg-acts">
-          <button class="rg-go" data-act="restart">再写一局</button>
-          <button class="rg-btn" data-act="meta">去用墨屑</button>
-          <button class="rg-btn" data-act="backStart">回到开头</button>
+          <button class="rg-go" data-act="restart">再来一局</button>
+          <button class="rg-btn" data-act="meta">永久成长</button>
+          <button class="rg-btn" data-act="backStart">返回主菜单</button>
         </div>
       </div>`, 'over')
   }
@@ -637,7 +637,7 @@ export class RogueUI {
       <div class="rg-panel rg-shop">
         <div class="rg-screen-head">
           <div class="rg-title-wrap"><h2>墨商</h2><p>只收铜钱，不讲价</p></div>
-          <div class="rg-dust"><span>手里</span><b>${gold} 金</b></div>
+          <div class="rg-dust"><span>手里</span><b>${gold} 铜钱</b></div>
         </div>
         <div class="rg-goods">
           ${goods.map((g, i) => `
@@ -645,10 +645,10 @@ export class RogueUI {
               <span class="rg-good-glyph">${g.glyph}</span>
               <span class="rg-good-name">${g.name}</span>
               <span class="rg-good-desc">${g.desc}</span>
-              <span class="rg-good-cost">${g.cost} 金</span>
+              <span class="rg-good-cost">${g.cost} 铜钱</span>
             </button>`).join('')}
         </div>
-        <div class="rg-acts"><button class="rg-btn" data-act="leaveShop">走了</button></div>
+        <div class="rg-acts"><button class="rg-btn" data-act="leaveShop">离开商店</button></div>
       </div>`, 'merchant')
   }
 
@@ -697,7 +697,7 @@ export class RogueUI {
             <div class="rg-achs">${achRows}</div>
           </div>
         </div>
-        <div class="rg-acts"><button class="rg-btn" data-act="backStart">回到开头</button></div>
+        <div class="rg-acts"><button class="rg-btn" data-act="backStart">返回主菜单</button></div>
       </div>`, 'meta')
   }
 }

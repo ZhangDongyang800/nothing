@@ -24,10 +24,10 @@ export const META_UPS: MetaUpDef[] = [
   { id: 'armor', name: '墨皮', glyph: '皮', desc: '少挨一点', per: '护甲 +1', base: 50, max: 10, costBase: 42 },
   { id: 'speed', name: '轻足', glyph: '足', desc: '起步更快', per: '移速 +1.5%', base: 40, max: 15, costBase: 34 },
   { id: 'xp', name: '慧根', glyph: '慧', desc: '升级更快', per: '经验 +3%', base: 55, max: 15, costBase: 46 },
-  { id: 'gold', name: '财眼', glyph: '财', desc: '金币更多', per: '金币 +4%', base: 50, max: 15, costBase: 40 },
+  { id: 'gold', name: '财眼', glyph: '财', desc: '铜钱更多', per: '铜钱 +4%', base: 50, max: 15, costBase: 40 },
   { id: 'luck', name: '天运', glyph: '运', desc: '宝箱与商店更好', per: '幸运 +2%', base: 70, max: 10, costBase: 60 },
-  { id: 'startGold', name: '开局金', glyph: '金', desc: '一开局就带钱', per: '开局 +30 金', base: 60, max: 10, costBase: 50 },
-  { id: 'reroll', name: '重选', glyph: '选', desc: '升级卡可以重摇', per: '+1 次重选', base: 120, max: 3, costBase: 120 },
+  { id: 'startGold', name: '开局金', glyph: '金', desc: '一开局就带钱', per: '开局 +30 铜钱', base: 60, max: 10, costBase: 50 },
+  { id: 'reroll', name: '重选', glyph: '选', desc: '升级卡可以换一批', per: '+1 次重选', base: 120, max: 3, costBase: 120 },
   { id: 'startPassive', name: '墨引', glyph: '引', desc: '开局多带一个被动', per: '+1 个开局被动', base: 220, max: 2, costBase: 220 },
   { id: 'revive', name: '墨魂', glyph: '魂', desc: '死一次还能站起来', per: '本局复活 1 次', base: 1600, max: 1, costBase: 1600 },
 ];
@@ -50,7 +50,7 @@ export interface AchievementDef {
 export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'first', name: '第一次落笔', desc: '完成一局', dust: 20 },
   { id: 't5', name: '撑过五分钟', desc: '单局活到 5 分钟', dust: 30 },
-  { id: 't10', name: '一成不变', desc: '单局活到 10 分钟', dust: 50 },
+  { id: 't10', name: '稳过十分钟', desc: '单局活到 10 分钟', dust: 50 },
   { id: 't20', name: '纸还很白', desc: '单局活到 20 分钟', dust: 100 },
   { id: 't30', name: '半页墨', desc: '单局活到 30 分钟', dust: 180 },
   { id: 't60', name: '一整页', desc: '单局活到 60 分钟', dust: 400 },

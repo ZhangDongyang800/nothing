@@ -23,7 +23,7 @@ export const BRANCHES: Record<UnitKind, { a: BranchDef; b: BranchDef }> = {
   },
   cavalry: {
     a: { name: '突骑', glyph: '突', desc: '冲锋撞更多目标', effect: '冲锋多撞 1 名敌人' },
-    b: { name: '游骑', glyph: '游', desc: '回马再冲', effect: '伤害 +20%，击退更远，适合反复切割' },
+    b: { name: '游击', glyph: '游', desc: '回马再冲', effect: '伤害 +20%，击退更远，适合反复切割' },
   },
   engineer: {
     a: { name: '机关', glyph: '机', desc: '陷阱更密', effect: '陷阱冷却缩短，五级时每次触发双发' },

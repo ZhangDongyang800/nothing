@@ -74,6 +74,8 @@ export function mountStack(ctx){
   var stkFall = [], stkFlash = 0, stkFlashX = 0;
   var stkMoving = { x: 0, w: SBASE, kind: 'normal' };
   var stkSway = 0, stkSwayDir = 1, stkTopPulse = 0, stkCooldown = 0;
+  /* 首次出现提示：窄砖 / 宽砖每局各提示一次 */
+  var stkSeenThin = false, stkSeenWide = false;
 
   function stkFit(){
     if (!STK) return;
@@ -104,6 +106,7 @@ export function mountStack(ctx){
     stkCam = 0; stkCamT = 0;
     stkScore = 0; stkCombo = 0; stkMaxCombo = 0;
     stkFall = []; stkFlash = 0; stkSway = 0; stkTopPulse = 0; stkCooldown = 0;
+    stkSeenThin = false; stkSeenWide = false;
     var kind = brickKind(1);
     stkMoving = { x: (SW - SBASE) / 2, w: pendingWidth(stkBlocks[0], kind), kind: kind };
     stkRunning = false; stkDone = false; stkPaused = false;
@@ -126,6 +129,8 @@ export function mountStack(ctx){
     STK_START.classList.remove('is-on');
     stkRunning = true; stkDone = false; stkPaused = false;
     stkLast = 0; stkCooldown = 0;
+    /* 开局后顶栏提示切到游玩口径 */
+    MHINT.textContent = '空格 / 点画面落砖 · 对准了算「准」';
     if (stkRaf) cancelAnimationFrame(stkRaf);
     stkRaf = requestAnimationFrame(stkFrame);
     syncLoops();
@@ -202,6 +207,14 @@ export function mountStack(ctx){
     var nextTop = stkBlocks[stkBlocks.length - 1];
     stkMoving = { x: SW / 2 - nextTop.w / 2, w: pendingWidth(nextTop, nextKind), kind: nextKind };
     stkPhase = 0;
+    /* 特殊砖首次登场说清楚它是什么 */
+    if (nextKind === 'thin' && !stkSeenThin){
+      stkSeenThin = true;
+      MHINT.textContent = '窄砖来了 · 更窄，更难对准';
+    } else if (nextKind === 'wide' && !stkSeenWide){
+      stkSeenWide = true;
+      MHINT.textContent = '宽砖来了 · 更宽更好搭，落准奖励更多';
+    }
 
     var rc = STK.getBoundingClientRect();
     var sx = rc.width / SW, sy = rc.height / SH;
@@ -381,7 +394,7 @@ export function mountStack(ctx){
       g.fillStyle = mj.perfect ? '#252525' : '#b5342b';
       g.font = '10px ui-monospace, Menlo, monospace';
       g.textAlign = 'center'; g.textBaseline = 'bottom';
-      var label = mj.perfect ? '准' : '偏 ' + Math.round(mj.err) + 'px';
+      var label = mj.perfect ? '准' : (mj.side < 0 ? '偏左' : '偏右');
       g.fillText(label, mj.mcx, my - 4);
     }
 
@@ -436,8 +449,8 @@ export function mountStack(ctx){
     }
     STK_PANE.classList.add('is-over');
     showVerdict(STK_V, STK_VT, STK_VS, 'v-bad',
-      '垒到 ' + hN + ' 层 · ' + stkScore + ' 分' + (isBest ? ' · 新纪录' : '') + ' · 最多 ' + stkMaxCombo + ' 准', '散');
-    MHINT.textContent = '塌了 · 对准了砖会变宽，连准有连击';
+      '垒到 ' + hN + ' 层 · ' + stkScore + ' 分' + (isBest ? ' · 新纪录' : '') + ' · 连续对准最多 ' + stkMaxCombo + ' 次', '散');
+    MHINT.textContent = '塌了 · 完全没搭上下层 · 对准了砖会变宽';
     stkHud();
     syncLoops();
   }

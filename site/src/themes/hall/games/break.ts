@@ -85,6 +85,8 @@ export function mountBreak(ctx){
   var bkCombo = comboState(4000, 10);
   var bkTimers = [];
   var bkBrickSeq = 0;
+  /* 首次出现提示：连锁砖 / 装甲砖每局各提示一次 */
+  var bkSeenChain = false, bkSeenArmor = false;
 
   function bkHudScore(){
     hudSet(BK_SCORE, bkScore);
@@ -336,6 +338,10 @@ export function mountBreak(ctx){
       /* 没打穿：只擦火星，不给碎块 */
       SFX.play('break.hit', { rate: 1.06 });
       FX.sparks(bkRect(br), 4, '#fff8e8');
+      if (br.kind === KIND.ARMOR && !bkSeenArmor){
+        bkSeenArmor = true;
+        MHINT.textContent = '装甲砖 · 砖上数字是还要打的次数';
+      }
       bkHudScore();
       return false;
     }
@@ -364,6 +370,10 @@ export function mountBreak(ctx){
 
     /* 连锁砖：引燃四邻，深度封顶 2 层，避免一砖扫光整墙 */
     if (br.kind === KIND.CHAIN && depth < 2){
+      if (!bkSeenChain){
+        bkSeenChain = true;
+        MHINT.textContent = '连锁砖 · 引爆上下左右相邻的砖';
+      }
       var neighbors = bkBricks.filter(function(o){
         return o.on && (o.row === br.row && Math.abs(o.col - br.col) === 1 || o.col === br.col && Math.abs(o.row - br.row) === 1);
       });
@@ -716,6 +726,7 @@ export function mountBreak(ctx){
     bkLv = 0;
     bkScore = 0;
     bkMaxCombo = 0;
+    bkSeenChain = false; bkSeenArmor = false;
     bkBest = BEST.get('break.score');
     bkCombo = comboState(4000, 10);
     bkHudScore();

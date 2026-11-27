@@ -73,8 +73,8 @@ export const PASSIVES: PassiveDef[] = [
     apply: (s, lv) => { s.xp *= 1 + 0.08 * lv; },
   },
   {
-    id: 'gold', name: '拾金', glyph: '金', tag: '金币', max: 6,
-    desc: (n) => `金币 +${12 * n}%`,
+    id: 'gold', name: '拾金', glyph: '金', tag: '铜钱', max: 6,
+    desc: (n) => `铜钱 +${12 * n}%`,
     apply: (s, lv) => { s.gold *= 1 + 0.12 * lv; },
   },
   {

@@ -121,7 +121,7 @@ export const UNIT_DEFS: UnitDef[] = [
     aura: 0,
     growth: GROWTH,
     levels: steps(
-      ['游骑', '轻骑', '突骑', '重骑', '踏阵'],
+      ['骑卒', '轻骑', '突骑', '重骑', '踏阵'],
       [
         '向目标冲锋，撞击沿途敌人。',
         '冲锋距离 +0.8 格，攻速提升。',
@@ -150,7 +150,7 @@ export const UNIT_DEFS: UnitDef[] = [
     aura: 0,
     growth: GROWTH,
     levels: steps(
-      ['书童', '术士', '火法', '炎术师', '焚原'],
+      ['书童', '方士', '火法', '炎术师', '焚原'],
       [
         '火球落点 1 格范围伤害。',
         '溅射范围 +0.35 格。',
@@ -167,7 +167,7 @@ export const UNIT_DEFS: UnitDef[] = [
     rarity: 'fine',
     color: '#3f6350',
     role: '辅助经营',
-    desc: '不开无双，他让全军的箭都变快，还管粮。',
+    desc: '自己不主打输出：让周围友军出手更快，还定期产军粮。',
     hp: 140,
     atk: 14,
     armor: 12,
@@ -208,7 +208,7 @@ export const UNIT_DEFS: UnitDef[] = [
     aura: 0.22,
     growth: GROWTH,
     levels: steps(
-      ['巫祝', '咒师', '缚魂', '摄魄', '汲魂'],
+      ['巫祝', '咒徒', '缚魂', '摄魄', '汲魂'],
       [
         '周身 2 格敌人减速 22%。',
         '命中者易伤：受到伤害 +18%，持续 4 秒。',

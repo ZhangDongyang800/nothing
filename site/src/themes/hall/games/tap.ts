@@ -64,6 +64,8 @@ export function mountTap(ctx){
   var tapRunning = false, tapDone = false, tapPaused = false;
   var tapScore = 0, tapBest = 0, tapLivesN = 3, tapHits = 0, tapLevel = 1;
   var tapMaxCombo = 0, tapSpawnAcc = 0;
+  /* 首次出现提示：金印 / 急闪印每局各提示一次，不弹窗、不打断 */
+  var tapSeenGold = false, tapSeenQuick = false;
   var tapCombo = comboState(2400, 10);
   /* 普通字字池不放「墨」：避免与墨印陷阱的字撞脸，颜色之外再少一层歧义 */
   var TAP_CH = ['云', '月', '灯', '舟', '雪', '松', '竹', '茶', '花', '山'];
@@ -117,6 +119,7 @@ export function mountTap(ctx){
     tapRunning = false; tapDone = false; tapPaused = false;
     tapScore = 0; tapLivesN = 3; tapHits = 0; tapLevel = 1;
     tapMaxCombo = 0; tapSpawnAcc = 0;
+    tapSeenGold = false; tapSeenQuick = false;
     tapCombo = comboState(2400, 10);
     tapBest = BEST.get('tap.score');
     ctx.startBest('tapStartBest', tapBest, '分');
@@ -126,7 +129,7 @@ export function mountTap(ctx){
     TAP_VS.textContent = '';
     TAP_START.classList.toggle('is-on', !!showOverlay);
     tapHud();
-    MHINT.textContent = showOverlay ? '三枚印，别点墨印 · 按开始' : '点掉冒出来的印 · 墨印别点 · 急闪印分值翻倍';
+    MHINT.textContent = showOverlay ? '三枚印，别点墨印 · 按开始' : '点掉冒出来的印 · 墨印别点 · 漏掉好印也扣命';
     if (!showOverlay) tapGo();
   }
 
@@ -135,6 +138,8 @@ export function mountTap(ctx){
     TAP_START.classList.remove('is-on');
     tapRunning = true; tapDone = false; tapPaused = false;
     tapLast = 0;
+    /* 开局后顶栏提示必须切到游玩口径，不能继续喊「按开始」 */
+    MHINT.textContent = '点掉冒出来的印 · 墨印别点 · 漏掉好印也扣命';
     if (tapRaf) cancelAnimationFrame(tapRaf);
     tapRaf = requestAnimationFrame(tapFrame);
     syncLoops();
@@ -178,6 +183,16 @@ export function mountTap(ctx){
     cell.classList.add('is-live');
     cell._live = { kind: kind, until: performance.now() + life, life: life };
     tapLive.push(cell);
+    /* 首次出现提示：只在正常对局里触发，探针强制出印不打扰 */
+    if (tapRunning && !tapDone){
+      if (kind === KIND_GOLD && !tapSeenGold){
+        tapSeenGold = true;
+        MHINT.textContent = '金印 · 点中 +1 命（上限 5）';
+      } else if (kind === KIND_QUICK && !tapSeenQuick){
+        tapSeenQuick = true;
+        MHINT.textContent = '急闪印 · 消失快 · 分值 ×2';
+      }
+    }
     return cell;
   }
 
@@ -263,7 +278,7 @@ export function mountTap(ctx){
     TAP_BOARD.classList.remove('is-stageup');
     void TAP_BOARD.offsetWidth;
     TAP_BOARD.classList.add('is-stageup');
-    FX.stamp(cx, cy, '第 ' + tapLevel + ' 段', { size: 30, color: '#b5342b' });
+    FX.stamp(cx, cy, '第 ' + tapLevel + ' 关', { size: 30, color: '#b5342b' });
     FX.ring(cx, cy, 16, Math.min(br.width, br.height) * 0.42, 3, '#ffd166');
     FX.rise(cx, cy, 12, ['#ffd166', '#fff8e8', '#f28b82']);
     FX.freeze(70);
@@ -318,8 +333,8 @@ export function mountTap(ctx){
     TAP_PANE.classList.add('is-over');
     FX.shake(TAP_BOARD, 6);
     showVerdict(TAP_V, TAP_VT, TAP_VS, 'v-bad',
-      '第 ' + tapLevel + ' 段收场 · 敲中 ' + tapHits + ' 枚 · ' + tapScore + ' 分' + (isBest ? ' · 新纪录' : '') +
-      ' · 最多 ' + tapMaxCombo + ' 连', '散');
+      '第 ' + tapLevel + ' 关收场 · 敲中 ' + tapHits + ' 枚 · ' + tapScore + ' 分' + (isBest ? ' · 新纪录' : '') +
+      ' · 最高连击 ×' + tapMaxCombo, '散');
     if (isBest){
       var r = TAP_V.getBoundingClientRect();
       FX.rise(r.left + r.width / 2, r.top, 14, ['#ffd166', '#fff8e8']);

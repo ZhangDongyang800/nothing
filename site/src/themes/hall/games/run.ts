@@ -47,6 +47,8 @@ export function mountRun(ctx){
   var runCtx = null, runRaf = 0, runLast = 0, runAcc = 0;
   var runRunning = false, runDone = false, runPaused = false;
   var runDist = 0, runSpeed = 300, runChars = 0, runScore = 0, runBest = 0, runMaxCombo = 0;
+  /* 首次出现提示：红顶高墙每局提示一次 */
+  var runSeenWall2 = false;
   var runObstacles = [], runCoins = [];
   var runNextGroup = 420, runReach = null;
   var runP = { x: 168, y: RGROUND - 54, vy: 0, w: 38, h: 54, jumps: 0, on: true };
@@ -195,6 +197,7 @@ export function mountRun(ctx){
     runP.y = RGROUND - runP.h; runP.vy = 0; runP.jumps = 0; runP.on = true;
     runCoyote = 0; runBuf = 0; runStreak = 0; runLandT = 0; runTrim = 0;
     runJumpHeld = false; runJumpCount = 0;
+    runSeenWall2 = false;
     runRunning = false; runDone = false; runPaused = false;
     runCombo = comboState(2200, 8);
     runBest = BEST.get('run.best');
@@ -207,7 +210,7 @@ export function mountRun(ctx){
     runHud();
     runFit();
     runDraw();
-    MHINT.textContent = showOverlay ? '空格 / 点画面起跳 · 按开始' : '空格 / 点画面跳 · 二段跳补一次 · ← → 空中微调';
+    MHINT.textContent = showOverlay ? '空格 / 点画面起跳 · 按开始' : '空格 / 点画面跳 · 空中还能再跳一次 · ← → 空中微调';
     if (!showOverlay) runGo();
   }
 
@@ -228,6 +231,8 @@ export function mountRun(ctx){
     RUN_START.classList.remove('is-on');
     runRunning = true; runDone = false; runPaused = false;
     runLast = 0; runAcc = 0;
+    /* 开局后顶栏提示切到游玩口径 */
+    MHINT.textContent = '空格 / 点画面跳 · 空中还能再跳一次 · ← → 空中微调';
     if (runRaf) cancelAnimationFrame(runRaf);
     runRaf = requestAnimationFrame(runFrame);
     syncLoops();
@@ -318,6 +323,11 @@ export function mountRun(ctx){
       runObstacles.push({ x: origin + o.dx, y: RGROUND - o.h, w: o.w, h: o.h, ch: o.ch, req: o.req || 'single' });
     });
     pushCoins(def.coins, origin);
+    /* 红顶高墙首次登场：告诉玩家它需要空中再跳一次 */
+    if (!runSeenWall2 && def.obs.some(function(o){ return o.req === 'double'; })){
+      runSeenWall2 = true;
+      MHINT.textContent = '红顶高墙 · 空中再跳一次才能过';
+    }
     /* 可达性检查：当前速度下逐条不等式，结果进探针供离线核对 */
     runReach = { name: name, tier: tier, check: checkGroup(def, runSpeed, PHYS) };
     var lastRight = def.obs.length ? origin + def.obs[def.obs.length - 1].dx + def.obs[def.obs.length - 1].w : origin + 80;
@@ -431,7 +441,7 @@ export function mountRun(ctx){
     RUN_PANE.classList.add('is-over');
     showVerdict(RUN_V, RUN_VT, RUN_VS, 'v-bad',
       '止步 ' + Math.floor(runDist) + ' 米 · 收字 ' + runChars + ' · ' + runScore + ' 分' + (isBest ? ' · 新纪录' : ''), '散');
-    MHINT.textContent = '止步了 · 最多 ' + runMaxCombo + ' 连 · 再跑一次';
+    MHINT.textContent = '止步了 · 最高 ' + runMaxCombo + ' 连击 · 再跑一次';
     runHud();
     syncLoops();
   }

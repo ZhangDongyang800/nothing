@@ -440,7 +440,7 @@ export function mountBrick(ctx){
         SFX.play('brick.full');
         FX.ring(bc.left + bc.width / 2, bc.top + bc.height / 2, 10, bc.width * 0.55, 4, '#ffd166');
         FX.rise(bc.left + bc.width / 2, bc.top + bc.height * 0.3, 20, ['#ffd166', '#fff8e8', '#a8c7a0']);
-        FX.pop(bc.left + bc.width / 2, bc.top + bc.height * 0.42, '满盘 +600', 'is-gold');
+        FX.pop(bc.left + bc.width / 2, bc.top + bc.height * 0.42, '全清 +600', 'is-gold');
         bHudScore();
       }
 
@@ -448,9 +448,9 @@ export function mountBrick(ctx){
 
       if (bRows >= BGOAL){ winGame(); return; }
 
-      if (nLines >= 3) MHINT.textContent = '三消 · 一手三条线，已清 ' + bRows + ' 行';
+      if (nLines >= 3) MHINT.textContent = '三消 · 一次消三条线，已清 ' + bRows + ' 行';
       else if (cross) MHINT.textContent = '十字 · 一行一列同消，已清 ' + bRows + ' 行';
-      else if (nLines === 2) MHINT.textContent = '双消 · 一手两条线，已清 ' + bRows + ' 行';
+      else if (nLines === 2) MHINT.textContent = '双消 · 一次消两条线，已清 ' + bRows + ' 行';
       else MHINT.textContent = '已清 ' + bRows + ' 行 · 还差 ' + (BGOAL - bRows) + ' 行';
 
       checkStuck();
@@ -487,7 +487,7 @@ export function mountBrick(ctx){
     }
     SFX.play('brick.place', { rate: 0.7, gain: 0.5 });
     FX.pop(BOARD.getBoundingClientRect().left + BOARD.getBoundingClientRect().width / 2,
-      BOARD.getBoundingClientRect().top + 20, '障碍落下 · 随线同消', '');
+      BOARD.getBoundingClientRect().top + 20, '障碍石落下 · 占格子，随整行整列一起消', '');
   }
 
   /* ---------- 胜负 ---------- */
@@ -518,8 +518,8 @@ export function mountBrick(ctx){
     BEST.set('brick.score', bScore);
     var stars = bHand <= 22 ? 3 : bHand <= 30 ? 2 : 1;
     showVerdict(BRK_V, BRK_VT, BRK_VS, 'v-ok',
-      fmtStars(stars) + ' 清了 ' + bRows + ' 行 · ' + bHand + ' 手 · ' + bScore + ' 分'
-      + (bh && bh < bHand ? '（最少 ' + bh + ' 手）' : (bScore > prevBest ? ' · 新纪录' : '')), '成');
+      fmtStars(stars) + ' 清了 ' + bRows + ' 行 · ' + bHand + ' 步 · ' + bScore + ' 分'
+      + (bh && bh < bHand ? '（最少 ' + bh + ' 步）' : (bScore > prevBest ? ' · 新纪录' : '')), '成');
     MHINT.textContent = '清满了 · 最多 ' + bMaxCombo + ' 连击';
   }
 

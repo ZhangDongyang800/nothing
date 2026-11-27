@@ -773,8 +773,8 @@ export class Game implements GameApi {
           kind: 'fill', id: isGold ? 'gold' : 'heal', name: isGold ? '一把铜钱' : '一口回墨',
           glyph: isGold ? '金' : '墨', tag: '补给', desc: '立刻生效，不占武器位',
           next: '',
-          now: isGold ? `金币 ${this.player.gold}` : `生命 ${Math.ceil(this.player.hp)} / ${Math.round(this.statsData.maxHp)}`,
-          then: isGold ? `金币 ${this.player.gold + 80}` : `回复 ${Math.round(this.statsData.maxHp * 0.45)} 生命`,
+          now: isGold ? `铜钱 ${this.player.gold}` : `生命 ${Math.ceil(this.player.hp)} / ${Math.round(this.statsData.maxHp)}`,
+          then: isGold ? `铜钱 ${this.player.gold + 80}` : `回复 ${Math.round(this.statsData.maxHp * 0.45)} 生命`,
           thenLabel: '拿走',
           level: 0, color: '#8a6a3a', evolved: false,
         });
@@ -1730,7 +1730,7 @@ export class Game implements GameApi {
           this.toast('墨将清完 · 掉了一只箱子', 'good');
         } else {
           for (let i = 0; i < 4; i++) this.dropGem(e.x + (this.rnd() - 0.5) * 48, e.y + (this.rnd() - 0.5) * 48, 'gold', e.gold * 0.8);
-          this.toast('墨将清完 · 墨钱撒了一地', 'good');
+          this.toast('墨将清完 · 铜钱撒了一地', 'good');
         }
       }
     }
@@ -1788,7 +1788,7 @@ export class Game implements GameApi {
         this.reviveUsed = true;
         p.hp = Math.max(1, st.maxHp * 0.5);
         p.invuln = 3;
-        this.ui.banner('墨魂', '这一下没死 · 站起来接着写', 'mile');
+        this.ui.banner('墨魂', '抵挡了一次致命伤害', 'mile');
         this.ui.flash('good');
         this.audio.sfx('evolve');
         this.ring(p.x, p.y, 260, st.damage * 30, 420, '#b5342b');
@@ -2076,7 +2076,7 @@ export class Game implements GameApi {
       out.push({ id: def.id, name: def.name, desc: def.desc, color: def.color, glyph: def.id === 'evo' ? '进' : def.id === 'weapon' ? '器' : def.id === 'gold' ? '金' : def.id === 'heal' ? '墨' : def.id === 'passive' ? '印' : '符' });
     }
     if (out.length < 3) {
-      out.push({ id: 'gold', name: '一把铜钱', desc: '金币 +120', color: '#8a6a3a', glyph: '金' });
+      out.push({ id: 'gold', name: '一把铜钱', desc: '铜钱 +120', color: '#8a6a3a', glyph: '金' });
     }
     return out;
   }

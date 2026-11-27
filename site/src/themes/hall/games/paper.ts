@@ -143,7 +143,7 @@ export function mountPaper(ctx){
 
     var full = chars.length >= COLS * ROWS;
     SHEET.classList.toggle('is-full', full);
-    STATE.textContent = full ? '满页 · 已收稿' : '已收稿';
+    STATE.textContent = full ? '写满一页 · 已盖章' : '已盖章';
     if (ctx.current === 'paper') MHINT.textContent = full ? '一页满了 · 点清空再写' : '再点清空，写下一张';
     if (FINEPOINTER) { try { INPUT.blur(); } catch(e){} }
   }
@@ -158,7 +158,7 @@ export function mountPaper(ctx){
     var s = PAPER.querySelector('.seal');
     if (s) s.remove();
     SHEET.classList.remove('sealed', 'is-full');
-    STATE.textContent = '待落笔';
+    STATE.textContent = '点纸就写';
     readout();
     placeCaret();
   }

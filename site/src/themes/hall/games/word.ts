@@ -435,8 +435,8 @@ export function mountWord(ctx){
     try { localStorage.setItem('txxt-pair-tier', t); } catch(e){}
     syncTierUI();
     updatePairHud();
-    MHINT.textContent = t === 'hard' ? '难档 · 十对，没有预展，近形相杂'
-      : (t === 'easy' ? '易档 · 六对，先亮一眼，字疏好认' : '中档 · 八对，先亮一眼，有近形字');
+    MHINT.textContent = t === 'hard' ? '难档 · 十对 · 开局不亮牌 · 长得像的字更多'
+      : (t === 'easy' ? '易档 · 六对 · 开局先亮牌 · 字少好认' : '中档 · 八对 · 开局先亮牌 · 混入长得像的字');
   });
   on(PAIR_GO, 'click', beginPair);
   /* 键盘也能开局：开局面板盖着时空格 / 回车 = 开始（选中的难度照常生效） */
