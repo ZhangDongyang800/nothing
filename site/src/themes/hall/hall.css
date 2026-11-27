@@ -261,7 +261,9 @@ p,h1,h2,h3{margin:0}
 .cab:hover{transform:translate(-3px,-3px);box-shadow:10px 10px 0 var(--nb-ink)}
 .cab:active{transform:translate(3px,3px);box-shadow:3px 3px 0 var(--nb-ink)}
 .cab:focus-visible{outline:3px solid var(--nb-blue);outline-offset:3px}
-.cab-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex:none}
+/* 标题一律靠左：space-between 会把没有「横屏」角标的 7 张卡的标题推到右边，
+   和带角标的 3 张卡两套对齐。角标自己 margin-left:auto 靠右就够。 */
+.cab-top{display:flex;align-items:flex-start;justify-content:flex-start;gap:8px;flex:none}
 .cab-no{font-family:var(--font-mono);font-size:9px;letter-spacing:.2em;opacity:.55;padding-top:3px}
 .cab-name{font-size:clamp(15px,1.5vw,21px);font-weight:900;letter-spacing:.02em;line-height:1.1}
 .cab-rot{
@@ -982,7 +984,7 @@ p,h1,h2,h3{margin:0}
   .zone-note{font-size:8px!important;margin-top:9px!important}
   .cabs{flex:none;height:auto;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(132px,auto);gap:8px}
   .cab{flex:none;flex-direction:column;align-items:stretch;gap:0;padding:7px 8px;height:auto;min-height:0}
-  .cab-top{flex-direction:row;align-items:center;justify-content:space-between;gap:6px;width:auto;padding:0}
+  .cab-top{flex-direction:row;align-items:center;justify-content:flex-start;gap:6px;width:auto;padding:0}
   .cab-no{padding-top:0;order:0}
   .cab-name{line-height:1;font-size:15px}
   .cab-play{position:static;width:20px;height:20px;font-size:9px;margin-top:0}
@@ -1951,15 +1953,15 @@ body.is-playing .cabs *{animation-play-state:paused!important}
 .app-actions{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .app-toolbox .app-actions{grid-template-columns:1fr}
 .app-dl{
-  display:flex;align-items:center;justify-content:space-between;gap:8px;
-  padding:11px 12px;border:2.5px solid var(--nb-ink);
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;
+  padding:11px 13px;border:2.5px solid var(--nb-ink);
   background:var(--nb-ink);color:var(--nb-paper);
   box-shadow:4px 4px 0 var(--nb-coral);
   transition:transform .12s ease,box-shadow .12s ease;
 }
 .app-dl:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--nb-coral)}
-.app-dl span{font-family:var(--font-mono);font-size:8px;letter-spacing:.1em;opacity:.66}
-.app-dl b{font-size:clamp(11px,1vw,13px);white-space:nowrap}
+.app-dl span{font-family:var(--font-mono);font-size:clamp(10px,.82vw,11px);letter-spacing:.08em;opacity:.8}
+.app-dl b{font-size:clamp(13px,1.05vw,15px);line-height:1.2;white-space:nowrap}
 .app-dl-alt{background:var(--nb-yellow);color:var(--nb-ink);box-shadow:4px 4px 0 var(--nb-ink)}
 .app-dl-alt:hover{box-shadow:2px 2px 0 var(--nb-ink)}
 .app-dl-blue{background:var(--nb-blue);color:var(--nb-ink);box-shadow:4px 4px 0 var(--nb-ink)}
@@ -1975,8 +1977,9 @@ body.is-playing .cabs *{animation-play-state:paused!important}
   .app-toolbox{box-shadow:6px 6px 0 var(--nb-blue)}
   .app-name{font-size:30px}
   .app-line{font-size:11px}
-  .app-dl{padding:10px 10px;box-shadow:3px 3px 0 var(--nb-coral)}
-  .app-dl b{font-size:11px}
+  .app-dl{padding:10px 11px;box-shadow:3px 3px 0 var(--nb-coral)}
+  .app-dl span{font-size:10.5px}
+  .app-dl b{font-size:13px}
 }
 
 /* =================================================================
@@ -2294,6 +2297,10 @@ body.is-playing .cabs *{animation-play-state:paused!important}
 }
 .m-close{margin-left:0}
 .m-count{display:none}
+/* 390px 下「纸上军团」曾被折成「纸上军 / 团」、角标折成两行：
+   名字不缩不换行，角标放不下的部分省略号（玩法在开局面板里还写了一遍）。 */
+.m-name{flex:none;white-space:nowrap}
+.m-tag{flex:0 1 auto;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .m-no{font-size:11px;letter-spacing:.16em;opacity:.5}
 .m-hint{
   min-width:0;max-width:min(40vw,540px);

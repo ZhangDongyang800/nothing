@@ -95,7 +95,7 @@ export default function Hall() {
           <div className="zone-head">
             <span className="kicker">02 / 小游戏</span>
             <h2>小游戏</h2>
-            <p className="zone-note">10 个 · 点开就玩 · 横屏：墨潮</p>
+            <p className="zone-note">10 个 · 点开就玩 · 横屏更佳：墨潮 / 走墨</p>
           </div>
 
           <div className="cabs">
