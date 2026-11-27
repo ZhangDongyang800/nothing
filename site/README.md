@@ -27,7 +27,7 @@
 
 
 
-* TxxT Windows：`/downloads/TxxT-Setup-1.4.1.exe`（NSIS，83,333,507 B，sha256 `b738d5c1…`）
+* TxxT Windows：`/downloads/TxxT-Setup-1.4.2.exe`（NSIS，85,318,154 B，sha256 `f4af838d…`）
 
 * TxxT Android：`/downloads/TxxT-Android-1.1.apk`（4,594,467 B，sha256 `5e1dbe05…`）
 

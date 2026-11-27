@@ -4,7 +4,7 @@ import { attachHall } from './engine';
 // 三个包都从本站 /downloads 直下（nginx 挂 /opt/txxt-sync/downloads）。
 // 不写 GitHub Release 直链：跨域 <a download> 会被浏览器忽略，点了会跳到
 // github.com 的仓库页，国内还常被断流。同域 + octet-stream 才是"点一下就开始下"。
-const DESKTOP_DOWNLOAD = '/downloads/TxxT-Setup-1.4.1.exe';
+const DESKTOP_DOWNLOAD = '/downloads/TxxT-Setup-1.4.2.exe';
 const ANDROID_DOWNLOAD = '/downloads/TxxT-Android-1.1.apk';
 const TOOLBOX_DOWNLOAD = '/downloads/Toolbox-Setup-0.1.3.exe';
 
@@ -62,7 +62,7 @@ export default function Hall() {
               <div className="app-actions">
                 <a className="app-dl" href={DESKTOP_DOWNLOAD} download>
                   <span>Windows · EXE</span>
-                  <b>v1.4.1 · 79 MB ↓</b>
+                  <b>v1.4.2 · 81 MB ↓</b>
                 </a>
                 <a className="app-dl app-dl-alt" href={ANDROID_DOWNLOAD} download>
                   <span>Android · APK</span>
