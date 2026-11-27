@@ -109,7 +109,7 @@
 
 中文输入法在稿纸里做了守卫：`compositionstart` 置位、`compositionend` 提交，`input` 在 `e.isComposing` 时直接返回，避免组词过程中被逐个吞字。
 
-下载入口只在应用卡里，共 3 个：TxxT 的电脑版 `TxxT-Setup-1.4.1.exe` 与安卓版 `TxxT-Android-1.1.apk` 同在一张卡，工具箱子卡只给 `Toolbox-Setup-0.1.3.exe`。三个地址都是同域 `/downloads/...`，不带 `github.com`。两端不做 UA 分流，手机也会看到电脑版。`qa-hall.mjs` 断言两端 3 个入口都可见、HEAD 200；`scripts/probe-download.mjs` 真点一次，断言触发 download 事件且页面不离开本站。
+下载入口只在应用卡里，共 3 个：TxxT 的电脑版 `TxxT-Setup-1.4.2.exe` 与安卓版 `TxxT-Android-1.1.apk` 同在一张卡，工具箱子卡只给 `Toolbox-Setup-0.1.3.exe`。三个地址都是同域 `/downloads/...`，不带 `github.com`。两端不做 UA 分流，手机也会看到电脑版。`qa-hall.mjs` 断言两端 3 个入口都可见、HEAD 200；`scripts/probe-download.mjs` 真点一次，断言触发 download 事件且页面不离开本站。
 
 ## 运行
 
@@ -143,7 +143,7 @@ npm run preview    # http://localhost:5274/
 
 | 平台 | 文件 | 大小 | SHA-256 |
 | --- | --- | --- | --- |
-| Windows | `downloads/TxxT-Setup-1.4.1.exe` | 83,333,507 | `b738d5c1eb7ca8b4d71053fc17cbb92089b8ccfdd82969449e1848f4ac702dcf` |
+| Windows | `downloads/TxxT-Setup-1.4.2.exe` | 85,318,154 | `f4af838deb1b4d9ac328627767dfd6ac10b54b866f3c82728f09393bdd480512` |
 | Android | `downloads/TxxT-Android-1.1.apk` | 4,594,467 | `5e1dbe05ca2c7e9f2d169e6adaf723507900cb8c64e276d4f1a500d4b7ec2297` |
 | Windows（工具箱） | `downloads/Toolbox-Setup-0.1.3.exe` | 254,998,354 | `104fc57853ba1c19c7d0329aaf1546a5b5aae38babbe691b12563e926e6c131d` |
 
